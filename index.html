@@ -2,41 +2,56 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050816" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Star Swarm</title>
+  <meta name="description" content="Sala Giochi WEB: piccoli giochi arcade gratuiti ispirati ai grandi classici, pensati per smartphone." />
+  <title>Sala Giochi WEB</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="hub.css" />
 </head>
 <body>
-  <main id="app">
-    <canvas id="game" aria-label="Star Swarm"></canvas>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">ARCADE MOBILE • ZERO INSTALLAZIONE</p>
+      <h1>SALA GIOCHI <span>WEB</span></h1>
+      <p class="intro">Una piccola sala giochi nel browser, costruita per lo smartphone. Scegli un titolo e gioca subito: controlli touch, partite veloci e record salvati sul dispositivo.</p>
+      <div class="counter">2 GIOCHI DISPONIBILI</div>
+    </header>
 
-    <section id="hud" aria-live="polite">
-      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
-      <div><span class="hud-label">LEVEL</span><strong id="level">1</strong></div>
-      <div><span class="hud-label">LIVES</span><strong id="lives">3</strong></div>
+    <section class="game-list" aria-label="Giochi disponibili">
+      <a class="game-card" href="games/star-swarm/">
+        <div class="art space-art" aria-hidden="true">
+          <i class="enemy-dot e1"></i><i class="enemy-dot e2"></i><i class="enemy-dot e3"></i>
+          <i class="ship"></i>
+        </div>
+        <div class="card-copy">
+          <small>SPACE SHOOTER</small>
+          <h2>Star Swarm</h2>
+          <p>Formazioni aliene, picchiate, fuoco automatico e livelli sempre più rapidi.</p>
+          <div class="tags"><span class="tag">TOUCH</span><span class="tag">ARCADE</span><span class="tag">VERTICALE</span></div>
+        </div>
+      </a>
+
+      <a class="game-card" href="games/bubble-burst/">
+        <div class="art bubble-art" aria-hidden="true">
+          <i class="bubble b1"></i><i class="bubble b2"></i><i class="bubble b3"></i>
+          <i class="bubble b4"></i><i class="bubble b5"></i><i class="bubble b6"></i>
+          <i class="cannon"></i>
+        </div>
+        <div class="card-copy">
+          <small>BUBBLE SHOOTER</small>
+          <h2>Bubble Burst</h2>
+          <p>Mira, sfrutta i rimbalzi e combina le bolle per far crollare interi grappoli.</p>
+          <div class="tags"><span class="tag">MIRA</span><span class="tag">PUZZLE</span><span class="tag">COMBO</span></div>
+        </div>
+      </a>
     </section>
 
-    <div id="topbar">
-      <button id="muteBtn" class="icon-btn" aria-label="Attiva o disattiva audio">🔊</button>
-      <button id="pauseBtn" class="icon-btn" aria-label="Pausa">Ⅱ</button>
-    </div>
+    <p class="coming">La sala è appena nata. L'architettura è pronta per aggiungere nuovi giochi senza cambiare l'esperienza di navigazione.</p>
 
-    <section id="overlay" class="visible">
-      <div class="panel">
-        <p class="eyebrow">ARCADE SPACE SHOOTER</p>
-        <h1>STAR<br><span>SWARM</span></h1>
-        <p id="overlayText">Trascina la nave con un dito. Il fuoco è automatico. Schiva le picchiate, distruggi la formazione e resisti il più possibile.</p>
-        <div class="stats-line">BEST <strong id="best">0</strong></div>
-        <button id="startBtn" class="primary-btn">GIOCA</button>
-        <p class="hint">Consigliato in verticale • touch / mouse</p>
-      </div>
-    </section>
+    <footer>Sala Giochi WEB usa codice, nomi e grafica originali. I giochi sono tributi di genere ai classici arcade e non includono asset dei titoli originali.</footer>
   </main>
-
-  <script src="game.js"></script>
 </body>
 </html>
