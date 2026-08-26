@@ -1,6 +1,6 @@
-# Sala Giochi WEB
+# RetroWebGames
 
-**Sala Giochi WEB** è una raccolta di piccoli giochi arcade mobile-first eseguiti direttamente nel browser. Il progetto nasce da WebGalaga/Star Swarm ed è stato ampliato in una sala giochi pensata soprattutto per smartphone in verticale.
+**RetroWebGames** è una raccolta di piccoli giochi arcade mobile-first eseguiti direttamente nel browser. Il progetto nasce da Star Swarm ed è stato ampliato come raccolta di giochi pensata soprattutto per smartphone in verticale.
 
 Demo VPS indicata per il progetto: `http://91.134.23.24:8112/`
 
@@ -41,7 +41,7 @@ Percorso: `games/bubble-burst/`
 
 ```text
 /
-├── index.html                  # hub Sala Giochi WEB
+├── index.html                  # hub RetroWebGames
 ├── hub.css                     # stile della home
 ├── manifest.webmanifest        # manifest condiviso
 ├── game.js                     # motore Star Swarm
@@ -73,4 +73,4 @@ L'interfaccia usa Canvas HTML5, Pointer Events e Web Audio API. È ottimizzata p
 
 ## Nota sui giochi originali
 
-Sala Giochi WEB è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non include asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
+RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non include asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
