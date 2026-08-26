@@ -230,6 +230,43 @@ h1 span { color: var(--pink); }
   box-shadow: 0 0 12px rgba(101,231,255,.25);
 }
 
+.block-art {
+  background:
+    linear-gradient(rgba(101,231,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(101,231,255,.055) 1px, transparent 1px),
+    radial-gradient(circle at 50% 16%, #17294e, #091126 64%, #040711);
+  background-size: 18px 18px, 18px 18px, auto;
+}
+.tetromino {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -2px -2px rgba(0,0,0,.18), 18px 0 currentColor, 36px 0 currentColor;
+}
+.tetromino::before,
+.tetromino::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -2px -2px rgba(0,0,0,.18);
+}
+.t1 { left: 19px; top: 18px; color: #65e7ff; background: currentColor; }
+.t1::before { left: 18px; top: 18px; }
+.t1::after { display: none; }
+.t2 { left: 30px; top: 65px; color: #ffe66d; background: currentColor; box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -2px -2px rgba(0,0,0,.18), 18px 0 currentColor; }
+.t2::before { left: 0; top: 18px; }
+.t2::after { left: 18px; top: 18px; }
+.t3 { left: 11px; top: 110px; color: #ff6680; background: currentColor; box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -2px -2px rgba(0,0,0,.18), 18px 0 currentColor; }
+.t3::before { left: 18px; top: -18px; }
+.t3::after { left: 36px; top: -18px; }
+.t4 { right: 15px; top: 98px; color: #7cffb2; background: currentColor; box-shadow: inset 2px 2px rgba(255,255,255,.24), inset -2px -2px rgba(0,0,0,.18); }
+.t4::before { left: 0; top: -18px; }
+.t4::after { left: -18px; top: -18px; }
+
 .coming {
   margin: 0 0 26px;
   padding: 15px 16px;
