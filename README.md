@@ -57,12 +57,31 @@ Falling-block puzzle originale ispirato ai classici giochi di incastro a blocchi
 
 Percorso: `games/block-drop/`
 
+### Maze Munch
+
+Maze-chase originale ispirato ai grandi classici da sala giochi basati su labirinti e inseguimenti.
+
+- labirinto completo con punti da raccogliere e tunnel laterale
+- quattro inseguitori con strategie di caccia differenti
+- pathfinding sul labirinto per evitare movimenti casuali o loop banali
+- surge nodes che rendono temporaneamente vulnerabili gli inseguitori
+- combo progressiva catturando più nemici durante lo stesso surge
+- bonus temporanei che appaiono durante il livello
+- vite, punteggio, livelli e high score locale
+- difficoltà crescente con inseguitori più rapidi
+- controlli touch tramite swipe e pulsanti direzionali
+- supporto frecce/WASD su desktop
+- pausa, vibrazione e Web Audio
+
+Percorso: `games/maze-munch/`
+
 ## Struttura
 
 ```text
 /
 ├── index.html                  # hub RetroWebGames
-├── hub.css                     # stile della home
+├── hub.css                     # stile principale della home
+├── hub-games.css               # illustrazioni aggiuntive del catalogo
 ├── manifest.webmanifest        # manifest condiviso
 ├── game.js                     # motore Star Swarm
 ├── style.css                   # stile Star Swarm
@@ -73,9 +92,16 @@ Percorso: `games/block-drop/`
     │   ├── index.html
     │   ├── style.css
     │   └── game.js
-    └── block-drop/
+    ├── block-drop/
+    │   ├── index.html
+    │   ├── style.css
+    │   └── game.js
+    └── maze-munch/
         ├── index.html
         ├── style.css
+        ├── config.js
+        ├── engine.js
+        ├── render.js
         └── game.js
 ```
 
