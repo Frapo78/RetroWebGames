@@ -1,10 +1,10 @@
 {
-  "name": "Star Swarm",
-  "short_name": "StarSwarm",
+  "name": "Sala Giochi WEB",
+  "short_name": "SalaGiochi",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#050816",
   "theme_color": "#050816",
   "orientation": "portrait",
-  "description": "Mobile vertical arcade space shooter inspired by classic fixed shooters."
+  "description": "Sala giochi web mobile-first con piccoli titoli arcade originali ispirati ai grandi classici."
 }
