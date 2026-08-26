@@ -1,0 +1,71 @@
+.maze-art {
+  background:
+    linear-gradient(rgba(75,108,255,.38) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(75,108,255,.38) 2px, transparent 2px),
+    radial-gradient(circle at 50% 20%, #14295a, #071126 68%, #03050b);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+.maze-art::before,
+.maze-art::after {
+  content: "";
+  position: absolute;
+  background: #071126;
+  border: 2px solid #4b6cff;
+  box-shadow: 0 0 7px rgba(75,108,255,.45);
+}
+.maze-art::before { left: 12px; top: 17px; width: 58px; height: 19px; }
+.maze-art::after { right: 10px; bottom: 19px; width: 44px; height: 34px; }
+.maze-runner {
+  position: absolute;
+  z-index: 2;
+  left: 21px;
+  bottom: 37px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #7cffb2;
+  box-shadow: 0 0 13px rgba(124,255,178,.8);
+}
+.maze-runner::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 7px;
+  width: 13px;
+  height: 13px;
+  transform: rotate(45deg);
+  background: #071126;
+}
+.maze-hunter {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px currentColor;
+}
+.maze-hunter::before,
+.maze-hunter::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #071126;
+}
+.maze-hunter::before { left: 5px; }
+.maze-hunter::after { right: 5px; }
+.mh1 { right: 17px; top: 26px; color: #ff6680; background: #ff6680; }
+.mh2 { right: 42px; top: 68px; color: #65e7ff; background: #65e7ff; }
+.maze-node {
+  position: absolute;
+  z-index: 2;
+  left: 52px;
+  top: 64px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffe66d;
+  box-shadow: 0 0 13px #ffe66d;
+}
