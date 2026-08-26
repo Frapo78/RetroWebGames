@@ -1,0 +1,10 @@
+{
+  "name": "Star Swarm",
+  "short_name": "StarSwarm",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050816",
+  "theme_color": "#050816",
+  "orientation": "portrait",
+  "description": "Mobile vertical arcade space shooter inspired by classic fixed shooters."
+}
