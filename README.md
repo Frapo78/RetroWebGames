@@ -37,6 +37,26 @@ Bubble shooter originale ispirato ai classici puzzle arcade a bolle.
 
 Percorso: `games/bubble-burst/`
 
+### Block Drop
+
+Falling-block puzzle originale ispirato ai classici giochi di incastro a blocchi.
+
+- campo 10×20
+- sette famiglie di pezzi distribuite con sistema 7-bag
+- spostamento, rotazione, soft drop e hard drop
+- piccoli wall-kick durante la rotazione
+- ghost piece per mostrare il punto di caduta
+- eliminazione da una a quattro linee contemporaneamente
+- punteggio moltiplicato per il livello
+- aumento di velocità ogni 10 linee
+- anteprima del prossimo pezzo
+- controlli touch dedicati e gesture sul campo
+- supporto tastiera su desktop
+- pausa automatica quando la pagina passa in background
+- high score salvato in `localStorage`
+
+Percorso: `games/block-drop/`
+
 ## Struttura
 
 ```text
@@ -49,7 +69,11 @@ Percorso: `games/bubble-burst/`
 └── games/
     ├── star-swarm/
     │   └── index.html
-    └── bubble-burst/
+    ├── bubble-burst/
+    │   ├── index.html
+    │   ├── style.css
+    │   └── game.js
+    └── block-drop/
         ├── index.html
         ├── style.css
         └── game.js
@@ -69,7 +93,7 @@ Aprire poi `http://localhost:8080/`.
 
 ## Compatibilità
 
-L'interfaccia usa Canvas HTML5, Pointer Events e Web Audio API. È ottimizzata per browser mobile moderni e supporta mouse anche su desktop. I record vengono salvati nel browser tramite `localStorage`.
+L'interfaccia usa Canvas HTML5 e Pointer Events, con Web Audio API nei giochi che includono effetti sonori. È ottimizzata per browser mobile moderni e supporta mouse/tastiera anche su desktop. I record vengono salvati nel browser tramite `localStorage`.
 
 ## Nota sui giochi originali
 
