@@ -16,7 +16,7 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-button { font: inherit; }
+button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 
 #app {
   position: relative;
@@ -63,14 +63,19 @@ button { font: inherit; }
   gap: 8px;
 }
 .icon-btn {
+  display: inline-flex;
   width: 42px;
   height: 42px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 50%;
   color: white;
+  text-decoration: none;
   background: rgba(4, 12, 30, .7);
   backdrop-filter: blur(8px);
 }
+.nav-home { font-size: 20px; }
 
 #overlay {
   position: absolute;
