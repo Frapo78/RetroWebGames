@@ -225,10 +225,8 @@
   function clearLines(rows) {
     clearedRows = rows.slice();
     clearFlash = 0.13;
-    for (let i = rows.length - 1; i >= 0; i--) {
-      board.splice(rows[i], 1);
-      board.unshift(Array(COLS).fill(null));
-    }
+    for (let i = rows.length - 1; i >= 0; i--) board.splice(rows[i], 1);
+    for (let i = 0; i < rows.length; i++) board.unshift(Array(COLS).fill(null));
     const table = [0, 100, 300, 500, 800];
     score += (table[rows.length] || rows.length * 250) * level;
     lines += rows.length;
