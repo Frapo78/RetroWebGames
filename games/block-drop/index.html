@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#070b18" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Block Drop — RetroWebGames</title>
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app">
+    <header id="hud" aria-live="polite">
+      <a class="icon-btn home-btn" href="../../" aria-label="Torna a RetroWebGames">⌂</a>
+      <div class="stat"><span>SCORE</span><strong id="score">0</strong></div>
+      <div class="stat"><span>LINEE</span><strong id="lines">0</strong></div>
+      <div class="stat"><span>LEVEL</span><strong id="level">1</strong></div>
+      <button id="pauseBtn" class="icon-btn" aria-label="Pausa">Ⅱ</button>
+    </header>
+
+    <section id="stage">
+      <canvas id="game" aria-label="Block Drop"></canvas>
+      <aside id="nextBox" aria-label="Prossimo pezzo">
+        <span>NEXT</span>
+        <canvas id="next" width="88" height="88"></canvas>
+      </aside>
+    </section>
+
+    <section id="controls" aria-label="Controlli">
+      <button data-action="left" aria-label="Sposta a sinistra">◀</button>
+      <button data-action="rotate" class="rotate" aria-label="Ruota">↻</button>
+      <button data-action="right" aria-label="Sposta a destra">▶</button>
+      <button data-action="down" aria-label="Scendi">▼</button>
+      <button data-action="drop" class="drop" aria-label="Caduta rapida">DROP</button>
+    </section>
+
+    <section id="overlay" class="visible">
+      <div class="panel">
+        <p class="eyebrow">RETROWEBGAMES • FALLING BLOCK PUZZLE</p>
+        <h1>BLOCK<br><span>DROP</span></h1>
+        <p id="overlayText">Incastra i blocchi, completa le linee e resisti mentre la velocità aumenta. Usa i pulsanti touch o scorri direttamente sul campo.</p>
+        <div class="best-line">BEST <strong id="best">0</strong></div>
+        <button id="startBtn" class="primary-btn">GIOCA</button>
+        <p class="hint">Verticale • touch / tastiera • nessun asset esterno</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
