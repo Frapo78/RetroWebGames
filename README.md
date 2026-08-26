@@ -1,36 +1,76 @@
-# WebGalaga — Star Swarm
+# Sala Giochi WEB
 
-**Star Swarm** è una web app arcade mobile-first, pensata soprattutto per smartphone in verticale. Il gameplay richiama i classici fixed shooter spaziali: formazione di nemici, attacchi in picchiata, fuoco automatico, livelli progressivi, vite, punteggio e power-up.
+**Sala Giochi WEB** è una raccolta di piccoli giochi arcade mobile-first eseguiti direttamente nel browser. Il progetto nasce da WebGalaga/Star Swarm ed è stato ampliato in una sala giochi pensata soprattutto per smartphone in verticale.
 
-## Caratteristiche
+Demo VPS indicata per il progetto: `http://91.134.23.24:8112/`
 
-- Canvas HTML5, zero dipendenze esterne
-- Controllo touch tramite trascinamento
-- Fuoco automatico
-- Nemici in formazione con attacchi in picchiata
-- Proiettili nemici direzionati verso il giocatore
-- Tre famiglie di nemici con punteggi e resistenza differenti
-- Power-up `Rapid Fire`
-- Livelli progressivi
-- High score salvato in `localStorage`
-- Effetti particellari, screen shake e audio generato con Web Audio API
-- Layout verticale con supporto safe-area iPhone
-- Manifest PWA di base
+## Giochi
+
+### Star Swarm
+
+Space shooter originale ispirato al genere dei classici fixed shooter arcade.
+
+- controllo touch tramite trascinamento
+- fuoco automatico
+- formazione di nemici e attacchi in picchiata
+- proiettili nemici
+- livelli progressivi
+- vite, punteggio e high score locale
+- power-up Rapid Fire
+- particelle, vibrazione e Web Audio
+
+Percorso: `games/star-swarm/`
+
+### Bubble Burst
+
+Bubble shooter originale ispirato ai classici puzzle arcade a bolle.
+
+- trascinamento per mirare e rilascio per sparare
+- traiettoria visualizzata e rimbalzi laterali
+- griglia esagonale
+- combinazioni di almeno tre bolle dello stesso colore
+- caduta automatica dei gruppi non più collegati al soffitto
+- penalità con nuova riga dopo una serie di tiri senza combinazioni
+- difficoltà crescente, più colori e limite errori più severo
+- punteggio, livelli e high score locale
+- effetti particellari, vibrazione e Web Audio
+
+Percorso: `games/bubble-burst/`
+
+## Struttura
+
+```text
+/
+├── index.html                  # hub Sala Giochi WEB
+├── hub.css                     # stile della home
+├── manifest.webmanifest        # manifest condiviso
+├── game.js                     # motore Star Swarm
+├── style.css                   # stile Star Swarm
+└── games/
+    ├── star-swarm/
+    │   └── index.html
+    └── bubble-burst/
+        ├── index.html
+        ├── style.css
+        └── game.js
+```
+
+La struttura mantiene ogni nuovo gioco in `games/<slug>/`, mentre la root resta il catalogo. Star Swarm continua a riutilizzare i file originali in root per evitare una migrazione distruttiva del primo motore.
 
 ## Avvio locale
 
-Essendo un progetto statico, basta servire la cartella con un web server:
+Il progetto è statico e non ha dipendenze esterne:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Poi aprire `http://localhost:8080`.
+Aprire poi `http://localhost:8080/`.
 
-## Controlli
+## Compatibilità
 
-Trascina la nave con dito o mouse. Il fuoco è automatico. I pulsanti in basso permettono di mettere in pausa e disattivare l'audio.
+L'interfaccia usa Canvas HTML5, Pointer Events e Web Audio API. È ottimizzata per browser mobile moderni e supporta mouse anche su desktop. I record vengono salvati nel browser tramite `localStorage`.
 
-## Nota
+## Nota sui giochi originali
 
-Il progetto è un omaggio ai classici arcade spaziali e usa grafica, nomi e codice originali. Non include asset, marchi o contenuti del gioco Galaga originale.
+Sala Giochi WEB è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non include asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
