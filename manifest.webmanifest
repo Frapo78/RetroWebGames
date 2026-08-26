@@ -1,10 +1,10 @@
 {
-  "name": "Sala Giochi WEB",
-  "short_name": "SalaGiochi",
+  "name": "RetroWebGames",
+  "short_name": "RetroWebGames",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#050816",
   "theme_color": "#050816",
   "orientation": "portrait",
-  "description": "Sala giochi web mobile-first con piccoli titoli arcade originali ispirati ai grandi classici."
+  "description": "RetroWebGames: raccolta mobile-first di piccoli titoli arcade originali ispirati ai grandi classici."
 }
