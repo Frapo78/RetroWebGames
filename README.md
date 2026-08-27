@@ -16,16 +16,24 @@ Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 - 10 boss differenti nei livelli 10, 20, …, 100, con forme, energia, movimento, IA e armi differenti
 - barra energia boss aggiornata in tempo reale, con stato critico e indicazione dello scudo quando previsto
 - pattern boss progressivi: raffiche mirate, ventagli, teletrasporto, anelli radiali, mine, homing, torrette, laser a corsia e a scansione, pattern combinati finali
-- dopo ogni boss appare una schermata arcade dedicata con riepilogo punti, vite, arma, wingmen e tempo boss, starfield in movimento e ripresa al tap
+- dopo ogni boss appare una schermata arcade dedicata con riepilogo punti, vite, arma, POWER, wingmen e tempo boss, starfield in movimento e ripresa al tap
 - dopo il boss del livello 100 viene mostrato il completamento campagna e si sblocca la prosecuzione Overdrive
+- cinque fasce grafiche/resistenza dei nemici: Scout, Striker, Guardian, Armored e Dread, con HP crescenti lungo la campagna
 - vite, punteggio e high score locale
 - power-up giallo Rapid Fire temporaneo
-- power-up rosso a rombo con 8 livelli arma: Single Fire, Double Fire, Triple Diagonal, 4 Fire Linear, Fireballs 3 Way, Laser, 3 Way Lasers e 5 Way Lasers
-- power-up verde Tractor Beam per risucchiare fino a 2 navicelle nemiche
-- nemici catturati convertiti in wingmen che affiancano il player e sparano sempre in Single Fire
+- power-up rosso Weapon Upgrade con progressione in 20 segmenti, da Single Fire fino a 5 Way Lasers Overdrive
+- ogni segmento arma applica un piccolo coefficiente di danno crescente, indipendente dal livello POWER
+- POWER indipendente da 1 a 10, con colore dei proiettili differente per livello e massimo due drop POWER per stage
+- Shield massimo uno per livello, capace di assorbire un colpo senza perdita vita/downgrade
+- alla perdita di una vita senza Shield: Weapon -2 segmenti e POWER -2 livelli
+- Weapon Upgrade estremamente raro; la probabilità è stata ulteriormente dimezzata rispetto al bilanciamento precedente
+- power-up verde Tractor Beam raro, al massimo uno ogni due livelli, per risucchiare fino a 2 navicelle nemiche
+- nemici catturati convertiti in wingmen che affiancano il player e sparano sempre in Single Fire base
 - wingmen vulnerabili a proiettili e collisioni nemiche
-- fireball e laser con comportamento e grafica propri; i laser possono attraversare più bersagli
-- stato arma, Rapid Fire, Tractor Beam e numero di wingmen mostrati direttamente sul campo
+- fireball e laser con comportamento e grafica propri
+- i laser attraversano ogni nemico colpito e continuano fino all'uscita dallo schermo; lo stesso laser colpisce ogni singolo bersaglio una sola volta
+- stato arma, POWER, Rapid Fire, Tractor Beam, Shield e numero di wingmen mostrati direttamente sul campo
+- terminal Game Over sempre delegato al componente condiviso con statistiche, achievement, share, Continue con 1 credito, Nuova partita e scelta altro gioco
 - particelle, vibrazione e Web Audio
 
 Percorso: `games/star-swarm/`
@@ -131,10 +139,30 @@ Il client mantiene attualmente un profilo anonimo persistente nel browser con st
 ## Identità visiva
 `favicon.svg` è l'icona vettoriale ufficiale. La moneta dei crediti usa una skin pixel-art originale con animazione continua in stile arcade.
 
+## Guardrail e documentazione tecnica
+
+Il repository contiene ora contratti espliciti per evitare regressioni tra motori di gioco e servizi condivisi:
+
+- `AGENTS.md` — istruzioni machine-oriented e invarianti obbligatorie per agenti/coding assistant
+- `docs/ARCHITECTURE.md` — lifecycle e responsabilità dei componenti condivisi
+- `docs/STAR-SWARM.md` — source of truth per campagna, boss, drop, Weapon/POWER/Shield/wingmen
+- `docs/WASM-EVALUATION.md` — decisione e soglie tecniche per un eventuale uso futuro di WebAssembly
+- `scripts/validate-contracts.mjs` — validatore statico anti-regressione
+
+Dopo modifiche architetturali o gameplay eseguire:
+
+```bash
+node scripts/validate-contracts.mjs
+```
+
+oltre a `node --check` sui JavaScript modificati.
+
 ## Struttura
 
 ```text
 /
+├── AGENTS.md
+├── README.md
 ├── index.html
 ├── favicon.svg
 ├── hub.css
@@ -147,10 +175,17 @@ Il client mantiene attualmente un profilo anonimo persistente nel browser con st
 ├── game-over.js / game-over.css
 ├── orientation.js / orientation.css
 ├── manifest.webmanifest
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── STAR-SWARM.md
+│   └── WASM-EVALUATION.md
+├── scripts/
+│   └── validate-contracts.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
     │   ├── index.html
+    │   ├── engine.js
     │   ├── campaign.js
     │   ├── bosses.js
     │   └── campaign.css
