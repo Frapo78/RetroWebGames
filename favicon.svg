@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RetroWebGames">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101d3c"/>
+      <stop offset="1" stop-color="#030611"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#65e7ff"/>
+      <stop offset="0.52" stop-color="#8c8cff"/>
+      <stop offset="1" stop-color="#ff5ecf"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#bg)" stroke="url(#neon)" stroke-width="3"/>
+  <path d="M16 14h9v37h-9zM25 14h17v8H25zM34 22h8v12h-8zM25 29h17v8H25z" fill="#65e7ff" filter="url(#glow)"/>
+  <path d="M28 36h9l13 15H39L28 39z" fill="#ff5ecf" filter="url(#glow)"/>
+  <rect x="46" y="12" width="6" height="6" rx="2" fill="#ffe66d" filter="url(#glow)"/>
+  <rect x="10" y="48" width="5" height="5" rx="1.5" fill="#7cffb2"/>
+</svg>
