@@ -182,23 +182,51 @@ body.rwg-game-over-open { overflow: hidden !important; }
 .rwg-go-whatsapp { color: #05210f; border-color: rgba(255,255,255,.2); background: linear-gradient(135deg,#35e979,#20c961); }
 .rwg-go-share:active { transform: scale(.96); }
 
+.rwg-continue-box {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255,230,109,.2);
+  border-radius: 17px;
+  background: linear-gradient(135deg, rgba(255,230,109,.08), rgba(255,94,207,.045));
+}
+.rwg-continue-free {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 14px;
+  color: #161002;
+  background: linear-gradient(135deg, #ffe66d, #ffb85c);
+  box-shadow: 0 10px 28px rgba(255,230,109,.16), inset 0 1px rgba(255,255,255,.55);
+  font: 950 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rwg-continue-box > span {
+  display: block;
+  margin-top: 7px;
+  color: #b8a989;
+  font: 700 8px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.rwg-continue-box > span strong { color: #ffe9a0; }
+
 .rwg-game-over-actions {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 9px;
-  margin-top: 15px;
+  margin-top: 13px;
 }
 .rwg-play-again {
   min-width: min(100%, 260px);
-  min-height: 52px;
+  min-height: 48px;
   padding: 0 22px;
   border: 1px solid rgba(255,255,255,.18);
   border-radius: 16px;
   color: #06111e;
   background: linear-gradient(135deg, var(--rwg-go-cyan), #b7f5ff);
   box-shadow: 0 10px 28px rgba(101,231,255,.18), inset 0 1px rgba(255,255,255,.7);
-  font: 950 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font: 950 11px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: .05em;
   text-transform: uppercase;
   cursor: pointer;
@@ -222,12 +250,13 @@ body.rwg-game-over-open { overflow: hidden !important; }
   .rwg-game-over-kicker { margin-top: 10px; }
   .rwg-challenge-box, .rwg-achievements { margin-top: 8px; }
   .rwg-go-stat { padding: 8px; }
+  .rwg-continue-box { margin-top: 9px; padding: 9px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .rwg-game-over-card { animation: rwgGameOverIn .36s cubic-bezier(.2,.9,.2,1) both; }
-  .rwg-play-again, .rwg-go-share { transition: transform .14s ease, filter .14s ease; }
-  .rwg-play-again:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  .rwg-play-again, .rwg-go-share, .rwg-continue-free { transition: transform .14s ease, filter .14s ease; }
+  .rwg-play-again:hover, .rwg-continue-free:hover { filter: brightness(1.06); transform: translateY(-1px); }
   .rwg-achievement.is-new { animation: rwgAchievementPop .48s cubic-bezier(.2,1.4,.3,1) both; }
 }
 @keyframes rwgGameOverIn { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
