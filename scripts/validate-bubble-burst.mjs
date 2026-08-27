@@ -54,6 +54,7 @@ must(game.includes('function nearbyBubbles('), 'Bubble Burst must retain nearby-
 must(game.includes('for (const b of nearbyBubbles('), 'Bubble Burst moving collision/special resolution must use nearby-cell lookup');
 must(game.includes('speed = baseSpeed * 3'), 'Bubble Burst launched bubbles must move at exactly three times the established baseline speed');
 must(game.includes('Math.ceil(distance / Math.max(4, R * .75))'), 'Bubble Burst 3x shot movement must retain sub-stepped anti-tunneling collision checks');
+must(game.includes('function drawMovingBubble()') && game.includes("ctx.globalCompositeOperation = 'lighter'"), 'Bubble Burst 3x projectile must retain its interpolated cached-sprite motion trail');
 must(game.includes('const bubbleSprites = new Map()'), 'Bubble Burst must cache bubble render sprites');
 must(game.includes('const mangaChibiSprites = new Map()'), 'Bubble Burst must cache clean manga chibi base sprites');
 must(game.includes('function makeMangaChibiSprite('), 'Bubble Burst manga chibi base renderer missing');

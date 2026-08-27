@@ -277,7 +277,7 @@
   function shoot() {
     if (!running || paused || moving || levelClearActive) return;
     const v = aimVector(), baseSpeed = Math.min(720, 535 + level * .85 + H * .05), speed = baseSpeed * 3;
-    moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, ...currentShot };
+    moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, renderTrail: [], ...currentShot };
     currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18;
     updateHud(); tone(moving.kind === SHOT_BOMB ? 320 : moving.kind === SHOT_COLOR_CLEAR ? 820 : 520, .055, 'triangle', .028, 180);
   }
@@ -539,12 +539,15 @@
 
   function updateMoving(dt) {
     if (!moving) return;
+    const renderTrail = moving.renderTrail || (moving.renderTrail = []);
+    renderTrail.length = 0; renderTrail.push(moving.x, moving.y);
     const distance = Math.hypot(moving.vx, moving.vy) * dt;
     const steps = Math.max(1, Math.ceil(distance / Math.max(4, R * .75))), stepDt = dt / steps;
     for (let step = 0; step < steps && moving; step++) {
       moving.x += moving.vx * stepDt; moving.y += moving.vy * stepDt;
       if (moving.x <= R) { moving.x = R; moving.vx = Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
       else if (moving.x >= W - R) { moving.x = W - R; moving.vx = -Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
+      renderTrail.push(moving.x, moving.y);
       const hit = collisionBubble(moving.x, moving.y);
       if (hit) { resolveImpact(hit); return; }
       const top = ceilingY();
@@ -598,6 +601,27 @@
   function drawBubble(x, y, color, radius = R, type = STATIC_NORMAL, armor = 0) {
     const sprite = makeBubbleSprite(color, type, armor), d = radius * 2.55;
     ctx.drawImage(sprite, x - d / 2, y - d / 2, d, d);
+  }
+
+  function drawMovingBubble() {
+    if (!moving) return;
+    const trail = moving.renderTrail;
+    if (trail?.length >= 4) {
+      const samples = trail.length / 2, stride = Math.max(1, Math.ceil((samples - 1) / 3));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.globalAlpha = .16; ctx.strokeStyle = moving.kind === SHOT_BOMB ? '#ff934f' : moving.kind === SHOT_COLOR_CLEAR ? '#ffffff' : moving.color;
+      ctx.lineWidth = Math.max(5, R * .9); ctx.shadowBlur = R; ctx.shadowColor = ctx.strokeStyle;
+      ctx.beginPath(); ctx.moveTo(trail[0], trail[1]);
+      for (let i = 2; i < trail.length; i += 2) ctx.lineTo(trail[i], trail[i + 1]);
+      ctx.stroke(); ctx.shadowBlur = 0;
+      for (let sample = stride; sample < samples - 1; sample += stride) {
+        const progress = sample / (samples - 1); ctx.globalAlpha = .05 + progress * .1;
+        drawBubble(trail[sample * 2], trail[sample * 2 + 1], moving.color, R * (.62 + progress * .2), moving.kind, 0);
+      }
+      ctx.restore();
+    }
+    drawBubble(moving.x, moving.y, moving.color, R, moving.kind, 0);
+    if (moving) moving.renderTrail.length = 0;
   }
 
   function roundedRectPath(g, x, y, w, h, radius) {
@@ -746,7 +770,7 @@
     ctx.clearRect(0, 0, W, H); drawBackground(); traceAim(aimPrediction);
     for (const b of grid.values()) { const p = cellPos(b.r, b.c); drawBubble(p.x, p.y, b.color, R, b.type, b.armor); }
     for (const b of falling) drawBubble(b.x, b.y, b.color, R * .92, b.type, b.armor);
-    if (moving) drawBubble(moving.x, moving.y, moving.color, R, moving.kind, 0);
+    drawMovingBubble();
     drawLauncher(lastAimFocus);
     for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); } ctx.globalAlpha = 1;
     drawPressureStatus();

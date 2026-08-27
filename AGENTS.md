@@ -217,6 +217,7 @@ Bubble Burst files:
 
 - Moving-shot collision and aim tracing use `nearbyBubbles()`/local hex lookup, not full-grid scans per trajectory step.
 - Launched bubbles use exactly 3× the established baseline speed; distance-based sub-stepping MUST remain in `updateMoving()` to prevent collision tunneling.
+- `drawMovingBubble()` reuses the sub-step path for the lightweight additive trail/afterimages; do not replace native `requestAnimationFrame` with a forced 50 fps cap.
 - Bubble visual gradients/shadows are cached in `bubbleSprites`; do not recreate them for every bubble every frame.
 - Clean manga-chibi launcher bases are cached in `mangaChibiSprites`; the removed 32×40 pixel-art renderer MUST NOT return.
 - Bubble Burst aim dots and both crew members MUST share `predictAimTrajectory()`; eyes focus on the first wall bounce before attach, otherwise first attach/ceiling impact, with upward aim fallback.

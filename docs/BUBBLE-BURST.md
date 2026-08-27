@@ -151,6 +151,7 @@ Performance invariants:
 
 - moving-shot collision uses nearby hex-cell lookup rather than scanning every bubble in the grid;
 - high-speed projectiles are sub-stepped by travelled distance so the 3× launch speed cannot tunnel through bubbles or walls;
+- the renderer reuses those sub-step positions for a short additive path and cached-sprite afterimages, improving perceived motion continuity without reducing speed or forcing a lower frame rate;
 - aim tracing uses the same local collision lookup;
 - pressure descent is represented as a fractional row-space ceiling offset instead of rewriting every bubble coordinate, so resize remains stable and the pressure update is O(1);
 - bubble visuals are cached to offscreen canvases by color/type/armor state instead of rebuilding radial gradients for every bubble every frame;
