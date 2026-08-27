@@ -40,16 +40,23 @@ Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 Percorso: `games/star-swarm/`
 
 ### Bubble Burst
-Bubble shooter originale ispirato ai classici puzzle arcade a bolle.
+Bubble shooter originale con campagna procedurale deterministica e grafica arcade dedicata.
 - trascinamento per mirare e rilascio per sparare
 - traiettoria visualizzata e rimbalzi laterali
-- griglia esagonale
-- combinazioni di almeno tre bolle dello stesso colore
-- caduta automatica dei gruppi non più collegati al soffitto
+- griglia esagonale a lookup locale
+- **200 configurazioni artistiche distinte**: 20 famiglie visive × 10 varianti, con difficoltà crescente
+- combinazioni di almeno tre bolle dello stesso colore e caduta automatica dei gruppi non più collegati al soffitto
+- Armor Bubble dal livello 8: il primo match rompe la corazza
+- Star Bubble dal livello 18: quando eliminata genera un'esplosione locale
+- Prism Bubble dal livello 35: wildcard nei gruppi dello stesso colore
+- rara munizione **Bomba** dal livello 10, con esplosione locale e probabilità massima circa 3%
+- rara munizione **Color Wipe** dal livello 22, che cancella tutte le bolle del colore toccato e resta sotto circa il 2%
 - penalità con nuova riga dopo una serie di tiri senza combinazioni
-- difficoltà crescente, più colori e limite errori più severo
-- punteggio, livelli e high score locale
-- effetti particellari, vibrazione e Web Audio
+- difficoltà crescente tramite geometrie, numero di colori, special bubble, limite errori e velocità di tiro
+- due personaggi **chibi pixel-art originali** gestiscono il lanciatore: operatore a sinistra e addetto munizioni a destra con preview della prossima bolla
+- rendering ottimizzato con sprite Canvas cache, background cache e collisioni limitate alle celle vicine invece di scansioni complete della griglia
+- lifecycle Game Over/Continue delegato all'infrastruttura condivisa RetroWebGames
+- punteggio, livelli, high score locale, particelle, vibrazione e Web Audio
 
 Percorso: `games/bubble-burst/`
 
@@ -142,13 +149,15 @@ Il client mantiene attualmente un profilo anonimo persistente nel browser con st
 
 ## Guardrail e documentazione tecnica
 
-Il repository contiene ora contratti espliciti per evitare regressioni tra motori di gioco e servizi condivisi:
+Il repository contiene contratti espliciti per evitare regressioni tra motori di gioco e servizi condivisi:
 
 - `AGENTS.md` — istruzioni machine-oriented e invarianti obbligatorie per agenti/coding assistant
 - `docs/ARCHITECTURE.md` — lifecycle e responsabilità dei componenti condivisi
 - `docs/STAR-SWARM.md` — source of truth per campagna, boss, drop, Weapon/POWER/Shield/wingmen
+- `docs/BUBBLE-BURST.md` — source of truth per 200 layout, special bubble, munizioni rare e performance
 - `docs/WASM-EVALUATION.md` — decisione e soglie tecniche per un eventuale uso futuro di WebAssembly
-- `scripts/validate-contracts.mjs` — validatore statico anti-regressione
+- `scripts/validate-contracts.mjs` — validatore statico anti-regressione repository-wide
+- `scripts/validate-bubble-burst.mjs` — guardrail specifici Bubble Burst
 
 Dopo modifiche architetturali o gameplay eseguire:
 
@@ -156,9 +165,13 @@ Dopo modifiche architetturali o gameplay eseguire:
 node scripts/validate-contracts.mjs
 ```
 
-oltre a `node --check` sui JavaScript modificati.
+Per modifiche Bubble Burst eseguire inoltre:
 
-Il validatore controlla tutti i `.js`/`.mjs`, i sette lifecycle condivisi, Continue, profilo, PWA e gli invarianti eseguibili della campagna Star Swarm (100 firme distinte e 10 boss). Prima di pubblicare restano obbligatori smoke test browser su mobile stretto e desktop: la validazione statica non misura il layout dopo l’iniezione dei componenti condivisi.
+```bash
+node scripts/validate-bubble-burst.mjs
+```
+
+oltre a `node --check` sui JavaScript modificati.
 
 ## Struttura
 
@@ -181,18 +194,19 @@ Il validatore controlla tutti i `.js`/`.mjs`, i sette lifecycle condivisi, Conti
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── STAR-SWARM.md
+│   ├── BUBBLE-BURST.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
-│   └── validate-contracts.mjs
+│   ├── validate-contracts.mjs
+│   └── validate-bubble-burst.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
-    │   ├── index.html
-    │   ├── engine.js
-    │   ├── campaign.js
-    │   ├── bosses.js
-    │   └── campaign.css
     ├── bubble-burst/
+    │   ├── index.html
+    │   ├── levels.js
+    │   ├── game.js
+    │   └── style.css
     ├── block-drop/
     ├── maze-munch/
     ├── neon-rally/
