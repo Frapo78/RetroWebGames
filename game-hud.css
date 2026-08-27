@@ -1,0 +1,139 @@
+.rwg-game-tools {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 90;
+  isolation: isolate;
+}
+
+.rwg-game-tools .rwg-home-action,
+.rwg-game-tools .rwg-share-toggle {
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto !important;
+  min-width: 40px;
+  height: 40px !important;
+  padding: 0 11px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 13px !important;
+  color: #eefcff !important;
+  background: linear-gradient(145deg, rgba(15,28,55,.94), rgba(5,10,24,.94)) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.07) !important;
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  letter-spacing: .04em;
+  text-decoration: none !important;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(12px);
+}
+
+.rwg-game-tools .rwg-home-action {
+  border-color: rgba(101,231,255,.27) !important;
+}
+
+.rwg-game-tools .rwg-share-toggle {
+  border-color: rgba(255,94,207,.28) !important;
+}
+
+.rwg-game-tools .rwg-home-action:active,
+.rwg-game-tools .rwg-share-toggle:active,
+.rwg-game-tools .rwg-share-toggle[aria-expanded="true"] {
+  transform: translateY(1px) scale(.97);
+}
+
+.rwg-game-tools svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  fill: currentColor;
+}
+
+.rwg-share-tray {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 40px);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  background: rgba(4,9,22,.94);
+  box-shadow: 0 18px 44px rgba(0,0,0,.42), inset 0 1px rgba(255,255,255,.05);
+  backdrop-filter: blur(18px);
+  transform-origin: top left;
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+
+.rwg-share-tray[hidden] {
+  display: grid !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-5px) scale(.96);
+}
+
+.rwg-share-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  color: #f6fbff;
+  background: rgba(255,255,255,.055);
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rwg-share-option[data-network="whatsapp"] { color: #7cffb2; border-color: rgba(124,255,178,.25); }
+.rwg-share-option[data-network="facebook"] { color: #7aa7ff; }
+.rwg-share-option[data-network="x"] { color: #ffffff; }
+.rwg-share-option[data-network="telegram"] { color: #65e7ff; }
+.rwg-share-option[data-network="more"] { color: #ff8fe0; }
+.rwg-share-option:active { transform: scale(.92); }
+
+.rwg-share-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
+  z-index: 9500;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  border: 1px solid rgba(101,231,255,.22);
+  border-radius: 999px;
+  color: #dffaff;
+  background: rgba(4,9,22,.94);
+  box-shadow: 0 12px 36px rgba(0,0,0,.38);
+  font: 700 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: .03em;
+  transform: translate(-50%, 14px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.rwg-share-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 680px) {
+  .rwg-game-tools .rwg-home-action,
+  .rwg-game-tools .rwg-share-toggle {
+    width: 40px !important;
+    padding: 0 !important;
+  }
+  .rwg-tool-label { display: none; }
+}
+
+@media (max-width: 360px) {
+  .rwg-game-tools { gap: 4px; }
+  .rwg-game-tools .rwg-home-action,
+  .rwg-game-tools .rwg-share-toggle { width: 36px !important; min-width: 36px; height: 36px !important; }
+  .rwg-share-tray { grid-template-columns: repeat(5, 36px); gap: 4px; padding: 6px; }
+  .rwg-share-option { width: 36px; height: 36px; }
+}
