@@ -58,7 +58,7 @@ Bubble shooter originale con campagna procedurale deterministica e grafica arcad
 - penalità con nuova riga dopo una serie di tiri senza combinazioni
 - la struttura scende periodicamente verso la danger line: dal livello 1 dopo almeno un minuto, poi sempre più rapidamente nei livelli avanzati
 - difficoltà crescente tramite geometrie, numero di colori, special bubble, limite errori, velocità di tiro e pressione temporale
-- due personaggi **chibi pixel-art originali** gestiscono il lanciatore: operatore a sinistra e addetto munizioni a destra con preview della prossima bolla
+- due personaggi manga-chibi originali gestiscono il lanciatore e seguono con lo sguardo la traiettoria prevista
 - rendering ottimizzato con sprite Canvas cache, background cache e collisioni limitate alle celle vicine invece di scansioni complete della griglia
 - lifecycle Game Over/Continue delegato all'infrastruttura condivisa RetroWebGames
 - punteggio, livelli, high score locale, particelle, vibrazione e Web Audio
@@ -140,6 +140,23 @@ Gravity maze originale progettato per sfruttare accelerometro e giroscopio dei t
 
 Percorso: `games/neon-tilt/`
 
+### Solitario
+Gioco di carte progettato come contenitore multi-variante. La prima variante disponibile è il **Klondike classico pesca-1** con un mazzo standard da 52 carte.
+- sette colonne iniziali con carte coperte/scoperte secondo le regole Klondike
+- quattro fondazioni da costruire Asso → Re per seme
+- tableau decrescente con colori alternati
+- solo i Re possono entrare nelle colonne vuote
+- stock pesca-1 con riciclo degli scarti
+- spostamento di sequenze valide
+- tap, drag e doppio tap per inviare rapidamente le carte alle fondazioni
+- Undo con cronologia fino a 100 mosse
+- pulsante Aiuto che evidenzia una mossa legale senza modificare lo stato
+- timer, numero mosse, punteggio, miglior tempo e miglior punteggio locali
+- schermata vittoria dedicata con animazione di semi e statistiche
+- `variants.js` separa le regole dal runtime ed è già predisposto per future varianti come pesca-3, Spider, FreeCell e Piramide
+
+Percorso: `games/solitaire/`
+
 ## Condivisione
 La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Le pagine gioco dispongono inoltre dell'HUD condiviso e del riepilogo game-over con condivisione del risultato.
 
@@ -160,9 +177,11 @@ Il repository contiene contratti espliciti per evitare regressioni tra motori di
 - `docs/ARCHITECTURE.md` — lifecycle e responsabilità dei componenti condivisi
 - `docs/STAR-SWARM.md` — source of truth per campagna, boss, drop, Weapon/POWER/Shield/wingmen
 - `docs/BUBBLE-BURST.md` — source of truth per 200 layout, timing/bonus, special bubble, munizioni rare e performance
+- `docs/SOLITAIRE.md` — source of truth per architettura multi-variante e regole Klondike
 - `docs/WASM-EVALUATION.md` — decisione e soglie tecniche per un eventuale uso futuro di WebAssembly
 - `scripts/validate-contracts.mjs` — validatore statico anti-regressione repository-wide
 - `scripts/validate-bubble-burst.mjs` — guardrail specifici Bubble Burst
+- `scripts/validate-solitaire.mjs` — guardrail specifici Solitario
 
 Dopo modifiche architetturali o gameplay eseguire:
 
@@ -170,10 +189,11 @@ Dopo modifiche architetturali o gameplay eseguire:
 node scripts/validate-contracts.mjs
 ```
 
-Per modifiche Bubble Burst eseguire inoltre:
+Per modifiche Bubble Burst o Solitario eseguire inoltre il rispettivo validator:
 
 ```bash
 node scripts/validate-bubble-burst.mjs
+node scripts/validate-solitaire.mjs
 ```
 
 oltre a `node --check` sui JavaScript modificati.
@@ -200,29 +220,26 @@ oltre a `node --check` sui JavaScript modificati.
 │   ├── ARCHITECTURE.md
 │   ├── STAR-SWARM.md
 │   ├── BUBBLE-BURST.md
+│   ├── SOLITAIRE.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
-│   └── validate-bubble-burst.mjs
+│   ├── validate-bubble-burst.mjs
+│   └── validate-solitaire.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
     ├── bubble-burst/
-    │   ├── index.html
-    │   ├── levels.js
-    │   ├── game.js
-    │   └── style.css
     ├── block-drop/
     ├── maze-munch/
     ├── neon-rally/
     ├── neon-snake/
-    └── neon-tilt/
+    ├── neon-tilt/
+    └── solitaire/
         ├── index.html
-        ├── style.css
-        ├── levels.js
-        ├── physics.js
-        ├── render.js
-        └── game.js
+        ├── variants.js
+        ├── game.js
+        └── style.css
 ```
 
 ## Avvio locale
@@ -235,7 +252,7 @@ python3 -m http.server 8080
 Aprire poi `http://localhost:8080/`. I sensori di orientamento richiedono un secure context; per il test reale del tilt usare il dominio HTTPS o un ambiente locale considerato sicuro dal browser.
 
 ## Compatibilità
-L'interfaccia usa Canvas HTML5, Pointer Events, Web Audio API e, per Neon Tilt, Device Orientation Events. È ottimizzata per browser mobile moderni e mantiene fallback touch/tastiera quando i sensori non sono disponibili o il permesso viene negato.
+L'interfaccia usa Canvas HTML5, DOM/CSS, Pointer Events, Web Audio API e, per Neon Tilt, Device Orientation Events. È ottimizzata per browser mobile moderni e mantiene fallback touch/tastiera quando necessario.
 
 ## Nota sui giochi originali
 RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non includono asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
