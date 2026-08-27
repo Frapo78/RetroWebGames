@@ -16,6 +16,12 @@
   const SHOT_NORMAL = 'normal', SHOT_BOMB = 'bomb', SHOT_COLOR_CLEAR = 'colorClear';
   const STATIC_NORMAL = 'normal', STATIC_ARMOR = 'armor', STATIC_STAR = 'star', STATIC_PRISM = 'prism';
   const COLS = 11;
+  const PRESSURE_START_SECONDS = 65;
+  const PRESSURE_MIN_SECONDS = 16;
+  const PRESSURE_DECAY = .982;
+  const PRESSURE_START_ROWS = .5;
+  const PRESSURE_MAX_ROWS = .9;
+  const PRESSURE_ROW_GROWTH = .004;
 
   let W = 390, H = 844, DPR = 1;
   let R = 16, CELL = 32, ROW_H = 28, TOP = 82;
@@ -27,6 +33,7 @@
   let nextShot = { kind: SHOT_NORMAL, color: PALETTE[1] };
   let moving = null, banner = '', bannerTime = 0, operatorPulse = 0;
   let boardMeta = null, backgroundCache = null, audio = null;
+  let pressureRows = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
   let best = Number(localStorage.getItem('bubbleBurstBest') || 0);
 
   const grid = new Map();
@@ -37,6 +44,17 @@
 
   const key = (r, c) => `${r},${c}`;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pressureIntervalFor = lvl => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)));
+  const pressureStepFor = lvl => Math.min(PRESSURE_MAX_ROWS, PRESSURE_START_ROWS + Math.max(0, lvl - 1) * PRESSURE_ROW_GROWTH);
+  const ceilingY = () => TOP + pressureRows * ROW_H;
+
+  function resetPressure() {
+    pressureRows = 0;
+    pressureElapsed = 0;
+    pressureInterval = pressureIntervalFor(level);
+    pressureDue = false;
+    pressurePulse = 0;
+  }
 
   function ensureAudio() {
     if (!audio) {
@@ -77,7 +95,7 @@
 
   function cellPos(r, c) {
     const offset = r % 2 ? R : 0;
-    return { x: R + c * CELL + offset, y: TOP + R + r * ROW_H };
+    return { x: R + c * CELL + offset, y: ceilingY() + R + r * ROW_H };
   }
 
   function validCell(r, c) {
@@ -94,7 +112,7 @@
   }
 
   function nearbyBubbles(x, y, radiusRows = 2) {
-    const baseR = Math.max(0, Math.round((y - TOP - R) / ROW_H));
+    const baseR = Math.max(0, Math.round((y - ceilingY() - R) / ROW_H));
     const out = [];
     for (let rr = Math.max(0, baseR - radiusRows); rr <= baseR + radiusRows; rr++) {
       const offset = rr % 2 ? R : 0;
@@ -161,7 +179,7 @@
   function resetGame() {
     score = 0; level = 1; misses = 0; missLimit = 5; moving = null; aiming = false;
     particles.length = 0; falling.length = 0; operatorPulse = 0;
-    spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
+    resetPressure(); spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     banner = `LIVELLO 001 • ${boardMeta.name}`; bannerTime = 1.6; updateHud();
   }
 
@@ -194,7 +212,7 @@
   }
 
   function findNearestEmpty(x, y) {
-    const baseR = Math.max(0, Math.round((y - TOP - R) / ROW_H));
+    const baseR = Math.max(0, Math.round((y - ceilingY() - R) / ROW_H));
     let bestCell = null, bestDist = Infinity;
     for (let rr = Math.max(0, baseR - 3); rr <= baseR + 3; rr++) {
       const offset = rr % 2 ? R : 0, baseC = Math.round((x - R - offset) / CELL);
@@ -351,7 +369,7 @@
     level++; misses = 0;
     missLimit = level >= 80 ? 3 : level >= 28 ? 4 : 5;
     score += 700 + Math.min(2300, level * 22);
-    spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
+    resetPressure(); spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     const intro = level === 8 ? 'ARMOR BUBBLES!' : level === 18 ? 'STAR BUBBLES!' : level === 35 ? 'PRISM BUBBLES!' : null;
     banner = intro || `LIVELLO ${String(level).padStart(3, '0')} • ${boardMeta.name}`; bannerTime = intro ? 2 : 1.5;
     tone(480, .18, 'triangle', .045, 480); updateHud();
@@ -361,6 +379,23 @@
     const dangerY = launcherY - R * 3.4;
     for (const b of grid.values()) if (cellPos(b.r, b.c).y + R >= dangerY) { endGame(); return true; }
     return false;
+  }
+
+  function applyPressureDrop() {
+    pressureDue = false;
+    pressureElapsed = 0;
+    pressureRows += pressureStepFor(level);
+    pressurePulse = .85;
+    banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15;
+    tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]);
+    checkDanger();
+  }
+
+  function updatePressure(dt) {
+    pressureElapsed += dt;
+    pressurePulse = Math.max(0, pressurePulse - dt);
+    if (pressureElapsed >= pressureInterval) pressureDue = true;
+    if (pressureDue && !moving) applyPressureDrop();
   }
 
   function endGame() {
@@ -389,12 +424,17 @@
     else if (moving.x >= W - R) { moving.x = W - R; moving.vx = -Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
     const hit = collisionBubble(moving.x, moving.y);
     if (hit) { resolveImpact(hit); return; }
-    if (moving.y - R <= TOP) { moving.y = TOP + R; resolveImpact(null); }
+    const top = ceilingY();
+    if (moving.y - R <= top) { moving.y = top + R; resolveImpact(null); }
   }
 
   function update(dt) {
     if (!running || paused) return;
-    updateMoving(dt); bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt);
+    updateMoving(dt);
+    if (!running) return;
+    updatePressure(dt);
+    if (!running) return;
+    bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.pow(.08, dt); p.vy *= Math.pow(.08, dt); p.life -= dt;
       if (p.life <= 0) particles.splice(i, 1);
@@ -468,11 +508,11 @@
   function traceAim() {
     if (!running || paused || moving) return;
     const v = aimVector(); let x = launcherX + v.x * (R + 20), y = launcherY + v.y * (R + 20), vx = v.x, vy = v.y;
-    const step = 13; ctx.save();
+    const step = 13, top = ceilingY(); ctx.save();
     for (let i = 0; i < 46; i++) {
       x += vx * step; y += vy * step;
       if (x <= R) { x = R; vx = Math.abs(vx); } if (x >= W - R) { x = W - R; vx = -Math.abs(vx); }
-      const stop = y <= TOP + R || Boolean(collisionBubble(x, y));
+      const stop = y <= top + R || Boolean(collisionBubble(x, y));
       if (i % 2 === 0) { ctx.globalAlpha = .7 * (1 - i / 56); ctx.fillStyle = currentShot.kind === SHOT_NORMAL ? currentShot.color : '#ffffff'; ctx.fillRect(x - 2, y - 2, 4, 4); }
       if (stop) break;
     }
@@ -497,9 +537,25 @@
     g.globalAlpha = 1; return c;
   }
 
+  function drawPressureStatus() {
+    if (!running) return;
+    const remaining = Math.max(0, pressureInterval - pressureElapsed);
+    if (remaining > 6 && pressurePulse <= 0) return;
+    const dangerY = launcherY - R * 3.4;
+    const label = pressurePulse > 0 ? '↓ STRUTTURA IN DISCESA' : `↓ DISCESA IN ${Math.max(1, Math.ceil(remaining))}s`;
+    ctx.save(); ctx.font = '900 9px ui-monospace, monospace'; ctx.textAlign = 'center';
+    const width = ctx.measureText(label).width + 18, y = dangerY - 19;
+    ctx.globalAlpha = pressurePulse > 0 ? .95 : .72 + Math.sin(performance.now() * .012) * .18;
+    ctx.fillStyle = 'rgba(44,8,20,.82)'; ctx.fillRect(W / 2 - width / 2, y - 11, width, 17);
+    ctx.fillStyle = '#ff9aaa'; ctx.fillText(label, W / 2, y + 1); ctx.restore();
+  }
+
   function drawBackground() {
     if (backgroundCache) ctx.drawImage(backgroundCache, 0, 0, W, H); else { ctx.fillStyle = '#071126'; ctx.fillRect(0, 0, W, H); }
-    const dangerY = launcherY - R * 3.4; ctx.save(); ctx.setLineDash([5, 8]); ctx.strokeStyle = 'rgba(255,95,115,.42)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, dangerY); ctx.lineTo(W, dangerY); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = 'rgba(255,95,115,.62)'; ctx.font = '8px ui-monospace, monospace'; ctx.fillText('DANGER', 10, dangerY - 6); ctx.restore();
+    const dangerY = launcherY - R * 3.4, top = ceilingY(); ctx.save();
+    ctx.strokeStyle = 'rgba(255,230,109,.3)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.stroke();
+    ctx.setLineDash([5, 8]); ctx.strokeStyle = 'rgba(255,95,115,.42)'; ctx.beginPath(); ctx.moveTo(0, dangerY); ctx.lineTo(W, dangerY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,95,115,.62)'; ctx.font = '8px ui-monospace, monospace'; ctx.fillText('DANGER', 10, dangerY - 6); ctx.restore();
   }
 
   function draw() {
@@ -509,6 +565,7 @@
     if (moving) drawBubble(moving.x, moving.y, moving.color, R, moving.kind, 0);
     drawLauncher();
     for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); } ctx.globalAlpha = 1;
+    drawPressureStatus();
     if (bannerTime > 0 && running) { ctx.save(); ctx.globalAlpha = Math.min(1, bannerTime * 2); ctx.textAlign = 'center'; ctx.font = '900 17px ui-monospace, monospace'; ctx.fillStyle = '#f7fbff'; ctx.shadowBlur = 15; ctx.shadowColor = '#65e7ff'; ctx.fillText(banner, W / 2, H * .55); ctx.restore(); }
     if (paused && running) { ctx.fillStyle = 'rgba(2,5,14,.62)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.font = '900 22px ui-monospace, monospace'; ctx.fillStyle = '#fff'; ctx.fillText('PAUSA', W / 2, H / 2); }
   }
@@ -528,6 +585,7 @@
 
   window.addEventListener('rwg:continue-game', e => {
     score = Math.max(0, Math.floor(e.detail?.score ?? score)); misses = 0; moving = null; aiming = false;
+    pressureElapsed = 0; pressureDue = false; pressurePulse = 0;
     const dangerY = launcherY - R * 3.4;
     let guard = 0;
     while (guard++ < 20) {
@@ -535,7 +593,7 @@
       for (const b of grid.values()) { maxRow = Math.max(maxRow, b.r); if (cellPos(b.r, b.c).y + R >= dangerY - R * 1.15) dangerous = true; }
       if (!dangerous) break;
       for (const [k, b] of grid) if (b.r === maxRow) grid.delete(k);
-      if (!grid.size) { spawnBoard(); break; }
+      if (!grid.size) { resetPressure(); spawnBoard(); break; }
     }
     reconcileQueue(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     running = true; paused = false; overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; banner = 'CONTINUA!'; bannerTime = 1.2; last = performance.now(); updateHud(); ensureAudio(); tone(520, .16, 'triangle', .035, 900);
