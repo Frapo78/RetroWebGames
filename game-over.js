@@ -104,12 +104,11 @@
         <button class="rwg-continue-credit" type="button">
           <span>Continua con 1</span>${coinSvg()}
         </button>
-        <span>Mantieni punteggio e progresso</span>
       </div>
 
       <div class="rwg-game-over-actions">
         <button class="rwg-play-again" type="button">Nuova partita</button>
-        <a class="rwg-back-games" href="${HOME_URL}" style="min-height:32px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(159,180,201,.18);border-radius:10px;background:rgba(159,180,201,.055);font-size:8.5px;">Scegli un altro gioco</a>
+        <a class="rwg-back-games" href="${HOME_URL}">Scegli un altro gioco</a>
       </div>
       <div class="rwg-game-over-credit">Made with 💙 by Francesco Poltero</div>
     </div>`;
@@ -280,7 +279,7 @@
   }, true);
 
   const achievementDefinitions = stats => [
-    { id: 'record', label: 'Nuovo record', icon: '★', earned: stats.score > startingBest && stats.score > 0 },
+    { id: 'record', label: 'Nuovo record', icon: '★', earned: stats.best > startingBest && stats.best > 0 },
     { id: '1k', label: 'Quota 1.000', icon: '⚡', earned: stats.score >= 1000 },
     { id: '5k', label: 'Quota 5.000', icon: '◆', earned: stats.score >= 5000 },
     { id: 'level3', label: 'Livello 3+', icon: '▲', earned: stats.level >= 3 },
@@ -313,9 +312,13 @@
     const levelNode = document.getElementById('level');
     const level = levelNode ? Math.max(1, parseNumber(levelNode, 1)) : 0;
     const lines = parseNumber(document.getElementById('lines'));
-    const playerScore = parseNumber(document.getElementById('playerScore'));
+    const playerScoreNode = document.getElementById('playerScore');
+    const playerScore = parseNumber(playerScoreNode);
     const cpuScore = parseNumber(document.getElementById('cpuScore'));
-    const best = Math.max(startingBest, parseNumber(document.getElementById('best')), score);
+    const reportedBest = parseNumber(document.getElementById('best'));
+    const best = playerScoreNode
+      ? Math.max(startingBest, reportedBest)
+      : Math.max(startingBest, reportedBest, score);
     return {
       score,
       level,
@@ -324,13 +327,17 @@
       playerScore,
       cpuScore,
       best,
+      maxCombo,
+      maxRally,
       activeMs,
       continueCount
     };
   };
 
   const shareTextFor = stats => {
-    const base = `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
+    const base = document.getElementById('playerScore')
+      ? `Ho chiuso ${stats.playerScore}–${stats.cpuScore} su ${gameName}! Tu riesci a fare di meglio?`
+      : `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
     if (!stats.continueCount) return base;
     const suffix = stats.continueCount === 1
       ? ' Ho usato 1 continuazione.'
@@ -355,18 +362,20 @@
     const stats = collectStats();
     const achievements = getAchievements(stats);
     const shareText = shareTextFor(stats);
+    const hasMatchScore = Boolean(document.getElementById('playerScore'));
 
     titleEl.textContent = gameName;
-    scorelineEl.innerHTML = `<strong>${formatNumber(stats.score)}</strong> punti`;
+    scorelineEl.innerHTML = hasMatchScore
+      ? `<strong>${stats.playerScore}–${stats.cpuScore}</strong> risultato`
+      : `<strong>${formatNumber(stats.score)}</strong> punti`;
 
     const metrics = [
-      metric('Punti', formatNumber(stats.score), true),
+      hasMatchScore ? metric('Risultato', `${stats.playerScore}–${stats.cpuScore}`, true) : metric('Punti', formatNumber(stats.score), true),
       stats.levelsCleared !== null ? metric('Livelli superati', stats.levelsCleared) : '',
       stats.lines > 0 ? metric('Linee', stats.lines) : '',
-      document.getElementById('playerScore') ? metric('Risultato', `${stats.playerScore}–${stats.cpuScore}`) : '',
       stats.continueCount > 0 ? metric('Continue usati', stats.continueCount) : '',
       metric('Tempo', formatDuration(stats.activeMs)),
-      metric('Record', formatNumber(stats.best))
+      metric(hasMatchScore ? 'Best rally' : 'Record', formatNumber(stats.best))
     ].filter(Boolean);
     statsEl.innerHTML = metrics.join('');
 
@@ -444,11 +453,14 @@
 
   const checkGameOver = () => {
     const label = startBtn.textContent.trim().toUpperCase();
-    if (sessionActive && isOverlayVisible() && label === 'RIGIOCA') showSummary();
+    if (!isOverlayVisible() || label !== 'RIGIOCA' || summaryShown || introRunning) return;
+    ensureSession({});
+    showSummary();
   };
 
   new MutationObserver(checkGameOver).observe(overlay, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(checkGameOver).observe(startBtn, { childList: true, characterData: true, subtree: true });
+  queueMicrotask(checkGameOver);
 
   continueBtn.addEventListener('click', async () => {
     const stats = collectStats();
