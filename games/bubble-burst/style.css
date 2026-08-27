@@ -5,6 +5,9 @@
   --pink: #ff5ecf;
   --yellow: #ffe66d;
   --text: #f7fbff;
+  --timer-green: #63ff9e;
+  --timer-orange: #ffad4f;
+  --timer-red: #ff5f73;
 }
 
 * { box-sizing: border-box; }
@@ -51,6 +54,31 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 #hud > div:nth-child(3) { text-align: right; }
 .hud-label { display: block; color: #7894ad; font-size: 8px; letter-spacing: .18em; }
 #hud strong { display: block; margin-top: 2px; color: var(--text); font-size: 15px; }
+
+#levelTimer {
+  position: absolute;
+  z-index: 5;
+  top: calc(env(safe-area-inset-top) + 58px);
+  left: 50%;
+  min-width: 176px;
+  transform: translateX(-50%);
+  padding: 4px 12px 5px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: rgba(2,8,21,.78);
+  text-align: center;
+  font-size: clamp(24px, 7.4vw, 36px);
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: .035em;
+  pointer-events: none;
+  backdrop-filter: blur(7px);
+  transition: color .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+#levelTimer.is-green { color: var(--timer-green); box-shadow: 0 0 18px rgba(99,255,158,.24), inset 0 0 16px rgba(99,255,158,.05); }
+#levelTimer.is-orange { color: var(--timer-orange); box-shadow: 0 0 18px rgba(255,173,79,.25), inset 0 0 16px rgba(255,173,79,.05); }
+#levelTimer.is-red { color: var(--timer-red); box-shadow: 0 0 20px rgba(255,95,115,.28), inset 0 0 16px rgba(255,95,115,.06); }
 
 #topbar {
   position: absolute;
@@ -119,6 +147,91 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 }
 #nextBubble i.is-color-clear::first-letter { transform: rotate(-45deg); }
 
+#levelClear {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: none;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, rgba(101,231,255,.11), transparent 34%), rgba(1,4,12,.88);
+  backdrop-filter: blur(4px);
+}
+#levelClear.is-visible { display: grid; }
+.level-clear-stars {
+  position: absolute;
+  inset: -20%;
+  opacity: .72;
+  background-image:
+    radial-gradient(circle, #fff 0 1px, transparent 1.4px),
+    radial-gradient(circle, #65e7ff 0 1px, transparent 1.5px),
+    radial-gradient(circle, #ff5ecf 0 1px, transparent 1.4px);
+  background-size: 53px 67px, 79px 91px, 113px 127px;
+  background-position: 0 0, 23px 31px, 41px 17px;
+  animation: bubbleClearStars 2.4s linear infinite;
+}
+.level-clear-panel {
+  position: relative;
+  width: min(88vw, 420px);
+  padding: 24px 20px 20px;
+  border: 2px solid rgba(101,231,255,.55);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(8,24,49,.95), rgba(4,8,22,.97));
+  box-shadow: 0 0 44px rgba(101,231,255,.18), inset 0 0 25px rgba(255,94,207,.05);
+  text-align: center;
+  transform: scale(.82) rotate(-3deg);
+  opacity: 0;
+}
+#levelClear.is-visible .level-clear-panel { animation: bubbleClearPanel .42s cubic-bezier(.2,.9,.24,1.18) .05s forwards; }
+.level-clear-title,
+.level-clear-row,
+.level-clear-total,
+.level-clear-tap { opacity: 0; transform: translateY(14px) scale(.96); }
+.level-clear-title {
+  margin-bottom: 20px;
+  color: #fff;
+  font-size: clamp(22px, 7vw, 34px);
+  font-weight: 950;
+  letter-spacing: .045em;
+  text-shadow: 0 0 14px rgba(101,231,255,.7), 3px 3px 0 rgba(255,94,207,.36);
+}
+.level-clear-row {
+  margin: 8px 0;
+  color: #bed0df;
+  font-size: clamp(14px, 4vw, 18px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.level-clear-total {
+  margin-top: 17px;
+  color: var(--yellow);
+  font-size: clamp(22px, 6.4vw, 31px);
+  font-weight: 950;
+  text-shadow: 0 0 18px rgba(255,230,109,.45);
+}
+.level-clear-tap {
+  margin-top: 19px;
+  color: #6e8ca6;
+  font-size: 9px;
+  letter-spacing: .15em;
+}
+#levelClear.is-visible .level-clear-title { animation: bubbleClearLine .32s ease .36s forwards; }
+#levelClear.is-visible .level-clear-row:nth-of-type(2) { animation: bubbleClearLine .28s ease .72s forwards; }
+#levelClear.is-visible .level-clear-row:nth-of-type(3) { animation: bubbleClearLine .28s ease 1.02s forwards; }
+#levelClear.is-visible .level-clear-row:nth-of-type(4) { animation: bubbleClearLine .28s ease 1.32s forwards; }
+#levelClear.is-visible .level-clear-total { animation: bubbleClearTotal .42s cubic-bezier(.16,.9,.26,1.28) 1.66s forwards; }
+#levelClear.is-visible .level-clear-tap { animation: bubbleClearLine .3s ease 2.15s forwards, bubbleClearBlink 1.05s steps(2,end) 2.6s infinite; }
+
+@keyframes bubbleClearStars { from { transform: translateY(-35px); } to { transform: translateY(35px); } }
+@keyframes bubbleClearPanel { to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes bubbleClearLine { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes bubbleClearTotal {
+  0% { opacity: 0; transform: scale(.72) rotate(-4deg); }
+  70% { opacity: 1; transform: scale(1.1) rotate(1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes bubbleClearBlink { 50% { opacity: .38; } }
+
 #overlay {
   position: absolute;
   inset: 0;
@@ -160,12 +273,31 @@ h1 span { color: var(--pink); }
 .primary-btn:active { transform: translateY(1px) scale(.99); }
 .hint { margin-top: 12px; color: #60778c; font-size: 9px; }
 
+@media (max-width: 360px) {
+  #levelTimer { top: calc(env(safe-area-inset-top) + 56px); min-width: 158px; font-size: 23px; }
+  .level-clear-panel { width: 92vw; padding: 20px 15px 17px; }
+}
+
 @media (max-height: 620px) {
   #overlay { padding: 14px 20px; }
   h1 { margin-bottom: 12px; font-size: clamp(40px, 12vw, 62px); }
   #overlayText { margin-bottom: 12px; font-size: 10px; line-height: 1.42; }
   .stats-line { margin-bottom: 10px; }
   .hint { margin-top: 8px; }
+  .level-clear-panel { padding-top: 16px; padding-bottom: 14px; }
+  .level-clear-title { margin-bottom: 13px; font-size: 22px; }
+  .level-clear-row { margin: 5px 0; font-size: 13px; }
+  .level-clear-total { margin-top: 11px; font-size: 21px; }
+  .level-clear-tap { margin-top: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-clear-stars,
+  #levelClear.is-visible .level-clear-panel,
+  #levelClear.is-visible .level-clear-title,
+  #levelClear.is-visible .level-clear-row,
+  #levelClear.is-visible .level-clear-total,
+  #levelClear.is-visible .level-clear-tap { animation: none !important; opacity: 1; transform: none; }
 }
 
 @media (min-width: 641px) {
