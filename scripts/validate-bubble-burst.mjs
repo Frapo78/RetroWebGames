@@ -52,6 +52,8 @@ must(game.includes("Math.min(.03, .012"), 'Bubble Burst Bomb probability must re
 must(game.includes("Math.min(.02, .007"), 'Bubble Burst Color Wipe probability must remain capped around 2%');
 must(game.includes('function nearbyBubbles('), 'Bubble Burst must retain nearby-cell collision lookup');
 must(game.includes('for (const b of nearbyBubbles('), 'Bubble Burst moving collision/special resolution must use nearby-cell lookup');
+must(game.includes('speed = baseSpeed * 3'), 'Bubble Burst launched bubbles must move at exactly three times the established baseline speed');
+must(game.includes('Math.ceil(distance / Math.max(4, R * .75))'), 'Bubble Burst 3x shot movement must retain sub-stepped anti-tunneling collision checks');
 must(game.includes('const bubbleSprites = new Map()'), 'Bubble Burst must cache bubble render sprites');
 must(game.includes('const mangaChibiSprites = new Map()'), 'Bubble Burst must cache clean manga chibi base sprites');
 must(game.includes('function makeMangaChibiSprite('), 'Bubble Burst manga chibi base renderer missing');

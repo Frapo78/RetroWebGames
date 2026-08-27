@@ -276,7 +276,7 @@
 
   function shoot() {
     if (!running || paused || moving || levelClearActive) return;
-    const v = aimVector(), speed = Math.min(720, 535 + level * .85 + H * .05);
+    const v = aimVector(), baseSpeed = Math.min(720, 535 + level * .85 + H * .05), speed = baseSpeed * 3;
     moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, ...currentShot };
     currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18;
     updateHud(); tone(moving.kind === SHOT_BOMB ? 320 : moving.kind === SHOT_COLOR_CLEAR ? 820 : 520, .055, 'triangle', .028, 180);
@@ -539,13 +539,17 @@
 
   function updateMoving(dt) {
     if (!moving) return;
-    moving.x += moving.vx * dt; moving.y += moving.vy * dt;
-    if (moving.x <= R) { moving.x = R; moving.vx = Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
-    else if (moving.x >= W - R) { moving.x = W - R; moving.vx = -Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
-    const hit = collisionBubble(moving.x, moving.y);
-    if (hit) { resolveImpact(hit); return; }
-    const top = ceilingY();
-    if (moving.y - R <= top) { moving.y = top + R; resolveImpact(null); }
+    const distance = Math.hypot(moving.vx, moving.vy) * dt;
+    const steps = Math.max(1, Math.ceil(distance / Math.max(4, R * .75))), stepDt = dt / steps;
+    for (let step = 0; step < steps && moving; step++) {
+      moving.x += moving.vx * stepDt; moving.y += moving.vy * stepDt;
+      if (moving.x <= R) { moving.x = R; moving.vx = Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
+      else if (moving.x >= W - R) { moving.x = W - R; moving.vx = -Math.abs(moving.vx); tone(290, .025, 'square', .012, 30); }
+      const hit = collisionBubble(moving.x, moving.y);
+      if (hit) { resolveImpact(hit); return; }
+      const top = ceilingY();
+      if (moving.y - R <= top) { moving.y = top + R; resolveImpact(null); return; }
+    }
   }
 
   function update(dt) {
