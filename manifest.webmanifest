@@ -1,7 +1,9 @@
 {
+  "id": "https://www.retrowebgames.it/",
   "name": "RetroWebGames",
   "short_name": "RetroWebGames",
-  "start_url": "./",
+  "start_url": "https://www.retrowebgames.it/",
+  "scope": "https://www.retrowebgames.it/",
   "display": "standalone",
   "background_color": "#050816",
   "theme_color": "#050816",
