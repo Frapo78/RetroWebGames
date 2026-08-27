@@ -24,6 +24,45 @@ The base catalogue contains exactly 200 deterministic artistic configurations:
 
 Current motif families include Aurora Bands, Neon Crown, Twin Peaks, Pixel Wave, Diamond Sky, Arcade Steps, Cosmic Bowl, Double Arc, Star Ridge, Cascade, Portal Rim, Zigzag Field, Comet Tail, Butterfly, Fortress, Hyper Wave, Crystal Fan, Echo Valley, Nova Teeth and Mosaic Sky.
 
+## Optimal-time scoring
+
+Every generated level exposes a deterministic `optimalSeconds` value derived from its actual complexity: bubble count, row depth, palette breadth and Armor/Star/Prism density. It is not a single hard-coded time shared by every layout.
+
+The upper gameplay UI includes a large centered timer immediately below `SCORE / LEVEL / FALLI`, rendered with centisecond precision as `MM:SS.CC`.
+
+Timing tiers:
+
+- **green** while `elapsed <= optimalSeconds`;
+- **orange** after the optimal time and through `optimalSeconds + (optimalSeconds × 2.5)`, therefore through a total deadline of `3.5 × optimalSeconds`;
+- **red** after that deadline, with no further timing threshold.
+
+Completion bonus:
+
+- green clear: `+50%` of points generated in that level;
+- orange clear: `+25%`;
+- red clear: no timing bonus.
+
+`Punti livello` includes points earned during play plus the existing base level-clear award. The percentage bonus is applied to that per-level subtotal; the run total is then updated with the resulting bonus.
+
+The level clock measures active gameplay time only. It pauses during explicit pause/background-orientation pause and during the intermediate completion presentation. A credit Continue after terminal death MUST NOT reset the level elapsed time or `levelStartScore`, otherwise timing bonuses could be farmed by continuing.
+
+## Arcade level-clear presentation
+
+Clearing the board is an INTERMEDIATE state, not terminal Game Over.
+
+Gameplay freezes and an arcade overlay enters with animated starfield/panel and staggered rows:
+
+1. `LIVELLO COMPLETATO!`
+2. `Punti livello: {points}`
+3. `Tempo: {MM:SS.CC}`
+4. `Bonus: +50% / +25% / NO BONUS!`
+5. emphasized `Totale: {level total} punti!`
+6. `TOCCA PER CONTINUARE`
+
+The tap is accepted only after the calculation animation has had time to become readable, then the next level starts and its timer resets to zero.
+
+This intermediate overlay MUST NOT emit `rwg:game-ended`, MUST NOT call shared `RWGGameOver`, and MUST NOT modify the terminal Game Over contract.
+
 ## Static special bubbles
 
 Special bubbles appear progressively inside the structure to destroy.
@@ -84,7 +123,7 @@ Current pressure curve:
 - if a pressure drop becomes due while a projectile is in flight, it waits until the projectile resolves so collision geometry does not jump mid-shot;
 - the last 6 seconds before a drop show an arcade warning; the ceiling line itself is drawn so its downward movement is visually readable;
 - a new level resets ceiling offset and pressure timer using that level's harder interval;
-- a one-credit Continue preserves the descended board position but resets the countdown, while the existing safety pruning may remove dangerous bottom rows.
+- a one-credit Continue preserves the descended board position but resets the pressure countdown, while the existing safety pruning may remove dangerous bottom rows.
 
 This pressure system is separate from the miss-penalty row. Both mechanics may contribute to the board approaching the danger line.
 
@@ -114,6 +153,7 @@ Performance invariants:
 - chibi launcher characters are cached pixel sprites;
 - graph traversal uses index-based queues rather than repeated `Array.shift()`;
 - particle/falling visual counts are bounded;
+- timer DOM text is updated only when the displayed centisecond changes;
 - no external rendering dependency is required.
 
 WASM is not justified for the current board sizes. Reconsider only after measured profiling demonstrates a numeric hot loop above the project thresholds documented in `docs/WASM-EVALUATION.md`.
@@ -135,4 +175,4 @@ Terminal death must:
 3. explicitly request the shared `RWGGameOver` presentation;
 4. preserve full score on the one-credit `rwg:continue-game` path.
 
-Continue may prune dangerous bottom rows to make resumption playable, but must not reset score or level.
+Continue may prune dangerous bottom rows to make resumption playable, but must not reset score, level, elapsed level time or the start-of-level scoring baseline.
