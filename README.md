@@ -137,7 +137,7 @@ Tutti i giochi condividono un guard di orientamento per smartphone. In landscape
 Il client mantiene attualmente un profilo anonimo persistente nel browser con statistiche di gioco e saldo crediti. Ogni nuovo profilo riceve 10 crediti iniziali. Il sistema è già astratto per una futura autorità server-side e per l'integrazione acquisti. È disponibile anche un avatar personalizzabile e persistente nella pagina `avatar/`.
 
 ## Identità visiva
-`favicon.svg` è l'icona vettoriale ufficiale. La moneta dei crediti usa una skin pixel-art originale con animazione continua in stile arcade.
+`favicon.svg` è l'icona vettoriale ufficiale. Il manifest include anche icone PNG 192×192, 512×512 e 512×512 maskable per l'installazione PWA. La moneta dei crediti usa una skin pixel-art originale con animazione continua in stile arcade.
 
 ## Guardrail e documentazione tecnica
 
@@ -156,6 +156,8 @@ node scripts/validate-contracts.mjs
 ```
 
 oltre a `node --check` sui JavaScript modificati.
+
+Il validatore controlla tutti i `.js`/`.mjs`, i sette lifecycle condivisi, Continue, profilo, PWA e gli invarianti eseguibili della campagna Star Swarm (100 firme distinte e 10 boss). Prima di pubblicare restano obbligatori smoke test browser su mobile stretto e desktop: la validazione statica non misura il layout dopo l’iniezione dei componenti condivisi.
 
 ## Struttura
 

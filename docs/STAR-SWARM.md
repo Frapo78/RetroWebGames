@@ -20,6 +20,8 @@ This document is the gameplay source of truth for Star Swarm. Keep it synchroniz
 - Boss clear is an intermission, not terminal Game Over.
 - After boss 100, base campaign completion is shown and progression may continue in Overdrive.
 
+`scripts/validate-contracts.mjs` executes the campaign and boss configuration in an isolated VM. It rejects duplicate signatures in levels 1–100, a changed 10-level boss cadence, fewer or more than ten base bosses, or duplicated boss name, shape, AI or attack identities.
+
 ## Bosses
 
 Ten base bosses:
@@ -185,3 +187,4 @@ The shared result UI owns statistics, achievements, social sharing, credit conti
 Credit continue must resume the interrupted wave or boss with current score. It must not restart campaign state.
 
 The engine keeps the interrupted stage phase so `rwg:continue-game` can restore it.
+The preserved phase is either the normal wave or the active boss fight; Continue must restore the matching HUD and simulation state without resetting score.

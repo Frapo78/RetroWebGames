@@ -84,6 +84,8 @@ Current profile state is stored locally under `rwg.profile.v1` and contains a ps
 
 This is a prototype persistence layer, not payment security. Future paid credits require server authority and an append-only/idempotent ledger.
 
+The per-game record contains `attempts`, `gameOvers`, `continues`, `playTimeMs`, `bestScore`, `lastScore`, `maxLevel`, `maxLines`, `maxCombo`, `maxRally`, `recordValue` and unlocked `achievements`. Continue debits exactly one local prototype credit and dispatches the preserved score to the engine.
+
 ## Avatar
 
 `rwg-avatar.js` renders a lightweight CSS/DOM 3D avatar and stores its configuration in the profile. `/avatar/` is the editor. Games should consume avatar identity through shared components instead of storing copies.
@@ -110,3 +112,9 @@ node scripts/validate-contracts.mjs
 ```
 
 The validator intentionally checks architecture contracts rather than gameplay correctness. Device/browser playtests remain necessary for touch, timing, layout and sensor behavior.
+
+## Browser and production validation
+
+The supported smoke matrix includes `/`, `/avatar/` and all seven game routes at 390×844, 375×667, 320×568 and desktop width. Tests must collect JavaScript console errors, page errors and failed/4xx/5xx requests, and exercise the shared Game Over, one-credit Continue and insufficient-credit path.
+
+Neon Tilt production responses must send `accelerometer=(self)` and `gyroscope=(self)` in `Permissions-Policy`. HTTPS alone does not make device orientation usable when the response header disables the sensors. Real accelerometer behavior still requires a physical-device test.

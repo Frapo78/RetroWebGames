@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 
 const root = process.cwd();
 const failures = [];
@@ -61,6 +62,16 @@ const continueRuntimes = [
   'games/neon-tilt/game.js'
 ];
 
+const lifecycleRuntimes = [
+  'games/star-swarm/engine.js',
+  'games/bubble-burst/game.js',
+  'games/block-drop/game.js',
+  'games/maze-munch/game.js',
+  'games/neon-rally/game.js',
+  'games/neon-snake/game.js',
+  'games/neon-tilt/game.js'
+];
+
 // Syntax is a repository-wide guardrail: every JS/MJS source must parse in Node.
 for (const abs of walk().filter(file => /\.(?:m?js)$/.test(file))) {
   const result = spawnSync(process.execPath, ['--check', abs], { encoding: 'utf8' });
@@ -97,6 +108,32 @@ for (const rel of continueRuntimes) {
   const source = read(rel);
   must(source.includes('rwg:continue-game'), `${rel}: must handle shared credit continue`);
   must(!/(?:score|playerScore|M\.score)\s*\*\s*\.5/.test(source), `${rel}: obsolete half-score continue fallback must not return`);
+}
+
+for (const rel of lifecycleRuntimes) {
+  const source = read(rel);
+  must(source.includes('visibilitychange'), `${rel}: must pause safely on visibilitychange`);
+  must(source.includes('rwg:continue-game'), `${rel}: shared Continue listener missing`);
+}
+
+const sandbox = { window: {} };
+vm.createContext(sandbox);
+vm.runInContext(read('games/star-swarm/campaign.js'), sandbox, { filename: 'campaign.js' });
+vm.runInContext(read('games/star-swarm/bosses.js'), sandbox, { filename: 'bosses.js' });
+const campaign = sandbox.window.StarSwarmCampaign;
+const bosses = sandbox.window.StarSwarmBosses;
+must(Boolean(campaign?.getStage), 'Star Swarm campaign module did not initialize');
+must(Boolean(bosses?.getBoss), 'Star Swarm boss module did not initialize');
+if (campaign?.getStage) {
+  const stages = Array.from({ length: 100 }, (_, index) => campaign.getStage(index + 1, 390, 844));
+  must(new Set(stages.map(stage => stage.signature)).size === 100, 'Star Swarm: first 100 campaign signatures must be unique');
+  must(stages.filter(stage => stage.bossEscort).map(stage => stage.level).join(',') === '10,20,30,40,50,60,70,80,90,100', 'Star Swarm: boss escort cadence must remain every ten levels');
+}
+if (bosses?.BOSSES) {
+  must(bosses.BOSSES.length === 10, `Star Swarm must define exactly 10 base bosses; found ${bosses.BOSSES.length}`);
+  for (const key of ['name', 'shape', 'ai', 'attack']) {
+    must(new Set(bosses.BOSSES.map(boss => boss[key])).size === 10, `Star Swarm bosses must have 10 distinct ${key} values`);
+  }
 }
 
 const star = read('games/star-swarm/engine.js');
@@ -146,11 +183,29 @@ must(profile.includes('globalThis.crypto'), 'Profile ID generation must use guar
 must(!profile.includes('if (crypto?.'), 'Profile regression: bare crypto optional chaining can throw when crypto is undefined');
 must(profile.includes('coinSeq'), 'Profile coin SVG must use unique internal IDs');
 must(profile.includes('recordValue') && profile.includes('maxCombo') && profile.includes('maxRally'), 'Profile must retain generalized record/combo/rally statistics');
+for (const field of ['attempts', 'gameOvers', 'continues', 'playTimeMs', 'bestScore', 'lastScore', 'maxLevel', 'maxLines', 'maxCombo', 'maxRally', 'recordValue', 'achievements']) {
+  must(profile.includes(`${field}:`), `Profile stats field missing: ${field}`);
+}
+must((profile.match(/document\.body\.appendChild\(badge\)/g) || []).length === 1, 'Profile badge mount must append the badge exactly once');
 
 const tiltPhysics = read('games/neon-tilt/physics.js');
 must(tiltPhysics.includes('ball.x = bumper.x + nx * minD'), 'Neon Tilt bumper collision must resolve penetration to prevent repeat impulses');
 const tiltGame = read('games/neon-tilt/game.js');
 must(tiltGame.includes("if('ResizeObserver' in window)"), 'Neon Tilt must retain ResizeObserver feature detection');
+must(tiltGame.includes('DeviceOrientationEvent.requestPermission'), 'Neon Tilt sensor permission must remain user-gesture driven');
+must(tiltGame.includes('touchInput') && tiltGame.includes('keyInput'), 'Neon Tilt must retain touch and keyboard fallbacks');
+must(tiltGame.includes('dead=1.25') && tiltGame.includes('smoothBeta'), 'Neon Tilt must retain dead-zone and sensor smoothing');
+
+const manifest = JSON.parse(read('manifest.webmanifest') || '{}');
+for (const icon of [
+  ['icons/icon-192.png', '192x192', 'any'],
+  ['icons/icon-512.png', '512x512', 'any'],
+  ['icons/icon-maskable-512.png', '512x512', 'maskable']
+]) {
+  const [rel, sizes, purpose] = icon;
+  must(fs.existsSync(path.join(root, rel)), `PWA icon missing: ${rel}`);
+  must(manifest.icons?.some(entry => entry.src.endsWith(`/${rel}`) && entry.sizes === sizes && entry.purpose === purpose), `manifest.webmanifest missing ${sizes} ${purpose} icon`);
+}
 
 const agents = read('AGENTS.md');
 must(agents.includes('Game-over contract — CRITICAL'), 'AGENTS.md must retain the critical Game Over regression contract');
@@ -171,3 +226,5 @@ console.log(`  ✓ ${continueRuntimes.length} continue handlers preserve full sc
 console.log('  ✓ Star Swarm campaign/weapon/drop/laser invariants are present');
 console.log('  ✓ shared bootstrap/profile/Game Over resilience invariants are intact');
 console.log('  ✓ Neon Tilt audited physics/compatibility guards are present');
+console.log('  ✓ campaign uniqueness, boss roster and lifecycle pause guards are intact');
+console.log('  ✓ PWA install icons and complete profile statistics are present');

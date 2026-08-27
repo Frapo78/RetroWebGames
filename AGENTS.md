@@ -178,3 +178,18 @@ Any material gameplay/architecture change MUST update the relevant document in t
 - new invariant/regression → this `AGENTS.md` and/or validator.
 
 Documentation is part of the implementation, not optional cleanup.
+
+## 10. Errors not to repeat
+
+- Do not ship a production `Permissions-Policy` with `accelerometer=()` or
+  `gyroscope=()`: Neon Tilt needs both capabilities from the canonical same
+  origin. Keep unrelated capabilities disabled and allow only `(self)` for
+  these motion sensors.
+- Shared HUD additions (credits, avatar, navigation, sharing) must be tested
+  after bootstrap at `320×568`. Static markup may fit before injected controls
+  and overflow only after shared components mount.
+- When the VPS adaptation moves assets under `public/`, an upstream deletion
+  must remain a deletion. Never resurrect obsolete root `game.js` through a
+  rename/delete conflict.
+- Static validation does not replace browser checks for console errors, failed
+  requests, narrow viewports and credit debit flows.

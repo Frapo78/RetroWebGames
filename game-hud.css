@@ -137,3 +137,19 @@
   .rwg-share-tray { grid-template-columns: repeat(5, 36px); gap: 4px; padding: 6px; }
   .rwg-share-option { width: 36px; height: 36px; }
 }
+
+/* Neon Tilt has the densest toolbar because it also exposes sensor controls.
+   Leave room for the shared credit badge and mini avatar at 320px. */
+@media (max-width: 350px) {
+  #topbar:has(#sensorStatus) .rwg-credit-badge-inline {
+    min-width: 40px;
+    height: 28px;
+    padding: 2px 4px;
+  }
+  #topbar:has(#sensorStatus) .rwg-avatar-link-inline,
+  #topbar:has(#sensorStatus) .rwg-avatar-mini {
+    width: 30px;
+    height: 30px;
+  }
+  #topbar:has(#sensorStatus) .rwg-avatar-link-inline { margin-left: 2px; }
+}

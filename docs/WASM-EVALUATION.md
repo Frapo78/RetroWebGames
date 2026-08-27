@@ -81,3 +81,14 @@ Prefer these optimizations first:
 ## Neon Tilt
 
 The same decision applies to Neon Tilt. Its physics is intentionally isolated so it can be ported later if profiling shows a real bottleneck. A single ball plus maze collision is currently far below the complexity that merits WASM.
+
+## Audit measurement — 2026-08-27
+
+A five-second Chrome-for-Testing headless run at 390×844 measured approximately:
+
+| Game | RAF frames | Script time / frame | JS heap delta |
+|---|---:|---:|---:|
+| Star Swarm | 302 | 0.68 ms | +1.06 MiB |
+| Neon Tilt | 290 | 1.54 ms | -0.16 MiB |
+
+These are VPS/headless measurements, not representative-phone benchmarks, and the broader browser task duration includes headless rendering overhead. The script-time figures are nevertheless below the 3–4 ms/frame investigation threshold, so this audit found no evidence that a WASM core would improve the current games. JavaScript + Canvas 2D remains the deliberate architecture.
