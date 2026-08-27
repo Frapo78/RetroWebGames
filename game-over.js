@@ -248,6 +248,32 @@
     }));
   };
 
+  const ensureSession = detail => {
+    if (sessionActive) {
+      const reportedMs = Number(detail?.activeMs);
+      if (Number.isFinite(reportedMs) && reportedMs > activeMs) activeMs = reportedMs;
+      return;
+    }
+    if (summaryShown || introRunning) return;
+
+    resetPresentation();
+    sessionActive = true;
+    summaryShown = false;
+    maxCombo = Math.max(1, maxCombo);
+    maxRally = Math.max(0, maxRally);
+
+    const reportedMs = Number(detail?.activeMs);
+    if (Number.isFinite(reportedMs) && reportedMs >= 0) activeMs = Math.max(activeMs, reportedMs);
+    const reportedBest = Number(detail?.startingBest);
+    startingBest = Number.isFinite(reportedBest)
+      ? Math.max(0, reportedBest)
+      : parseNumber(document.getElementById('best'));
+
+    lastTick = performance.now();
+    layer.hidden = true;
+    document.body.classList.remove('rwg-game-over-open');
+  };
+
   startBtn.addEventListener('click', () => {
     const label = startBtn.textContent.trim().toUpperCase();
     if (label === 'GIOCA' || label === 'RIGIOCA') beginSession();
@@ -407,6 +433,15 @@
     introTimer = setTimeout(revealSummary, 2000);
   };
 
+  const openSummary = detail => {
+    ensureSession(detail || {});
+    showSummary();
+  };
+
+  window.addEventListener('rwg:game-ended', event => {
+    openSummary(event.detail || {});
+  });
+
   const checkGameOver = () => {
     const label = startBtn.textContent.trim().toUpperCase();
     if (sessionActive && isOverlayVisible() && label === 'RIGIOCA') showSummary();
@@ -495,7 +530,7 @@
   });
 
   window.RWGGameOver = Object.freeze({
-    open: showSummary,
+    open: openSummary,
     close: () => {
       resetPresentation();
       layer.hidden = true;
