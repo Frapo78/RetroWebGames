@@ -15,7 +15,7 @@
         style.dataset.rwgGameOverStyle = 'true';
         document.head.appendChild(style);
       }
-      if (!document.querySelector('script[data-rwg-game-over-script]')) {
+      if (!window.RWGGameOver && !document.querySelector('script[data-rwg-game-over-script]')) {
         const script = document.createElement('script');
         script.src = new URL('game-over.js', base).href;
         script.dataset.rwgGameOverScript = 'true';
@@ -23,43 +23,40 @@
       }
     };
 
-    const loadAvatarThenGameOver = () => {
-      if (window.RWGAvatar) {
-        loadGameOver();
-        return;
-      }
-      const existing = document.querySelector('script[data-rwg-avatar-script], script[src$="/rwg-avatar.js"], script[src="rwg-avatar.js"]');
-      if (existing) {
-        existing.addEventListener('load', loadGameOver, { once: true });
-        setTimeout(() => { if (window.RWGAvatar) loadGameOver(); }, 0);
-        return;
-      }
-      const avatarScript = document.createElement('script');
-      avatarScript.src = new URL('rwg-avatar.js', base).href;
-      avatarScript.dataset.rwgAvatarScript = 'true';
-      avatarScript.addEventListener('load', loadGameOver, { once: true });
-      avatarScript.addEventListener('error', loadGameOver, { once: true });
-      document.body.appendChild(avatarScript);
+    const loadAvatar = () => {
+      if (window.RWGAvatar || document.querySelector('script[data-rwg-avatar-script], script[src$="/rwg-avatar.js"], script[src="rwg-avatar.js"]')) return;
+      const script = document.createElement('script');
+      script.src = new URL('rwg-avatar.js', base).href;
+      script.dataset.rwgAvatarScript = 'true';
+      document.body.appendChild(script);
+    };
+
+    const loadExtras = () => {
+      // Game Over is critical lifecycle infrastructure. Avatar is cosmetic/identity UI.
+      // Load them independently so an avatar delay/failure can never postpone terminal UI.
+      loadGameOver();
+      loadAvatar();
     };
 
     const ensureProfileThenExtras = () => {
       if (window.RWGProfile) {
-        loadAvatarThenGameOver();
+        loadExtras();
         return;
       }
 
       const existing = document.querySelector('script[data-rwg-profile-script], script[src$="/rwg-profile.js"], script[src="rwg-profile.js"]');
       if (existing) {
-        existing.addEventListener('load', loadAvatarThenGameOver, { once: true });
-        setTimeout(() => { if (window.RWGProfile) loadAvatarThenGameOver(); }, 0);
+        existing.addEventListener('load', loadExtras, { once: true });
+        existing.addEventListener('error', loadExtras, { once: true });
+        queueMicrotask(() => { if (window.RWGProfile) loadExtras(); });
         return;
       }
 
       const profileScript = document.createElement('script');
       profileScript.src = new URL('rwg-profile.js', base).href;
       profileScript.dataset.rwgProfileScript = 'true';
-      profileScript.addEventListener('load', loadAvatarThenGameOver, { once: true });
-      profileScript.addEventListener('error', loadAvatarThenGameOver, { once: true });
+      profileScript.addEventListener('load', loadExtras, { once: true });
+      profileScript.addEventListener('error', loadExtras, { once: true });
       document.body.appendChild(profileScript);
     };
 
