@@ -25,6 +25,8 @@
       <div><span class="hud-label">FALLI</span><strong id="misses">0/5</strong></div>
     </section>
 
+    <div id="levelTimer" class="is-green" aria-label="Tempo livello">00:00.00</div>
+
     <div id="topbar">
       <a class="icon-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
       <button id="muteBtn" class="icon-btn" aria-label="Attiva o disattiva audio">🔊</button>
@@ -33,11 +35,23 @@
 
     <div id="nextBubble" aria-label="Prossima bolla"><span>NEXT</span><i></i></div>
 
+    <section id="levelClear" aria-hidden="true">
+      <div class="level-clear-stars" aria-hidden="true"></div>
+      <div class="level-clear-panel">
+        <div class="level-clear-title">LIVELLO COMPLETATO!</div>
+        <div class="level-clear-row" id="clearPoints">Punti livello: 0</div>
+        <div class="level-clear-row" id="clearTime">Tempo: 00:00.00</div>
+        <div class="level-clear-row" id="clearBonus">Bonus: NO BONUS!</div>
+        <div class="level-clear-total" id="clearTotal">Totale: 0 punti!</div>
+        <div class="level-clear-tap">TOCCA PER CONTINUARE</div>
+      </div>
+    </section>
+
     <section id="overlay" class="visible">
       <div class="panel">
         <p class="eyebrow">RETROWEBGAMES • BUBBLE SHOOTER</p>
         <h1>BUBBLE<br><span>BURST</span></h1>
-        <p id="overlayText">200 configurazioni artistiche a difficoltà crescente. Crea gruppi da almeno 3, sfrutta Armor, Star e Prism Bubble e cerca le rare Bomba e Color Wipe. Non indugiare: col tempo la struttura scende verso la linea di pericolo, sempre più rapidamente nei livelli avanzati.</p>
+        <p id="overlayText">200 configurazioni artistiche a difficoltà crescente. Crea gruppi da almeno 3, sfrutta Armor, Star e Prism Bubble e cerca le rare Bomba e Color Wipe. Il timer premia i clear rapidi, mentre col tempo la struttura scende verso la linea di pericolo.</p>
         <div class="stats-line">BEST <strong id="best">0</strong></div>
         <button id="startBtn" class="primary-btn">GIOCA</button>
         <a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
