@@ -96,15 +96,28 @@ Percorso: `games/neon-rally/`
 
 La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Tutte le condivisioni puntano sempre all'URL canonico `https://www.retrowebgames.it/`, anche quando il progetto viene aperto da un host tecnico o da un ambiente di test.
 
+## Modalità verticale
+
+Tutti i giochi condividono un guard di orientamento per smartphone. Se una partita in corso viene portata in landscape, il gioco viene messo in pausa e coperto da un avviso animato che invita a ruotare il telefono. Tornando in portrait, prima della ripresa viene mostrato il countdown animato `3 → 2 → 1 → GO!`. Una pausa impostata manualmente dall'utente non viene invece ripresa automaticamente.
+
+Il manifest PWA dichiara inoltre `orientation: portrait`; quando il browser o la modalità standalone supportano il lock nativo, il componente prova anche a richiedere `portrait-primary` senza dipendere da questa capacità.
+
+## Identità visiva
+
+`favicon.svg` è l'icona vettoriale ufficiale del progetto e viene usata dalla home, dai singoli giochi e dal manifest PWA.
+
 ## Struttura
 
 ```text
 /
 ├── index.html                  # hub RetroWebGames
+├── favicon.svg                 # favicon / icona vettoriale
 ├── hub.css                     # stile principale della home
 ├── hub-games.css               # illustrazioni aggiuntive del catalogo
 ├── hub-share.css               # dock di condivisione
 ├── hub-share.js                # URL e azioni social
+├── orientation.css             # overlay landscape + countdown
+├── orientation.js              # pausa/ripresa e controllo orientamento
 ├── manifest.webmanifest        # manifest condiviso
 ├── game.js                     # motore Star Swarm
 ├── style.css                   # stile Star Swarm
