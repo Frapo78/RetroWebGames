@@ -39,7 +39,8 @@ const gamePages = [
   'games/maze-munch/index.html',
   'games/neon-rally/index.html',
   'games/neon-snake/index.html',
-  'games/neon-tilt/index.html'
+  'games/neon-tilt/index.html',
+  'games/solitaire/index.html'
 ];
 
 const terminalRuntimes = [
@@ -238,6 +239,11 @@ must(agents.includes('exactly **8 firing forms**'), 'AGENTS.md must document Sta
 must(agents.includes('POWER range: **1..20**'), 'AGENTS.md must document Star Swarm 20-level POWER progression');
 must(agents.includes('Do not conflate these two systems'), 'AGENTS.md must retain the Weapon vs POWER semantic guardrail');
 
+for (const rel of ['scripts/validate-bubble-burst.mjs', 'scripts/validate-solitaire.mjs']) {
+  const result = spawnSync(process.execPath, [path.join(root, rel)], { encoding: 'utf8' });
+  must(result.status === 0, `${rel}: specialized validator failed: ${(result.stderr || result.stdout || '').trim()}`);
+}
+
 if (failures.length) {
   console.error(`\nRetroWebGames contract validation FAILED (${failures.length})\n`);
   for (const failure of failures) console.error(`  ✗ ${failure}`);
@@ -253,5 +259,6 @@ console.log(`  ✓ ${continueRuntimes.length} continue handlers preserve full sc
 console.log('  ✓ Star Swarm campaign/Weapon/POWER/drop/laser invariants are present');
 console.log('  ✓ shared bootstrap/profile/Game Over resilience invariants are intact');
 console.log('  ✓ Neon Tilt audited physics/compatibility guards are present');
+console.log('  ✓ Bubble Burst and Solitario specialized validators are green');
 console.log('  ✓ campaign uniqueness, boss roster and lifecycle pause guards are intact');
 console.log('  ✓ PWA install icons and complete profile statistics are present');
