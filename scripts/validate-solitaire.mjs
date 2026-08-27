@@ -65,6 +65,7 @@ for (const rank of [1, 6, 10, 11, 12, 13]) {
   const essential = art?.getCardFaceSvg?.({ rank, suit: rank % 2 ? 'h' : 's' }, 'essential') || '';
   must(essential.includes('card-style-essential') && essential.includes('essential-rank'), `Solitaire essential rank ${rank} must use the centered-rank template`);
   must((essential.match(/essential-corner/g) || []).length === 2, `Solitaire essential rank ${rank} must expose exactly two large corner suits`);
+  must(essential.includes(`font-size="57.5"`), `Solitaire essential corner suits must remain at the 2.5x size`);
   must(!essential.includes('court-portrait') && !essential.includes('ace-of-spades'), `Solitaire essential rank ${rank} must contain no classic drawing`);
 }
 must(art?.getCardBackSvg?.() === art?.getCardBackSvg?.(), 'Solitaire card sets must reuse one cached card back');
