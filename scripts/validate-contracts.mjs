@@ -55,7 +55,10 @@ must(star.includes('player.power=Math.max(1,player.power-2)') || /player\.power\
 must(star.includes('drops.power<2'), 'POWER drops must be capped at two per level');
 must(star.includes('drops.shield<1'), 'Shield drops must be capped at one per level');
 must(star.includes('level%2===0') && star.includes('drops.tractor<1'), 'Tractor Beam must be limited to one eligible drop every two levels');
+must(star.includes("e.type===2?.0043:.00245"), 'Weapon Upgrade rarity must remain at the reduced 0.43% / 0.245% baseline');
+must(!star.includes("e.type===2?.0086:.0049"), 'Weapon Upgrade regression: old higher drop rate reintroduced');
 must(!/b\.kind===['"]laser['"][^\n]{0,160}pierce--/.test(star), 'Laser regression: laser must not be consumed by pierce decrement');
+must(star.includes("if(b.kind==='laser')continue;"), 'Laser must continue through normal enemies after a hit');
 
 const gameOver = read('game-over.js');
 for (const marker of [
@@ -64,10 +67,13 @@ for (const marker of [
   'Continua con 1',
   'Nuova partita',
   'Scegli un altro gioco',
-  'rwg:continue-game'
+  'rwg:continue-game',
+  'rwg:game-ended'
 ]) {
   must(gameOver.includes(marker), `Shared game-over.js missing required marker: ${marker}`);
 }
+must(gameOver.includes('ensureSession'), 'Shared Game Over must be able to recover a session when terminal lifecycle arrives late');
+must(gameOver.includes('open: openSummary'), 'RWGGameOver.open must use the race-safe openSummary contract');
 
 const hud = read('game-hud.js');
 must(hud.includes('rwg-profile.js'), 'game-hud.js must bootstrap rwg-profile.js');
