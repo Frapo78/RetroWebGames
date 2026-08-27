@@ -106,3 +106,57 @@
   background: #fff3a5;
   box-shadow: 0 0 14px #ffe66d;
 }
+
+.snake-art {
+  background:
+    linear-gradient(rgba(124,255,178,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,255,178,.07) 1px, transparent 1px),
+    radial-gradient(circle at 55% 45%, #123b3d, #071426 62%, #03050b);
+  background-size: 18px 18px, 18px 18px, auto;
+}
+.snake-body,
+.snake-head {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: #7cffb2;
+  box-shadow: 0 0 12px rgba(124,255,178,.72);
+}
+.snake-head { left: 64px; top: 38px; background: #eafff2; }
+.snake-head::before,
+.snake-head::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #062014;
+}
+.snake-head::before { left: 4px; }
+.snake-head::after { right: 4px; }
+.sb1 { left: 46px; top: 38px; }
+.sb2 { left: 28px; top: 38px; }
+.sb3 { left: 28px; top: 56px; }
+.sb4 { left: 28px; top: 74px; }
+.snake-food {
+  position: absolute;
+  right: 18px;
+  bottom: 30px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffe66d;
+  box-shadow: 0 0 15px #ffe66d;
+}
+.snake-orb {
+  position: absolute;
+  left: 17px;
+  bottom: 21px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #65e7ff;
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(101,231,255,.85);
+}
