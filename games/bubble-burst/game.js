@@ -11,6 +11,9 @@
   const overlay = $('overlay'), overlayText = $('overlayText'), startBtn = $('startBtn');
   const pauseBtn = $('pauseBtn'), muteBtn = $('muteBtn'), nextBubbleEl = $('nextBubble');
   const nextDot = document.querySelector('#nextBubble i');
+  const levelTimerEl = $('levelTimer');
+  const levelClearEl = $('levelClear');
+  const clearPointsEl = $('clearPoints'), clearTimeEl = $('clearTime'), clearBonusEl = $('clearBonus'), clearTotalEl = $('clearTotal');
 
   const PALETTE = ['#ff5f73', '#65e7ff', '#ffe66d', '#8d7cff', '#7cffb2', '#ff934f'];
   const SHOT_NORMAL = 'normal', SHOT_BOMB = 'bomb', SHOT_COLOR_CLEAR = 'colorClear';
@@ -22,9 +25,12 @@
   const PRESSURE_START_ROWS = .5;
   const PRESSURE_MAX_ROWS = .9;
   const PRESSURE_ROW_GROWTH = .004;
+  const ORANGE_DEADLINE_MULTIPLIER = 3.5;
+  const LEVEL_BONUS_FAST = .50;
+  const LEVEL_BONUS_GOOD = .25;
 
   let W = 390, H = 844, DPR = 1;
-  let R = 16, CELL = 32, ROW_H = 28, TOP = 82;
+  let R = 16, CELL = 32, ROW_H = 28, TOP = 108;
   let launcherX = W / 2, launcherY = H - 96;
   let running = false, paused = false, muted = false, aiming = false;
   let aimX = W / 2, aimY = H * .42, last = 0;
@@ -34,6 +40,8 @@
   let moving = null, banner = '', bannerTime = 0, operatorPulse = 0;
   let boardMeta = null, backgroundCache = null, audio = null;
   let pressureRows = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
+  let levelElapsed = 0, levelStartScore = 0, lastTimerCentis = -1;
+  let levelClearActive = false, levelClearReadyAt = 0;
   let best = Number(localStorage.getItem('bubbleBurstBest') || 0);
 
   const grid = new Map();
@@ -47,6 +55,41 @@
   const pressureIntervalFor = lvl => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)));
   const pressureStepFor = lvl => Math.min(PRESSURE_MAX_ROWS, PRESSURE_START_ROWS + Math.max(0, lvl - 1) * PRESSURE_ROW_GROWTH);
   const ceilingY = () => TOP + pressureRows * ROW_H;
+
+  function formatLevelTime(seconds) {
+    const centis = Math.max(0, Math.floor(seconds * 100));
+    const minutes = Math.floor(centis / 6000);
+    const secs = Math.floor((centis % 6000) / 100);
+    const cs = centis % 100;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  }
+
+  function timerTier(seconds = levelElapsed) {
+    const optimal = Math.max(1, Number(boardMeta?.optimalSeconds) || 60);
+    if (seconds <= optimal) return 'green';
+    if (seconds <= optimal * ORANGE_DEADLINE_MULTIPLIER) return 'orange';
+    return 'red';
+  }
+
+  function updateLevelTimer(force = false) {
+    if (!levelTimerEl) return;
+    const centis = Math.floor(levelElapsed * 100);
+    if (!force && centis === lastTimerCentis) return;
+    lastTimerCentis = centis;
+    const tier = timerTier();
+    levelTimerEl.textContent = formatLevelTime(levelElapsed);
+    levelTimerEl.className = `is-${tier}`;
+    const optimal = Math.max(1, Number(boardMeta?.optimalSeconds) || 60);
+    levelTimerEl.setAttribute('aria-label', `Tempo livello ${formatLevelTime(levelElapsed)}. Tempo ottimale ${formatLevelTime(optimal)}.`);
+    levelTimerEl.title = `Tempo ottimale: ${formatLevelTime(optimal)} • soglia +25%: ${formatLevelTime(optimal * ORANGE_DEADLINE_MULTIPLIER)}`;
+  }
+
+  function resetLevelMetrics() {
+    levelElapsed = 0;
+    levelStartScore = score;
+    lastTimerCentis = -1;
+    updateLevelTimer(true);
+  }
 
   function resetPressure() {
     pressureRows = 0;
@@ -87,7 +130,7 @@
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     R = clamp((W - 14) / (COLS * 2 + 1), 13, 17.2);
     CELL = R * 2; ROW_H = R * 1.73;
-    TOP = Math.max(76, H * .105);
+    TOP = Math.max(106, H * .13);
     launcherX = W / 2; launcherY = H - Math.max(96, H * .115);
     aimX = clamp(aimX, R, W - R); aimY = Math.min(launcherY - 45, aimY);
     bubbleSprites.clear(); backgroundCache = buildBackgroundCache();
@@ -176,17 +219,26 @@
     }
   }
 
+  function hideLevelClear() {
+    levelClearActive = false;
+    levelClearReadyAt = 0;
+    levelClearEl?.classList.remove('is-visible');
+    levelClearEl?.setAttribute('aria-hidden', 'true');
+  }
+
   function resetGame() {
     score = 0; level = 1; misses = 0; missLimit = 5; moving = null; aiming = false;
     particles.length = 0; falling.length = 0; operatorPulse = 0;
-    resetPressure(); spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
+    hideLevelClear();
+    resetPressure(); spawnBoard(); resetLevelMetrics();
+    currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     banner = `LIVELLO 001 • ${boardMeta.name}`; bannerTime = 1.6; updateHud();
   }
 
   function updateHud() {
     scoreEl.textContent = score.toLocaleString('it-IT');
     levelEl.textContent = level; missesEl.textContent = `${misses}/${missLimit}`;
-    bestEl.textContent = best.toLocaleString('it-IT'); updateNextPreview();
+    bestEl.textContent = best.toLocaleString('it-IT'); updateNextPreview(); updateLevelTimer();
   }
 
   function burst(x, y, color, count = 10, speed = 140) {
@@ -204,7 +256,7 @@
   }
 
   function shoot() {
-    if (!running || paused || moving) return;
+    if (!running || paused || moving || levelClearActive) return;
     const v = aimVector(), speed = Math.min(720, 535 + level * .85 + H * .05);
     moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, ...currentShot };
     currentShot = nextShot; nextShot = makeQueuedShot(); operatorPulse = .18;
@@ -312,9 +364,52 @@
     if (!colors.includes(nextShot.color)) nextShot.color = pickColor();
   }
 
+  function levelBonusRate() {
+    const optimal = Math.max(1, Number(boardMeta?.optimalSeconds) || 60);
+    if (levelElapsed <= optimal) return LEVEL_BONUS_FAST;
+    if (levelElapsed <= optimal * ORANGE_DEADLINE_MULTIPLIER) return LEVEL_BONUS_GOOD;
+    return 0;
+  }
+
+  function completeLevel() {
+    if (levelClearActive || !running) return;
+    const clearAward = 700 + Math.min(2300, (level + 1) * 22);
+    score += clearAward;
+    const levelPoints = Math.max(0, score - levelStartScore);
+    const bonusRate = levelBonusRate();
+    const bonusPoints = Math.round(levelPoints * bonusRate);
+    const levelTotal = levelPoints + bonusPoints;
+    score += bonusPoints;
+    updateHud();
+
+    levelClearActive = true;
+    paused = true;
+    aiming = false;
+    moving = null;
+    levelClearReadyAt = performance.now() + 2200;
+
+    clearPointsEl.textContent = `Punti livello: ${levelPoints.toLocaleString('it-IT')}`;
+    clearTimeEl.textContent = `Tempo: ${formatLevelTime(levelElapsed)}`;
+    clearBonusEl.textContent = bonusRate > 0
+      ? `Bonus: +${Math.round(bonusRate * 100)}% (+${bonusPoints.toLocaleString('it-IT')})`
+      : 'Bonus: NO BONUS!';
+    clearTotalEl.textContent = `Totale: ${levelTotal.toLocaleString('it-IT')} punti!`;
+
+    levelClearEl.classList.remove('is-visible');
+    levelClearEl.setAttribute('aria-hidden', 'false');
+    void levelClearEl.offsetWidth;
+    levelClearEl.classList.add('is-visible');
+
+    tone(620, .09, 'square', .03, 260);
+    setTimeout(() => tone(760, .08, 'square', .03, 220), 360);
+    setTimeout(() => tone(920, .09, 'triangle', .035, 320), 720);
+    setTimeout(() => tone(bonusRate ? 1180 : 330, .13, bonusRate ? 'triangle' : 'square', .04, bonusRate ? 420 : -70), 1320);
+    navigator.vibrate?.(bonusRate === LEVEL_BONUS_FAST ? [20, 25, 20, 25, 45] : [18, 25, 35]);
+  }
+
   function finishResolution({ resetMisses = true } = {}) {
     if (resetMisses) misses = 0;
-    if (!grid.size) { nextLevel(); return; }
+    if (!grid.size) { completeLevel(); return; }
     reconcileQueue(); updateHud(); checkDanger();
   }
 
@@ -326,7 +421,7 @@
       finishResolution({ resetMisses: removed > 0 || matches.length >= 3 });
     } else {
       misses++; tone(210, .04, 'square', .018, -35); if (misses >= missLimit) addPenaltyRow();
-      if (!grid.size) nextLevel(); else { reconcileQueue(); updateHud(); checkDanger(); }
+      if (!grid.size) completeLevel(); else { reconcileQueue(); updateHud(); checkDanger(); }
     }
   }
 
@@ -365,14 +460,17 @@
     attachNormal();
   }
 
-  function nextLevel() {
+  function startNextLevel() {
+    hideLevelClear();
     level++; misses = 0;
     missLimit = level >= 80 ? 3 : level >= 28 ? 4 : 5;
-    score += 700 + Math.min(2300, level * 22);
-    resetPressure(); spawnBoard(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
+    resetPressure(); spawnBoard(); resetLevelMetrics();
+    currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     const intro = level === 8 ? 'ARMOR BUBBLES!' : level === 18 ? 'STAR BUBBLES!' : level === 35 ? 'PRISM BUBBLES!' : null;
     banner = intro || `LIVELLO ${String(level).padStart(3, '0')} • ${boardMeta.name}`; bannerTime = intro ? 2 : 1.5;
+    paused = false;
     tone(480, .18, 'triangle', .045, 480); updateHud();
+    last = performance.now();
   }
 
   function checkDanger() {
@@ -399,12 +497,12 @@
   }
 
   function endGame() {
-    if (!running) return;
+    if (!running || levelClearActive) return;
     running = false; paused = false; aiming = false; moving = null;
     best = Math.max(best, score); localStorage.setItem('bubbleBurstBest', String(best)); updateHud();
     overlayText.innerHTML = `Le bolle hanno raggiunto la linea di pericolo.<br>Punteggio <strong>${score.toLocaleString('it-IT')}</strong> • livello ${level}.`;
     startBtn.textContent = 'RIGIOCA'; overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ'; tone(95, .25, 'sawtooth', .05, -55);
-    const detail = { game: 'Bubble Burst', score, level, best, layout: boardMeta?.id || level };
+    const detail = { game: 'Bubble Burst', score, level, best, layout: boardMeta?.id || level, levelTime: levelElapsed };
     window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail })); requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
 
@@ -429,11 +527,13 @@
   }
 
   function update(dt) {
-    if (!running || paused) return;
+    if (!running || paused || levelClearActive) return;
+    levelElapsed += dt;
+    updateLevelTimer();
     updateMoving(dt);
-    if (!running) return;
+    if (!running || paused || levelClearActive) return;
     updatePressure(dt);
-    if (!running) return;
+    if (!running || paused || levelClearActive) return;
     bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.pow(.08, dt); p.vy *= Math.pow(.08, dt); p.life -= dt;
@@ -506,7 +606,7 @@
   }
 
   function traceAim() {
-    if (!running || paused || moving) return;
+    if (!running || paused || moving || levelClearActive) return;
     const v = aimVector(); let x = launcherX + v.x * (R + 20), y = launcherY + v.y * (R + 20), vx = v.x, vy = v.y;
     const step = 13, top = ceilingY(); ctx.save();
     for (let i = 0; i < 46; i++) {
@@ -538,7 +638,7 @@
   }
 
   function drawPressureStatus() {
-    if (!running) return;
+    if (!running || levelClearActive) return;
     const remaining = Math.max(0, pressureInterval - pressureElapsed);
     if (remaining > 6 && pressurePulse <= 0) return;
     const dangerY = launcherY - R * 3.4;
@@ -566,21 +666,27 @@
     drawLauncher();
     for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); } ctx.globalAlpha = 1;
     drawPressureStatus();
-    if (bannerTime > 0 && running) { ctx.save(); ctx.globalAlpha = Math.min(1, bannerTime * 2); ctx.textAlign = 'center'; ctx.font = '900 17px ui-monospace, monospace'; ctx.fillStyle = '#f7fbff'; ctx.shadowBlur = 15; ctx.shadowColor = '#65e7ff'; ctx.fillText(banner, W / 2, H * .55); ctx.restore(); }
-    if (paused && running) { ctx.fillStyle = 'rgba(2,5,14,.62)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.font = '900 22px ui-monospace, monospace'; ctx.fillStyle = '#fff'; ctx.fillText('PAUSA', W / 2, H / 2); }
+    if (bannerTime > 0 && running && !levelClearActive) { ctx.save(); ctx.globalAlpha = Math.min(1, bannerTime * 2); ctx.textAlign = 'center'; ctx.font = '900 17px ui-monospace, monospace'; ctx.fillStyle = '#f7fbff'; ctx.shadowBlur = 15; ctx.shadowColor = '#65e7ff'; ctx.fillText(banner, W / 2, H * .55); ctx.restore(); }
+    if (paused && running && !levelClearActive) { ctx.fillStyle = 'rgba(2,5,14,.62)'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.font = '900 22px ui-monospace, monospace'; ctx.fillStyle = '#fff'; ctx.fillText('PAUSA', W / 2, H / 2); }
   }
 
   function frame(ts) { const dt = Math.min(.033, Math.max(0, (ts - last) / 1000 || 0)); last = ts; update(dt); draw(); requestAnimationFrame(frame); }
   function pointerPos(e) { const rect = canvas.getBoundingClientRect(); return { x: (e.clientX - rect.left) * (W / rect.width), y: (e.clientY - rect.top) * (H / rect.height) }; }
   function setAim(e) { const p = pointerPos(e); aimX = clamp(p.x, R, W - R); aimY = Math.min(launcherY - 40, p.y); }
 
-  canvas.addEventListener('pointerdown', e => { if (!running || paused || moving) return; e.preventDefault(); aiming = true; canvas.setPointerCapture?.(e.pointerId); setAim(e); ensureAudio(); });
+  canvas.addEventListener('pointerdown', e => { if (!running || paused || moving || levelClearActive) return; e.preventDefault(); aiming = true; canvas.setPointerCapture?.(e.pointerId); setAim(e); ensureAudio(); });
   canvas.addEventListener('pointermove', e => { if (!aiming) return; e.preventDefault(); setAim(e); });
   canvas.addEventListener('pointerup', e => { if (!aiming) return; e.preventDefault(); setAim(e); aiming = false; shoot(); });
   canvas.addEventListener('pointercancel', () => { aiming = false; });
 
+  levelClearEl?.addEventListener('pointerdown', e => {
+    if (!levelClearActive || performance.now() < levelClearReadyAt) return;
+    e.preventDefault();
+    startNextLevel();
+  });
+
   startBtn.addEventListener('click', () => { ensureAudio(); resetGame(); running = true; paused = false; startBtn.textContent = 'GIOCA'; overlay.classList.remove('visible'); pauseBtn.textContent = 'Ⅱ'; last = performance.now(); });
-  pauseBtn.addEventListener('click', () => { if (!running) return; paused = !paused; aiming = false; pauseBtn.textContent = paused ? '▶' : 'Ⅱ'; if (!paused) last = performance.now(); });
+  pauseBtn.addEventListener('click', () => { if (!running || levelClearActive) return; paused = !paused; aiming = false; pauseBtn.textContent = paused ? '▶' : 'Ⅱ'; if (!paused) last = performance.now(); });
   muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; if (!muted) ensureAudio(); });
 
   window.addEventListener('rwg:continue-game', e => {
@@ -596,11 +702,11 @@
       if (!grid.size) { resetPressure(); spawnBoard(); break; }
     }
     reconcileQueue(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
-    running = true; paused = false; overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; banner = 'CONTINUA!'; bannerTime = 1.2; last = performance.now(); updateHud(); ensureAudio(); tone(520, .16, 'triangle', .035, 900);
+    running = true; paused = false; hideLevelClear(); overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; banner = 'CONTINUA!'; bannerTime = 1.2; last = performance.now(); updateHud(); ensureAudio(); tone(520, .16, 'triangle', .035, 900);
   });
 
   window.addEventListener('resize', resize); window.addEventListener('orientationchange', resize);
-  document.addEventListener('visibilitychange', () => { if (document.hidden && running && !paused) { paused = true; aiming = false; pauseBtn.textContent = '▶'; } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && running && !paused && !levelClearActive) { paused = true; aiming = false; pauseBtn.textContent = '▶'; } });
 
   resize(); updateHud(); draw(); requestAnimationFrame(frame);
 })();
