@@ -2,7 +2,7 @@
 
 **RetroWebGames** è una raccolta di piccoli giochi arcade mobile-first eseguiti direttamente nel browser. Il progetto nasce da Star Swarm ed è stato ampliato come raccolta di giochi pensata soprattutto per smartphone in verticale.
 
-Demo VPS indicata per il progetto: `http://91.134.23.24:8112/`
+Sito ufficiale: `https://www.retrowebgames.it/`
 
 ## Giochi
 
@@ -92,6 +92,10 @@ Paddle duel originale ispirato ai classici giochi arcade a racchette e pallina.
 
 Percorso: `games/neon-rally/`
 
+## Condivisione
+
+La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Tutte le condivisioni puntano sempre all'URL canonico `https://www.retrowebgames.it/`, anche quando il progetto viene aperto da un host tecnico o da un ambiente di test.
+
 ## Struttura
 
 ```text
@@ -99,6 +103,8 @@ Percorso: `games/neon-rally/`
 ├── index.html                  # hub RetroWebGames
 ├── hub.css                     # stile principale della home
 ├── hub-games.css               # illustrazioni aggiuntive del catalogo
+├── hub-share.css               # dock di condivisione
+├── hub-share.js                # URL e azioni social
 ├── manifest.webmanifest        # manifest condiviso
 ├── game.js                     # motore Star Swarm
 ├── style.css                   # stile Star Swarm
