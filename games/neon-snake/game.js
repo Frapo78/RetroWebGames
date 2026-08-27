@@ -251,6 +251,9 @@
     overlay.classList.add('visible');
     tone(120, .28, 'sawtooth', .045, 55);
     if (navigator.vibrate) navigator.vibrate([45, 40, 70]);
+    const detail = { game: 'Neon Snake', score, level, best, maxCombo: combo, length: snake.length };
+    window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail }));
+    requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
 
   function update(dt, now) {
@@ -395,7 +398,7 @@
   });
 
   window.addEventListener('rwg:continue-game', e => {
-    score = Math.max(0, Math.floor(e.detail?.score ?? score * .5));
+    score = Math.max(0, Math.floor(e.detail?.score ?? score));
     combo = 1; shield = false; bonus = null; shieldOrb = null; bonusTTL = shieldTTL = 0; accumulator = 0; lastEatAt = 0;
     const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
     snake = [{ x: cx + 1, y: cy }, { x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
