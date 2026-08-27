@@ -16,6 +16,8 @@
   const scoreEl = $('score');
   const variantNameEl = $('variantName');
   const variantSelect = $('variantSelect');
+  const cardStyleSelect = $('cardStyleSelect');
+  const cardStyleLabel = $('cardStyleLabel');
   const overlay = $('overlay');
   const startBtn = $('startBtn');
   const undoBtn = $('undoBtn');
@@ -35,6 +37,7 @@
   const RED_SUITS = new Set(['h', 'd']);
   const RANK_LABEL = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
   const STORAGE_KEY = 'rwg.solitaire.stats.v1';
+  const CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1';
   const HISTORY_LIMIT = 100;
 
   let variant = Variants.get(Variants.DEFAULT_ID);
@@ -57,6 +60,7 @@
   let pointerDrag = null;
   let lastTap = { key: '', at: 0 };
   let stats = loadStats();
+  let cardStyle = loadCardStyle();
 
   function loadStats() {
     try {
@@ -74,6 +78,24 @@
 
   function saveStats() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+  }
+
+  function loadCardStyle() {
+    try { return localStorage.getItem(CARD_STYLE_KEY) === 'classic' ? 'classic' : 'essential'; }
+    catch (_) { return 'essential'; }
+  }
+
+  function syncCardStyleControl() {
+    cardStyleSelect.value = cardStyle;
+    cardStyleLabel.textContent = cardStyle === 'essential' ? 'MIN.' : 'CLASS.';
+  }
+
+  function changeCardStyle(nextStyle) {
+    cardStyle = nextStyle === 'essential' ? 'essential' : 'classic';
+    try { localStorage.setItem(CARD_STYLE_KEY, cardStyle); } catch (_) {}
+    syncCardStyleControl();
+    render();
+    showToast(cardStyle === 'essential' ? 'MAZZO ESSENZIALE' : 'MAZZO CLASSICO');
   }
 
   function cardColor(card) { return RED_SUITS.has(card.suit) ? 'red' : 'black'; }
@@ -333,7 +355,7 @@
   }
 
   function cardInner(card) {
-    return CardArt.getCardFaceSvg(card);
+    return CardArt.getCardFaceSvg(card, cardStyle);
   }
 
   function cardMarkup(card, attrs = '', extraClass = '', top = 0, z = 1) {
@@ -654,6 +676,8 @@
   });
 
   variantNameEl.textContent = variant.name.toUpperCase();
+  cardStyleSelect.addEventListener('change', () => changeCardStyle(cardStyleSelect.value));
+  syncCardStyleControl();
   render();
   requestAnimationFrame(frame);
 })();

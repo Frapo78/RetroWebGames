@@ -235,6 +235,9 @@ Run `node scripts/validate-bubble-burst.mjs` after Bubble Burst gameplay/layout 
 
 - `games/solitaire/card-art.js` is the presentation source of truth for the 52-card deck and classic back.
 - Cards use original inline SVG with traditional French suits, mirrored indices, standard pip layouts A–10, mirrored J/Q/K portraits and an ornamental Ace of Spades.
+- The live card-style selector offers `classic` and `essential` without restarting or mutating the hand; the choice persists locally.
+- `essential` is the default for new users; an explicitly persisted `classic` choice must remain respected.
+- The essential set keeps the shared ivory face and classic back, uses only two large corner suits plus one large centered rank, and MUST NOT add pips or court drawings.
 - Do not replace the classic deck with arcade/cartoon styling, external branded assets or per-render uncached SVG generation.
 - Artwork changes MUST preserve the existing card aspect ratio, DOM hitboxes and multi-card drag behavior.
 

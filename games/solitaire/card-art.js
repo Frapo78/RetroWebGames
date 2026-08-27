@@ -126,13 +126,32 @@
     return faceSvg(rank, suit, courtArtwork(rank, suit));
   }
 
-  function getCardFaceSvg(card) {
+  function essentialFaceSvg(rank, suit) {
+    const { symbol, color } = SUITS[suit];
+    const label = rankLabel(rank), valueSize = label === '10' ? 45 : 59;
+    const corner = `<text class="essential-corner" x="14" y="24" text-anchor="middle" font-size="23">${symbol}</text>`;
+    return `<svg class="card-art card-style-essential" viewBox="0 0 100 142" preserveAspectRatio="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <rect x=".7" y=".7" width="98.6" height="140.6" rx="7.5" fill="#fffdf7" stroke="#b9b4a9" stroke-width="1.4"/>
+      <rect x="2.5" y="2.5" width="95" height="137" rx="6" fill="none" stroke="#eee9de" stroke-width=".8"/>
+      <g fill="${color}" font-family="'Times New Roman',Georgia,serif" font-weight="700">
+        ${corner}
+        <g transform="rotate(180 50 71)">${corner}</g>
+        <text class="essential-rank" x="50" y="74" text-anchor="middle" dominant-baseline="central" font-size="${valueSize}">${label}</text>
+      </g>
+    </svg>`;
+  }
+
+  function getCardFaceSvg(card, style = 'classic') {
     const rank = Number(card?.rank), suit = card?.suit;
     if (!Number.isInteger(rank) || rank < 1 || rank > 13 || !SUITS[suit]) return '';
-    const key = `${suit}${rank}`;
+    const normalizedStyle = style === 'essential' ? 'essential' : 'classic';
+    const key = `${normalizedStyle}|${suit}${rank}`;
     if (!FACE_CACHE.has(key)) {
-      const center = rank >= 11 ? courtArtwork(rank, suit) : rank === 1 && suit === 's' ? ornateAceOfSpades() : pipArtwork(rank, suit);
-      FACE_CACHE.set(key, faceSvg(rank, suit, center));
+      if (normalizedStyle === 'essential') FACE_CACHE.set(key, essentialFaceSvg(rank, suit));
+      else {
+        const center = rank >= 11 ? courtArtwork(rank, suit) : rank === 1 && suit === 's' ? ornateAceOfSpades() : pipArtwork(rank, suit);
+        FACE_CACHE.set(key, faceSvg(rank, suit, center));
+      }
     }
     return FACE_CACHE.get(key);
   }

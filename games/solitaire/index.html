@@ -28,7 +28,14 @@
       <div id="upperPiles">
         <button id="stock" class="pile-slot stock-slot" data-drop="stock" aria-label="Mazzo"></button>
         <div id="waste" class="pile-slot" data-drop="waste" aria-label="Scarti"></div>
-        <div class="pile-spacer" aria-hidden="true"></div>
+        <label class="pile-slot card-style-control" title="Scegli lo stile delle carte">
+          <span class="card-style-icon" aria-hidden="true">♤</span>
+          <small id="cardStyleLabel">MIN.</small>
+          <select id="cardStyleSelect" aria-label="Stile delle carte">
+            <option value="classic">CARTE CLASSICHE</option>
+            <option value="essential" selected>CARTE ESSENZIALI</option>
+          </select>
+        </label>
         <div id="foundation-s" class="pile-slot foundation-slot" data-drop="foundation" data-suit="s" aria-label="Fondazione picche"><span class="slot-suit">♠</span></div>
         <div id="foundation-h" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="h" aria-label="Fondazione cuori"><span class="slot-suit">♥</span></div>
         <div id="foundation-d" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="d" aria-label="Fondazione quadri"><span class="slot-suit">♦</span></div>

@@ -23,6 +23,8 @@ must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'Solitaire eng
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared orientation lifecycle');
 must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose the classic Klondike variant');
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain shared return-to-menu action');
+must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets through the live table selector');
+must(html.includes('value="essential" selected'), 'Solitaire essential card set must be the markup default');
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
@@ -59,6 +61,13 @@ must(art?.getCardFaceSvg?.({ rank: 1, suit: 's' }).includes('ace-of-spades'), 'S
 must(art?.getCardFaceSvg?.({ rank: 10, suit: 'h' }).includes('#b51f2e'), 'Solitaire red suits must use the classic red palette');
 must(art?.getCardFaceSvg?.({ rank: 10, suit: 'c' }).includes('#171717'), 'Solitaire black suits must use the classic black palette');
 must(art?.getCardBackSvg?.().includes('back-medallion'), 'Solitaire card back must retain its symmetric classic medallion');
+for (const rank of [1, 6, 10, 11, 12, 13]) {
+  const essential = art?.getCardFaceSvg?.({ rank, suit: rank % 2 ? 'h' : 's' }, 'essential') || '';
+  must(essential.includes('card-style-essential') && essential.includes('essential-rank'), `Solitaire essential rank ${rank} must use the centered-rank template`);
+  must((essential.match(/essential-corner/g) || []).length === 2, `Solitaire essential rank ${rank} must expose exactly two large corner suits`);
+  must(!essential.includes('court-portrait') && !essential.includes('ace-of-spades'), `Solitaire essential rank ${rank} must contain no classic drawing`);
+}
+must(art?.getCardBackSvg?.() === art?.getCardBackSvg?.(), 'Solitaire card sets must reuse one cached card back');
 
 const game = read('games/solitaire/game.js');
 for (const marker of ['createDeck()', 'canMoveToTableau', 'canMoveToFoundation', 'drawStock', 'autoFoundation', 'pushHistory', 'undo()', 'findHint()', 'pointerdown', 'visibilitychange', 'checkWin()']) {
@@ -70,8 +79,11 @@ must(game.includes("card.rank === foundations[suit].length + 1"), 'Klondike foun
 must(game.includes("stock = waste.reverse()"), 'Classic draw-one stock must remain recyclable');
 must(game.includes('SUITS.reduce((sum, suit) => sum + foundations[suit].length, 0) !== 52'), 'Solitaire victory must require all 52 cards in foundations');
 must(!game.includes('rwg:game-ended'), 'Solitaire victory must not incorrectly open the shared GAME OVER presentation');
-must(game.includes('CardArt.getCardFaceSvg(card)') && game.includes('CardArt.getCardBackSvg()'), 'Solitaire runtime must render cached classic card art');
+must(game.includes('CardArt.getCardFaceSvg(card, cardStyle)') && game.includes('CardArt.getCardBackSvg()'), 'Solitaire runtime must render the selected cached card art');
 must(!game.includes('pip-center') && !game.includes('face-mark'), 'Solitaire legacy simplified card marks must remain removed');
+must(game.includes("CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1'"), 'Solitaire selected card set must persist locally');
+must(game.includes("localStorage.getItem(CARD_STYLE_KEY) === 'classic' ? 'classic' : 'essential'") && game.includes("catch (_) { return 'essential'; }"), 'Solitaire essential card set must be the runtime default');
+must(game.includes("cardStyleSelect.addEventListener('change'") && game.includes('changeCardStyle(cardStyleSelect.value)'), 'Solitaire card set must switch live during a hand');
 
 if (failures.length) {
   console.error(`\nSolitaire validation FAILED (${failures.length})\n`);
@@ -84,3 +96,4 @@ console.log('  ✓ classic Klondike draw-one rules');
 console.log('  ✓ 52-card victory condition');
 console.log('  ✓ touch drag/tap, undo, hint and pause lifecycle markers');
 console.log('  ✓ cached classic French-suited SVG faces, courts and card back');
+console.log('  ✓ live persistent classic/essential card-set switching');
