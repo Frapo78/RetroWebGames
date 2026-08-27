@@ -53,7 +53,12 @@ must(game.includes("Math.min(.02, .007"), 'Bubble Burst Color Wipe probability m
 must(game.includes('function nearbyBubbles('), 'Bubble Burst must retain nearby-cell collision lookup');
 must(game.includes('for (const b of nearbyBubbles('), 'Bubble Burst moving collision/special resolution must use nearby-cell lookup');
 must(game.includes('const bubbleSprites = new Map()'), 'Bubble Burst must cache bubble render sprites');
-must(game.includes('const chibiSprites = new Map()'), 'Bubble Burst must cache chibi pixel sprites');
+must(game.includes('const mangaChibiSprites = new Map()'), 'Bubble Burst must cache clean manga chibi base sprites');
+must(game.includes('function makeMangaChibiSprite('), 'Bubble Burst manga chibi base renderer missing');
+must(game.includes('function drawMangaChibiCrew(') && game.includes('function drawTrackedEyes('), 'Bubble Burst manga crew and dynamic eye tracking must remain active');
+must(game.includes('function predictAimTrajectory(') && game.includes('function predictAimFocusPoint('), 'Bubble Burst aim focus prediction must remain explicit and shared');
+must(game.includes('traceAim(aimPrediction)') && game.includes('predictAimFocusPoint(aimPrediction)'), 'Bubble Burst aim preview and crew gaze must reuse the same prediction');
+must(!game.includes('makeChibiSprite(') && !game.includes('imageSmoothingEnabled = false'), 'Bubble Burst pixel-art chibi renderer must not return');
 must(game.includes('backgroundCache = buildBackgroundCache()'), 'Bubble Burst must cache its static background');
 must(!game.includes('queue.shift()'), 'Bubble Burst graph traversal must not regress to Array.shift() queues');
 
@@ -111,4 +116,5 @@ console.log('  ✓ rare Bomb / Color Wipe launched specials');
 console.log('  ✓ progressive timed ceiling pressure starts after >=60s at level 1');
 console.log('  ✓ pressure pauses with gameplay and intensifies by interval/step');
 console.log('  ✓ cached rendering + nearby-cell collision performance guards');
+console.log('  ✓ clean cached manga chibi crew tracks shared bounce/attach prediction');
 console.log('  ✓ shared Game Over / Continue lifecycle markers');

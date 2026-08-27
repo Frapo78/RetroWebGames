@@ -48,7 +48,8 @@
   const particles = [];
   const falling = [];
   const bubbleSprites = new Map();
-  const chibiSprites = new Map();
+  const mangaChibiSprites = new Map();
+  let lastAimFocus = { x: launcherX, y: TOP };
 
   const key = (r, c) => `${r},${c}`;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -574,53 +575,109 @@
     ctx.drawImage(sprite, x - d / 2, y - d / 2, d, d);
   }
 
-  function makeChibiSprite(role, pose = 'idle') {
-    const cacheKey = `${role}|${pose}`; if (chibiSprites.has(cacheKey)) return chibiSprites.get(cacheKey);
-    const c = document.createElement('canvas'); c.width = 32; c.height = 40; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    const left = role === 'operator';
-    const hair = left ? '#ff5ecf' : '#65e7ff', suit = left ? '#65e7ff' : '#ffe66d', accent = left ? '#ffe66d' : '#7cffb2';
-    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(7,36,18,3);
-    g.fillStyle = '#11172a'; g.fillRect(8,6,16,14); g.fillRect(6,10,20,9);
-    g.fillStyle = hair; g.fillRect(8,5,16,5); g.fillRect(left?7:18,8,7,7); g.fillRect(left?20:7,7,5,4);
-    g.fillStyle = '#ffd8bd'; g.fillRect(9,11,14,11); g.fillRect(7,14,3,5); g.fillRect(22,14,3,5);
-    g.fillStyle = '#172038'; g.fillRect(11,14,3,3); g.fillRect(19,14,3,3);
-    g.fillStyle = pose === 'fire' && left ? '#ff5f73' : '#c7667d'; g.fillRect(14,19,5,2);
-    g.fillStyle = suit; g.fillRect(9,23,14,10); g.fillRect(6,24,4,8); g.fillRect(22,24,4,8);
-    g.fillStyle = accent; g.fillRect(13,23,6,10);
-    g.fillStyle = '#ddeaff'; g.fillRect(7,31,5,4); g.fillRect(20,31,5,4);
-    g.fillStyle = '#222c48'; g.fillRect(10,33,5,5); g.fillRect(18,33,5,5);
-    if (!left) { g.fillStyle = '#6f7b96'; g.fillRect(4,27,4,7); g.fillRect(24,27,4,7); g.strokeStyle='#b9c8da'; g.strokeRect(4,26,24,9); }
-    chibiSprites.set(cacheKey, c); return c;
+  function roundedRectPath(g, x, y, w, h, radius) {
+    const r = Math.min(radius, w / 2, h / 2);
+    g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+    g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+    g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
-  function drawChibiCrew() {
-    const sizeW = clamp(W * .12, 42, 54), sizeH = sizeW * 1.25, off = clamp(W * .205, 60, 79);
-    const bob = Math.sin(performance.now() * .004) * 1.4;
-    ctx.save(); ctx.imageSmoothingEnabled = false;
-    const operator = makeChibiSprite('operator', operatorPulse > 0 ? 'fire' : 'idle');
-    const loader = makeChibiSprite('loader', 'idle');
-    ctx.drawImage(operator, launcherX - off - sizeW / 2, launcherY - sizeH * .52 + bob + (operatorPulse > 0 ? 3 : 0), sizeW, sizeH);
-    ctx.drawImage(loader, launcherX + off - sizeW / 2, launcherY - sizeH * .52 - bob, sizeW, sizeH);
-    ctx.restore();
-    drawBubble(launcherX + off + sizeW * .15, launcherY - sizeH * .36 - bob, nextShot.color, R * .48, nextShot.kind, 0);
+  function makeMangaChibiSprite(role, pose = 'idle') {
+    const cacheKey = role + '|' + pose; if (mangaChibiSprites.has(cacheKey)) return mangaChibiSprites.get(cacheKey);
+    const c = document.createElement('canvas'); c.width = 180; c.height = 220; const g = c.getContext('2d');
+    const operator = role === 'operator';
+    const hairTop = operator ? '#ff76d7' : '#7deeff', hairDeep = operator ? '#7b285f' : '#176b99';
+    const suitTop = operator ? '#7ff2ff' : '#ffe88a', suitDeep = operator ? '#167ca2' : '#b26d23';
+    const accent = operator ? '#ffe66d' : '#7cffb2', skin = '#ffd9c5', ink = '#172039';
+    g.fillStyle = 'rgba(0,0,0,.34)'; g.beginPath(); g.ellipse(90, 207, 48, 9, 0, 0, Math.PI * 2); g.fill();
+    if (!operator) {
+      const tail = g.createLinearGradient(122, 35, 160, 93); tail.addColorStop(0, hairTop); tail.addColorStop(1, hairDeep);
+      g.fillStyle = tail; g.beginPath(); g.moveTo(124, 42); g.bezierCurveTo(171, 42, 166, 91, 137, 101); g.bezierCurveTo(151, 73, 125, 69, 124, 42); g.fill();
+      g.fillStyle = accent; g.beginPath(); g.arc(135, 51, 9, 0, Math.PI * 2); g.fill();
+    }
+    g.strokeStyle = ink; g.lineWidth = 11; g.lineCap = 'round'; g.beginPath(); g.moveTo(72, 174); g.lineTo(67, 197); g.moveTo(108, 174); g.lineTo(113, 197); g.stroke();
+    g.strokeStyle = operator ? '#d8f8ff' : '#fff0b8'; g.lineWidth = 8; g.beginPath(); g.moveTo(67, 197); g.lineTo(56, 202); g.moveTo(113, 197); g.lineTo(124, 202); g.stroke();
+    const suit = g.createLinearGradient(55, 116, 126, 191); suit.addColorStop(0, suitTop); suit.addColorStop(1, suitDeep);
+    g.fillStyle = suit; roundedRectPath(g, 52, 111, 76, 75, 24); g.fill(); g.strokeStyle = 'rgba(255,255,255,.58)'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#101a34'; g.beginPath(); g.moveTo(77, 112); g.lineTo(90, 132); g.lineTo(103, 112); g.closePath(); g.fill();
+    g.fillStyle = accent; g.beginPath(); g.arc(90, 143, 10, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#182342'; roundedRectPath(g, 70, 165, 40, 14, 7); g.fill();
+    g.lineCap = 'round'; g.lineWidth = 17; g.strokeStyle = suitTop;
+    if (operator) {
+      const recoil = pose === 'fire' ? 7 : 0; g.beginPath(); g.moveTo(58, 130); g.lineTo(35, 151 + recoil); g.moveTo(122, 130); g.lineTo(140, 145 - recoil); g.stroke();
+      g.strokeStyle = skin; g.lineWidth = 12; g.beginPath(); g.moveTo(35, 151 + recoil); g.lineTo(46, 158 + recoil); g.moveTo(140, 145 - recoil); g.lineTo(132, 155 - recoil); g.stroke();
+    } else {
+      g.beginPath(); g.moveTo(58, 132); g.lineTo(43, 156); g.moveTo(122, 132); g.lineTo(133, 156); g.stroke();
+      g.strokeStyle = skin; g.lineWidth = 12; g.beginPath(); g.moveTo(43, 156); g.lineTo(64, 164); g.moveTo(133, 156); g.lineTo(112, 164); g.stroke();
+      g.fillStyle = '#8fa8c1'; roundedRectPath(g, 48, 160, 84, 10, 5); g.fill(); g.strokeStyle = '#dff7ff'; g.lineWidth = 2; g.stroke();
+    }
+    const hairBack = g.createLinearGradient(46, 16, 138, 111); hairBack.addColorStop(0, hairTop); hairBack.addColorStop(1, hairDeep);
+    g.fillStyle = hairBack; g.beginPath(); g.ellipse(90, 66, 54, 57, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = skin; g.beginPath(); g.ellipse(90, 73, 45, 43, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(94,47,61,.24)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = 'rgba(255,113,145,.2)'; g.beginPath(); g.ellipse(56, 89, 10, 5, 0, 0, Math.PI * 2); g.ellipse(124, 89, 10, 5, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = hairBack; g.beginPath(); g.moveTo(43, 58); g.bezierCurveTo(50, 8, 129, 3, 139, 55); g.bezierCurveTo(124, 43, 120, 42, 111, 61); g.bezierCurveTo(98, 46, 88, 41, 78, 62); g.bezierCurveTo(68, 48, 58, 48, 43, 58); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = 4; g.beginPath(); g.moveTo(operator ? 57 : 66, 29); g.quadraticCurveTo(87, 14, operator ? 113 : 124, 31); g.stroke();
+    g.fillStyle = hairTop; g.beginPath(); g.moveTo(operator ? 48 : 128, 52); g.quadraticCurveTo(operator ? 31 : 151, 68, operator ? 50 : 130, 92); g.quadraticCurveTo(operator ? 57 : 122, 75, operator ? 48 : 128, 52); g.fill();
+    g.strokeStyle = hairDeep; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(61, 48); g.lineTo(71, 59); g.moveTo(88, 41); g.lineTo(91, 57); g.moveTo(116, 47); g.lineTo(107, 60); g.stroke();
+    g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(59, 62); g.quadraticCurveTo(70, 55, 80, 62); g.moveTo(100, 62); g.quadraticCurveTo(110, 55, 121, 62); g.stroke();
+    g.strokeStyle = '#bb6878'; g.lineWidth = 3; g.beginPath(); if (pose === 'fire' && operator) g.arc(90, 97, 6, 0, Math.PI * 2); else { g.moveTo(84, 98); g.quadraticCurveTo(90, 103, 97, 97); } g.stroke();
+    mangaChibiSprites.set(cacheKey, c); return c;
   }
 
-  function traceAim() {
-    if (!running || paused || moving || levelClearActive) return;
+  function drawTrackedEyes(g, gaze, role) {
+    const iris = role === 'operator' ? '#7b3cff' : '#087da8';
+    for (const x of [-20, 20]) {
+      g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, 75, 13.5, 16, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#172039'; g.lineWidth = 2.5; g.stroke();
+      const px = x + gaze.x * 4.2, py = 75 + gaze.y * 3.5; g.fillStyle = iris; g.beginPath(); g.arc(px, py, 7.2, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#10162b'; g.beginPath(); g.arc(px, py, 3.8, 0, Math.PI * 2); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(px - 2.2, py - 2.7, 2.1, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#172039'; g.lineWidth = 3; g.beginPath(); g.arc(x, 74, 14, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+    }
+  }
+
+  function predictAimTrajectory() {
     const v = aimVector(); let x = launcherX + v.x * (R + 20), y = launcherY + v.y * (R + 20), vx = v.x, vy = v.y;
-    const step = 13, top = ceilingY(); ctx.save();
+    const points = [{ x, y }], step = 13, top = ceilingY(); let firstBounce = null, impact = null;
     for (let i = 0; i < 46; i++) {
       x += vx * step; y += vy * step;
-      if (x <= R) { x = R; vx = Math.abs(vx); } if (x >= W - R) { x = W - R; vx = -Math.abs(vx); }
-      const stop = y <= top + R || Boolean(collisionBubble(x, y));
-      if (i % 2 === 0) { ctx.globalAlpha = .7 * (1 - i / 56); ctx.fillStyle = currentShot.kind === SHOT_NORMAL ? currentShot.color : '#ffffff'; ctx.fillRect(x - 2, y - 2, 4, 4); }
-      if (stop) break;
+      if (x <= R) { x = R; vx = Math.abs(vx); firstBounce ||= { x, y, type: 'bounce' }; }
+      else if (x >= W - R) { x = W - R; vx = -Math.abs(vx); firstBounce ||= { x, y, type: 'bounce' }; }
+      const hit = collisionBubble(x, y), reachedTop = y <= top + R; points.push({ x, y });
+      if (hit || reachedTop) { impact = { x, y, type: hit ? 'attach' : 'ceiling', hit }; break; }
     }
+    return { points, firstBounce, impact, fallback: points[points.length - 1] };
+  }
+
+  function predictAimFocusPoint(prediction = predictAimTrajectory()) {
+    return prediction.firstBounce || prediction.impact || prediction.fallback || { x: launcherX, y: TOP };
+  }
+
+  function drawMangaChibiCharacter(role, centerX, topY, width, height, focusPoint, pose = 'idle') {
+    const sprite = makeMangaChibiSprite(role, pose), eyeY = topY + height * (75 / 220), dx = focusPoint.x - centerX, dy = Math.min(-10, focusPoint.y - eyeY);
+    const magnitude = Math.max(1, Math.hypot(dx, dy)); const gaze = { x: clamp(dx / magnitude, -1, 1), y: clamp(dy / magnitude, -1, -.18) };
+    const turn = gaze.x * (role === 'operator' ? .055 : .045);
+    ctx.save(); ctx.translate(centerX, topY); ctx.rotate(turn); ctx.scale(width / 180, height / 220); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sprite, -90, 0); drawTrackedEyes(ctx, gaze, role); ctx.restore();
+  }
+
+  function drawMangaChibiCrew(focusPoint) {
+    const sizeW = clamp(W * .145, 46, 62), sizeH = sizeW * (220 / 180), off = clamp(W * .215, 66, 88), phase = performance.now() * .0036, bob = Math.sin(phase) * 1.15;
+    const recoil = operatorPulse > 0 ? Math.sin((1 - operatorPulse / .18) * Math.PI) * 4 : 0, operatorX = launcherX - off, loaderX = launcherX + off;
+    const operatorTop = launcherY - sizeH * .78 + bob + recoil, loaderTop = launcherY - sizeH * .78 - bob;
+    drawMangaChibiCharacter('operator', operatorX, operatorTop, sizeW, sizeH, focusPoint, operatorPulse > 0 ? 'fire' : 'idle');
+    drawMangaChibiCharacter('loader', loaderX, loaderTop, sizeW, sizeH, focusPoint, 'idle');
+    drawBubble(loaderX - sizeW * .32, loaderTop + sizeH * .68, nextShot.color, R * .48, nextShot.kind, 0);
+  }
+
+  function traceAim(prediction) {
+    if (!prediction || !running || paused || moving || levelClearActive) return;
+    const { points } = prediction; ctx.save();
+    for (let i = 1; i < points.length; i += 2) { const p = points[i]; ctx.globalAlpha = .7 * (1 - i / Math.max(56, points.length + 10)); ctx.fillStyle = currentShot.kind === SHOT_NORMAL ? currentShot.color : '#ffffff'; ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
   }
 
-  function drawLauncher() {
-    drawChibiCrew();
+  function drawLauncher(focusPoint) {
+    drawMangaChibiCrew(focusPoint);
     const v = aimVector(); ctx.save(); ctx.translate(launcherX, launcherY); ctx.rotate(v.angle + Math.PI / 2);
     const g = ctx.createLinearGradient(-8, 0, 8, 0); g.addColorStop(0, '#37445f'); g.addColorStop(.45, '#e7f2ff'); g.addColorStop(.65, '#65e7ff'); g.addColorStop(1, '#3d4c68');
     ctx.fillStyle = g; ctx.fillRect(-8, -43, 16, 45); ctx.strokeStyle = 'rgba(101,231,255,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(-8, -43, 16, 45); ctx.restore();
@@ -659,11 +716,13 @@
   }
 
   function draw() {
-    ctx.clearRect(0, 0, W, H); drawBackground(); traceAim();
+    const aimPrediction = running && !paused && !moving && !levelClearActive ? predictAimTrajectory() : null;
+    if (aimPrediction) lastAimFocus = predictAimFocusPoint(aimPrediction);
+    ctx.clearRect(0, 0, W, H); drawBackground(); traceAim(aimPrediction);
     for (const b of grid.values()) { const p = cellPos(b.r, b.c); drawBubble(p.x, p.y, b.color, R, b.type, b.armor); }
     for (const b of falling) drawBubble(b.x, b.y, b.color, R * .92, b.type, b.armor);
     if (moving) drawBubble(moving.x, moving.y, moving.color, R, moving.kind, 0);
-    drawLauncher();
+    drawLauncher(lastAimFocus);
     for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); } ctx.globalAlpha = 1;
     drawPressureStatus();
     if (bannerTime > 0 && running && !levelClearActive) { ctx.save(); ctx.globalAlpha = Math.min(1, bannerTime * 2); ctx.textAlign = 'center'; ctx.font = '900 17px ui-monospace, monospace'; ctx.fillStyle = '#f7fbff'; ctx.shadowBlur = 15; ctx.shadowColor = '#65e7ff'; ctx.fillText(banner, W / 2, H * .55); ctx.restore(); }

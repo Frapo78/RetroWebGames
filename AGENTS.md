@@ -211,7 +211,8 @@ Bubble Burst files:
 
 - Moving-shot collision and aim tracing use `nearbyBubbles()`/local hex lookup, not full-grid scans per trajectory step.
 - Bubble visual gradients/shadows are cached in `bubbleSprites`; do not recreate them for every bubble every frame.
-- Pixel-art chibi launcher sprites are cached in `chibiSprites`.
+- Clean manga-chibi launcher bases are cached in `mangaChibiSprites`; the removed 32×40 pixel-art renderer MUST NOT return.
+- Bubble Burst aim dots and both crew members MUST share `predictAimTrajectory()`; eyes focus on the first wall bounce before attach, otherwise first attach/ceiling impact, with upward aim fallback.
 - Static background artwork is cached and rebuilt on resize rather than recomputed each frame.
 - BFS/graph traversal must use index-based queues; do not reintroduce repeated `queue.shift()` in hot paths.
 - Keep particle/falling visual counts bounded.

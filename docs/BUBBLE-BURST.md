@@ -150,7 +150,8 @@ Performance invariants:
 - pressure descent is represented as a fractional row-space ceiling offset instead of rewriting every bubble coordinate, so resize remains stable and the pressure update is O(1);
 - bubble visuals are cached to offscreen canvases by color/type/armor state instead of rebuilding radial gradients for every bubble every frame;
 - background artwork is cached and rebuilt only on resize;
-- chibi launcher characters are cached pixel sprites;
+- clean manga-chibi launcher bases are cached vector Canvas sprites, while only eyes and subtle pose transforms remain dynamic;
+- aim dots and character gaze reuse one trajectory prediction per active preview frame;
 - graph traversal uses index-based queues rather than repeated `Array.shift()`;
 - particle/falling visual counts are bounded;
 - timer DOM text is updated only when the displayed centisecond changes;
@@ -158,13 +159,16 @@ Performance invariants:
 
 WASM is not justified for the current board sizes. Reconsider only after measured profiling demonstrates a numeric hot loop above the project thresholds documented in `docs/WASM-EVALUATION.md`.
 
-## Chibi launcher crew
+## Manga-chibi launcher crew
 
-Bubble Burst includes two original pixel-art chibi operators rendered from cached Canvas sprites:
+Bubble Burst includes two original, clean manga-chibi operators drawn procedurally with Canvas 2D:
 
-- the left operator manages/fires the launcher and reacts to a shot;
-- the right operator acts as ammo handler and visibly holds the next bubble;
-- sprites are original project graphics and do not depend on external game assets.
+- the left operator manages/fires the launcher and has a subtle cached shot pose plus recoil;
+- the right loader uses a distinct silhouette/outfit and visibly supports the next-bubble preview;
+- large expressive eyes track upward toward the first predicted wall bounce, otherwise the first attach/ceiling impact, with the current upward aim as fallback;
+- `predictAimTrajectory()` is shared by the dotted preview and `predictAimFocusPoint()`, preventing visual disagreement;
+- static body/hair/outfit artwork is cached by role/pose; only eyes, bob/recoil and a very small directional turn are drawn dynamically;
+- artwork is original project geometry with no external raster asset, library or third-party character/IP dependency.
 
 ## Shared lifecycle
 
