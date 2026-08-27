@@ -23,28 +23,47 @@
       }
     };
 
-    const ensureProfileThenGameOver = () => {
-      if (window.RWGProfile) {
+    const loadAvatarThenGameOver = () => {
+      if (window.RWGAvatar) {
         loadGameOver();
+        return;
+      }
+      const existing = document.querySelector('script[data-rwg-avatar-script], script[src$="/rwg-avatar.js"], script[src="rwg-avatar.js"]');
+      if (existing) {
+        existing.addEventListener('load', loadGameOver, { once: true });
+        setTimeout(() => { if (window.RWGAvatar) loadGameOver(); }, 0);
+        return;
+      }
+      const avatarScript = document.createElement('script');
+      avatarScript.src = new URL('rwg-avatar.js', base).href;
+      avatarScript.dataset.rwgAvatarScript = 'true';
+      avatarScript.addEventListener('load', loadGameOver, { once: true });
+      avatarScript.addEventListener('error', loadGameOver, { once: true });
+      document.body.appendChild(avatarScript);
+    };
+
+    const ensureProfileThenExtras = () => {
+      if (window.RWGProfile) {
+        loadAvatarThenGameOver();
         return;
       }
 
       const existing = document.querySelector('script[data-rwg-profile-script], script[src$="/rwg-profile.js"], script[src="rwg-profile.js"]');
       if (existing) {
-        existing.addEventListener('load', loadGameOver, { once: true });
-        setTimeout(() => { if (window.RWGProfile) loadGameOver(); }, 0);
+        existing.addEventListener('load', loadAvatarThenGameOver, { once: true });
+        setTimeout(() => { if (window.RWGProfile) loadAvatarThenGameOver(); }, 0);
         return;
       }
 
       const profileScript = document.createElement('script');
       profileScript.src = new URL('rwg-profile.js', base).href;
       profileScript.dataset.rwgProfileScript = 'true';
-      profileScript.addEventListener('load', loadGameOver, { once: true });
-      profileScript.addEventListener('error', loadGameOver, { once: true });
+      profileScript.addEventListener('load', loadAvatarThenGameOver, { once: true });
+      profileScript.addEventListener('error', loadAvatarThenGameOver, { once: true });
       document.body.appendChild(profileScript);
     };
 
-    ensureProfileThenGameOver();
+    ensureProfileThenExtras();
   }
 
   if (document.querySelector('.rwg-game-tools')) return;
