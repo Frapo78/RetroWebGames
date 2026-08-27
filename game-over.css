@@ -430,3 +430,55 @@ body.rwg-game-over-open { overflow: hidden !important; }
 @keyframes rwgSkipBlink { 0%, 48% { opacity: .7; } 49%, 100% { opacity: .3; } }
 @keyframes rwgModalReveal { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rwgAchievementPop { 0% { opacity: 0; transform: scale(.72); } 100% { opacity: 1; transform: none; } }
+
+/* Unified game-over CTA stack */
+.rwg-continue-box {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+.rwg-continue-box > span { display: none !important; }
+
+.rwg-game-over-actions {
+  width: 100%;
+  box-sizing: border-box;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.rwg-continue-credit,
+.rwg-play-again,
+.rwg-back-games {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 16px !important;
+  border-radius: 11px !important;
+  font: 950 10.5px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  letter-spacing: .05em !important;
+  text-transform: uppercase !important;
+  text-decoration: none !important;
+}
+
+.rwg-back-games {
+  color: #0a1726 !important;
+  border: 1px solid rgba(255,255,255,.52) !important;
+  background: linear-gradient(135deg, #dcecf7, #bdd8ea) !important;
+  box-shadow: 0 7px 18px rgba(128,188,225,.12), inset 0 1px rgba(255,255,255,.78) !important;
+}
+
+@media (max-height: 620px) {
+  .rwg-continue-box { margin-top: 6px !important; padding: 0 !important; }
+  .rwg-game-over-actions { margin-top: 6px !important; gap: 6px !important; }
+  .rwg-continue-credit,
+  .rwg-play-again,
+  .rwg-back-games { min-height: 40px !important; font-size: 9.5px !important; }
+}
