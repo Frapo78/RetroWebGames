@@ -69,6 +69,25 @@ Normal ammunition remains dominant.
 
 Do not turn either special shot into frequent ammunition without an explicit balance decision.
 
+## Timed ceiling pressure
+
+The bubble structure is not static for the whole stage. During active play the ceiling progressively moves downward toward the danger line.
+
+Current pressure curve:
+
+- level 1 first drop: **65 seconds**, therefore never below one minute;
+- interval decreases exponentially by level with a floor of **16 seconds**;
+- approximate intervals: level 10 ≈ 55 s, level 25 ≈ 42 s, level 50 ≈ 27 s, level 80+ ≈ 16 s;
+- each drop starts at **0.5 row** at level 1 and gradually grows toward **0.9 row** by high levels;
+- repeated drops continue within the same level until the board is cleared or reaches the danger line;
+- the timer advances only while gameplay is actually running; pause/visibility/orientation pauses do not consume pressure time;
+- if a pressure drop becomes due while a projectile is in flight, it waits until the projectile resolves so collision geometry does not jump mid-shot;
+- the last 6 seconds before a drop show an arcade warning; the ceiling line itself is drawn so its downward movement is visually readable;
+- a new level resets ceiling offset and pressure timer using that level's harder interval;
+- a one-credit Continue preserves the descended board position but resets the countdown, while the existing safety pruning may remove dangerous bottom rows.
+
+This pressure system is separate from the miss-penalty row. Both mechanics may contribute to the board approaching the danger line.
+
 ## Difficulty
 
 Difficulty increases through:
@@ -78,6 +97,7 @@ Difficulty increases through:
 - progressively more special bubbles;
 - miss limit tightening from 5 to 4 and eventually 3;
 - modest shot-speed increase;
+- timed ceiling pressure becoming faster and slightly deeper per drop;
 - continued scaling after the first 200 levels.
 
 ## Rendering and performance
@@ -88,6 +108,7 @@ Performance invariants:
 
 - moving-shot collision uses nearby hex-cell lookup rather than scanning every bubble in the grid;
 - aim tracing uses the same local collision lookup;
+- pressure descent is represented as a fractional row-space ceiling offset instead of rewriting every bubble coordinate, so resize remains stable and the pressure update is O(1);
 - bubble visuals are cached to offscreen canvases by color/type/armor state instead of rebuilding radial gradients for every bubble every frame;
 - background artwork is cached and rebuilt only on resize;
 - chibi launcher characters are cached pixel sprites;
