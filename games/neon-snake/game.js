@@ -394,6 +394,18 @@
     else if ((k === 'p' || k === ' ') && running) { e.preventDefault(); togglePause(); }
   });
 
+  window.addEventListener('rwg:continue-game', e => {
+    score = Math.max(0, Math.floor(e.detail?.score ?? score * .5));
+    combo = 1; shield = false; bonus = null; shieldOrb = null; bonusTTL = shieldTTL = 0; accumulator = 0; lastEatAt = 0;
+    const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+    snake = [{ x: cx + 1, y: cy }, { x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
+    dir = queuedDir = 'right';
+    obstacles = obstacles.filter(o => Math.abs(o.x - cx) + Math.abs(o.y - cy) > 5);
+    addObstacles();
+    if (!food || snake.some(s => same(s, food)) || obstacles.some(o => same(o, food))) spawnFood();
+    running = true; paused = false; overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; last = performance.now(); updateHud(); ensureAudio(); announce('CONTINUA!', 1.1); tone(520, .16, 'triangle', .035, 900);
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && running && !paused) togglePause();
   });
