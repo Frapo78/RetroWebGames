@@ -454,6 +454,26 @@
     if (document.hidden && running && !paused) togglePause();
   });
 
+  window.addEventListener('rwg:continue-game', e => {
+    score = Math.max(0, Math.floor(e.detail?.score ?? score * .5));
+    for (let y = 0; y < 6; y++) board[y] = Array(COLS).fill(null);
+    current = makePiece();
+    next = next || makePiece();
+    dropTimer = 0;
+    clearFlash = 0;
+    clearedRows = [];
+    running = true;
+    paused = false;
+    overlay.classList.remove('visible');
+    startBtn.textContent = 'RIGIOCA';
+    pauseBtn.textContent = 'Ⅱ';
+    lastTime = performance.now();
+    updateHud();
+    drawNext();
+    draw();
+    requestAnimationFrame(loop);
+  });
+
   pauseBtn.addEventListener('click', togglePause);
   startBtn.addEventListener('click', startGame);
   window.addEventListener('resize', () => { resize(); drawNext(); });
