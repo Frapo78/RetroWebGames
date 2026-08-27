@@ -21,12 +21,13 @@ Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 - cinque fasce grafiche/resistenza dei nemici: Scout, Striker, Guardian, Armored e Dread, con HP crescenti lungo la campagna
 - vite, punteggio e high score locale
 - power-up giallo Rapid Fire temporaneo
-- power-up rosso Weapon Upgrade con progressione in 20 segmenti, da Single Fire fino a 5 Way Lasers Overdrive
-- ogni segmento arma applica un piccolo coefficiente di danno crescente, indipendente dal livello POWER
-- POWER indipendente da 1 a 10, con colore dei proiettili differente per livello e massimo due drop POWER per stage
+- power-up rosso Weapon Upgrade con 8 forme: Single Fire, Double Fire, Triple Diagonal Fire, 4 Fire Linear, Fireballs 3 Way, Laser, 3 Way Lasers e 5 Way Lasers
+- ogni avanzamento Weapon aggiunge anche un piccolo coefficiente di danno, da ×1,00 a ×1,21, indipendente dal livello POWER
+- POWER è la forza del singolo colpo ed è segmentato in 20 livelli, con 20 colori differenti; la curva resta circa nella precedente escursione di danno 1→10
+- il bonus POWER è più raro del precedente bilanciamento: base circa 1% per kill prima del moltiplicatore elite, massimo due drop POWER per stage
+- Weapon Upgrade resta raro ma non usa la rarità dimezzata per errore: base 0,86% sui commander/type-2 e 0,49% sugli altri, prima del moltiplicatore elite
 - Shield massimo uno per livello, capace di assorbire un colpo senza perdita vita/downgrade
-- alla perdita di una vita senza Shield: Weapon -2 segmenti e POWER -2 livelli
-- Weapon Upgrade estremamente raro; la probabilità è stata ulteriormente dimezzata rispetto al bilanciamento precedente
+- alla perdita di una vita senza Shield: Weapon -2 forme e POWER -2 livelli
 - power-up verde Tractor Beam raro, al massimo uno ogni due livelli, per risucchiare fino a 2 navicelle nemiche
 - nemici catturati convertiti in wingmen che affiancano il player e sparano sempre in Single Fire base
 - wingmen vulnerabili a proiettili e collisioni nemiche
