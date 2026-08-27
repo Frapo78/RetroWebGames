@@ -81,12 +81,12 @@ Never scatter wallet mutations through game engines. Use `RWGContinueProvider` /
 Star Swarm files:
 
 - `games/star-swarm/index.html`
-- `games/star-swarm/engine.js` — authoritative runtime. Do not switch back to root `game.js`.
+- `games/star-swarm/engine.js` — authoritative runtime.
 - `games/star-swarm/campaign.js` — campaign formations and entry choreography.
 - `games/star-swarm/bosses.js` — boss roster/configuration.
 - `games/star-swarm/campaign.css` — boss HUD / boss-clear presentation.
 
-Root `game.js` is legacy Star Swarm history and MUST NOT be loaded by `games/star-swarm/index.html`.
+The obsolete root `/game.js` Star Swarm runtime was deleted and MUST remain absent. `games/star-swarm/index.html` must load only the authoritative game engine under `games/star-swarm/engine.js`.
 
 ### Star Swarm campaign invariants
 
@@ -99,32 +99,51 @@ Root `game.js` is legacy Star Swarm history and MUST NOT be loaded by `games/sta
 - Defeating a boss MUST NOT invoke terminal Game Over.
 - Defeating boss 100 completes the base campaign and may continue into Overdrive.
 
-### Star Swarm weapon invariants
+### Star Swarm offensive axes — CRITICAL semantic distinction
 
-- Weapon progression has 20 segments.
-- Losing an unshielded life: weapon `-2` segments, clamped to minimum; POWER `-2`, clamped to 1.
-- Weapon segment and POWER are independent dimensions.
-- Each weapon segment carries a small damage coefficient so, at equal POWER, a later weapon segment is modestly stronger.
+Do not conflate these two systems:
+
+- **Weapon Upgrade** = red diamond = firing pattern/type progression.
+- **POWER** = damage-strength pickup = per-projectile strength progression.
+
+Regression history: these concepts were once accidentally reversed, producing 20 Weapon forms and only 10 POWER levels while also applying the intended POWER rarity reduction to Weapon Upgrade. Do not repeat this.
+
+### Star Swarm Weapon invariants
+
+- Weapon progression has exactly **8 firing forms**:
+  1. SINGLE FIRE
+  2. DOUBLE FIRE
+  3. TRIPLE DIAGONAL FIRE
+  4. 4 FIRE LINEAR
+  5. FIREBALLS 3 WAY
+  6. LASER
+  7. 3 WAY LASERS
+  8. 5 WAY LASERS
+- Every Weapon advancement also carries a small increasing damage coefficient; current target is approximately `×1.00 → ×1.21` across the 8 forms.
+- At equal POWER, a later Weapon therefore deals modestly more damage per projectile, but POWER remains the main damage-strength axis.
+- Losing an unshielded life: Weapon `-2` forms, clamped to minimum; POWER `-2` levels, clamped to 1.
 - Laser projectiles MUST continue through enemies to screen exit; hitting or destroying an enemy MUST NOT consume a laser projectile.
 - A laser may damage each individual target at most once per projectile unless explicitly redesigned.
-- Captured wingmen always shoot basic single-fire damage and do not inherit player weapon/POWER upgrades.
+- Captured wingmen always shoot basic single-fire damage and do not inherit player Weapon/POWER upgrades.
 
 ### Star Swarm POWER invariants
 
-- POWER range: 1..10.
-- POWER determines base damage independently of weapon spread/type.
-- Each POWER level has a distinct projectile color.
+- POWER range: **1..20**.
+- POWER determines base per-projectile damage independently of Weapon spread/type.
+- The 20 levels finely subdivide roughly the old `1..10` total base-damage range; expanding to 20 MUST NOT accidentally double maximum damage.
+- There are 20 distinct projectile colors, one per POWER level.
+- Current POWER base damage curve is approximately `1.00 → 10.00` over 20 levels.
 - POWER bonus: maximum 2 drops per level.
-- Shield: maximum 1 drop per level and absorbs one damaging hit without life/weapon/POWER loss.
+- Shield: maximum 1 drop per level and absorbs one damaging hit without life/Weapon/POWER loss.
 
 ### Star Swarm drop rarity invariants
 
 Treat rarity as gameplay economy. Do not return to the original high drop flood.
 
 - Rapid Fire remains uncommon (already reduced from the original implementation).
-- Weapon Upgrade is extremely rare. Current probability must remain at or below the documented values in `docs/STAR-SWARM.md` unless intentionally rebalanced.
+- Weapon Upgrade uses the intended already-reduced baseline: approximately `0.86%` for commander/type-2 kills and `0.49%` for ordinary kills before elite multiplier. Do NOT halve these values merely because POWER was made rarer.
+- POWER is the pickup whose frequency was intentionally halved: approximately `1.0%` per eligible kill before elite multiplier, with max 2 per level.
 - Tractor Beam: maximum one eligible drop every two levels; no more than one in an eligible level.
-- POWER: max 2 per level.
 - Shield: max 1 per level.
 
 ## 6. Rendering and performance
@@ -191,5 +210,6 @@ Documentation is part of the implementation, not optional cleanup.
 - When the VPS adaptation moves assets under `public/`, an upstream deletion
   must remain a deletion. Never resurrect obsolete root `game.js` through a
   rename/delete conflict.
+- Do not confuse Star Swarm Weapon Upgrade with POWER strength. Weapon has 8 firing forms and a small damage coefficient per advancement; POWER has 20 damage-strength levels and is the pickup whose drop probability was halved.
 - Static validation does not replace browser checks for console errors, failed
   requests, narrow viewports and credit debit flows.
