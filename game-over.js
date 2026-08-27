@@ -23,6 +23,14 @@
     </svg>`;
   const coinSvg = () => window.RWGProfile?.coinSvg?.('rwg-modal-coin') || fallbackCoin;
 
+  const icons = {
+    whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.84 9.84 0 0 0-8.42 14.93L2.05 22l5.2-1.52A9.95 9.95 0 1 0 12.04 2Zm0 17.86a8.02 8.02 0 0 1-4.09-1.12l-.29-.17-3.08.9.92-3-.19-.31a7.9 7.9 0 1 1 6.73 3.7Zm4.4-5.92c-.24-.12-1.43-.7-1.65-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.02-.37-1.94-1.19a7.28 7.28 0 0 1-1.34-1.67c-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.19-.47-.39-.41-.54-.42h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.39 1.37.5.58.18 1.1.16 1.51.1.46-.07 1.43-.58 1.63-1.15.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z"/></svg>',
+    facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.7 22v-9h3l.45-3.5H13.7V7.26c0-1.01.28-1.7 1.74-1.7h1.86V2.43c-.32-.04-1.43-.13-2.72-.13-2.7 0-4.55 1.65-4.55 4.68V9.5H7v3.5h3.03v9h3.67Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.24l-4.89-6.39L6.48 22H3.36l7.26-8.3L2.98 2h6.4l4.42 5.84L18.9 2Zm-1.1 17.84h1.72L8.45 4.05H6.6L17.8 19.84Z"/></svg>',
+    telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.7 3.2-3.2 15.1c-.24 1.07-.87 1.33-1.76.83l-4.88-3.6-2.35 2.27c-.26.26-.48.48-.98.48l.35-4.97 9.04-8.17c.39-.35-.09-.55-.61-.2L6.14 11.97 1.32 10.46C.27 10.13.25 9.41 1.54 8.9L20.4 1.63c.87-.32 1.64.2 1.3 1.57Z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.39 1.19l-6.7-3.35a3.1 3.1 0 0 0 0-1.68l6.7-3.35A3 3 0 1 0 15 7c0 .25.03.49.09.72l-6.7 3.35a3 3 0 1 0 0 3.86l6.7 3.35A3 3 0 1 0 18 16Z"/></svg>'
+  };
+
   if (!window.RWGContinueProvider) {
     window.RWGContinueProvider = {
       mode: 'unavailable',
@@ -41,6 +49,19 @@
   let maxRally = 0;
   let summaryShown = false;
   let continueCount = 0;
+  let introRunning = false;
+  let introTimer = 0;
+  let introSkipHandler = null;
+  let achievementRaf = 0;
+
+  const intro = document.createElement('section');
+  intro.className = 'rwg-game-over-intro';
+  intro.hidden = true;
+  intro.setAttribute('aria-label', 'Game over');
+  intro.innerHTML = `
+    <div class="rwg-game-over-stamp" aria-hidden="true">GAME OVER</div>
+    <div class="rwg-game-over-skip">TOCCA PER CONTINUARE</div>`;
+  document.body.appendChild(intro);
 
   const layer = document.createElement('section');
   layer.className = 'rwg-game-over-layer';
@@ -50,8 +71,10 @@
   layer.setAttribute('aria-labelledby', 'rwgGameOverTitle');
   layer.innerHTML = `
     <div class="rwg-game-over-card">
-      <div class="rwg-game-over-brand">RETROWEBGAMES</div>
-      <p class="rwg-game-over-kicker">PARTITA TERMINATA</p>
+      <div class="rwg-game-over-topline">
+        <div class="rwg-game-over-brand">RETROWEBGAMES</div>
+        <p class="rwg-game-over-kicker">PARTITA TERMINATA</p>
+      </div>
       <h2 id="rwgGameOverTitle"></h2>
       <p class="rwg-game-over-scoreline"></p>
 
@@ -59,18 +82,19 @@
 
       <section class="rwg-achievements" hidden>
         <div class="rwg-section-title">ACHIEVEMENTS</div>
-        <div class="rwg-achievement-list"></div>
+        <div class="rwg-achievement-viewport" tabindex="0" aria-label="Achievement ottenuti">
+          <div class="rwg-achievement-list"></div>
+        </div>
       </section>
 
       <section class="rwg-challenge-box">
-        <div class="rwg-section-title">SFIDA I TUOI AMICI</div>
-        <p class="rwg-challenge-copy"></p>
+        <div class="rwg-share-prompt">Condividi il tuo risultato!</div>
         <div class="rwg-game-over-share">
-          <a data-go-share="whatsapp" class="rwg-go-share rwg-go-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="Condividi su WhatsApp">WhatsApp</a>
-          <a data-go-share="facebook" class="rwg-go-share" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Facebook">Facebook</a>
-          <a data-go-share="x" class="rwg-go-share" target="_blank" rel="noopener noreferrer" aria-label="Condividi su X">X</a>
-          <a data-go-share="telegram" class="rwg-go-share" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Telegram">Telegram</a>
-          <button data-go-share="more" class="rwg-go-share" type="button" aria-label="Altre opzioni di condivisione">Altro</button>
+          <a data-go-share="whatsapp" class="rwg-go-share rwg-go-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="Condividi su WhatsApp">${icons.whatsapp}</a>
+          <a data-go-share="facebook" class="rwg-go-share rwg-go-facebook" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Facebook">${icons.facebook}</a>
+          <a data-go-share="x" class="rwg-go-share rwg-go-x" target="_blank" rel="noopener noreferrer" aria-label="Condividi su X">${icons.x}</a>
+          <a data-go-share="telegram" class="rwg-go-share rwg-go-telegram" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Telegram">${icons.telegram}</a>
+          <button data-go-share="more" class="rwg-go-share rwg-go-more" type="button" aria-label="Altre opzioni di condivisione">${icons.more}</button>
         </div>
       </section>
 
@@ -80,7 +104,7 @@
         <button class="rwg-continue-credit" type="button">
           <span>Continua con 1</span>${coinSvg()}
         </button>
-        <span>Mantieni punteggio e progresso • costa <strong>1 credito</strong></span>
+        <span>Mantieni punteggio e progresso</span>
       </div>
 
       <div class="rwg-game-over-actions">
@@ -95,8 +119,8 @@
   const scorelineEl = layer.querySelector('.rwg-game-over-scoreline');
   const statsEl = layer.querySelector('.rwg-game-over-stats');
   const achievementsSection = layer.querySelector('.rwg-achievements');
+  const achievementsViewport = layer.querySelector('.rwg-achievement-viewport');
   const achievementsEl = layer.querySelector('.rwg-achievement-list');
-  const challengeEl = layer.querySelector('.rwg-challenge-copy');
   const continueBtn = layer.querySelector('.rwg-continue-credit');
   const playAgain = layer.querySelector('.rwg-play-again');
   const moreShare = layer.querySelector('[data-go-share="more"]');
@@ -137,7 +161,8 @@
     !isOverlayVisible() &&
     !isPaused() &&
     !orientationBlocked() &&
-    layer.hidden;
+    layer.hidden &&
+    intro.hidden;
 
   const tick = now => {
     const dt = Math.max(0, Math.min(1000, now - lastTick));
@@ -153,7 +178,61 @@
   };
   requestAnimationFrame(tick);
 
+  const stopAchievementMarquee = () => {
+    cancelAnimationFrame(achievementRaf);
+    achievementRaf = 0;
+  };
+
+  const startAchievementMarquee = () => {
+    stopAchievementMarquee();
+    achievementsViewport.scrollLeft = 0;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    requestAnimationFrame(() => {
+      const maxScroll = achievementsViewport.scrollWidth - achievementsViewport.clientWidth;
+      if (maxScroll <= 2) return;
+
+      let direction = 1;
+      let lastFrame = performance.now();
+      let pauseUntil = lastFrame + 650;
+      const speed = 28;
+
+      const move = now => {
+        if (layer.hidden) return;
+        const max = achievementsViewport.scrollWidth - achievementsViewport.clientWidth;
+        const dt = Math.min(50, now - lastFrame) / 1000;
+        if (now >= pauseUntil) {
+          achievementsViewport.scrollLeft += direction * speed * dt;
+          if (achievementsViewport.scrollLeft >= max - 1) {
+            achievementsViewport.scrollLeft = max;
+            direction = -1;
+            pauseUntil = now + 650;
+          } else if (achievementsViewport.scrollLeft <= 1) {
+            achievementsViewport.scrollLeft = 0;
+            direction = 1;
+            pauseUntil = now + 650;
+          }
+        }
+        lastFrame = now;
+        achievementRaf = requestAnimationFrame(move);
+      };
+      achievementRaf = requestAnimationFrame(move);
+    });
+  };
+
+  const resetPresentation = () => {
+    clearTimeout(introTimer);
+    if (introSkipHandler) intro.removeEventListener('pointerdown', introSkipHandler);
+    introSkipHandler = null;
+    introRunning = false;
+    intro.hidden = true;
+    intro.classList.remove('is-active', 'is-exiting');
+    layer.classList.remove('is-revealing');
+    stopAchievementMarquee();
+  };
+
   const beginSession = () => {
+    resetPresentation();
     sessionActive = true;
     summaryShown = false;
     activeMs = 0;
@@ -246,10 +325,7 @@
     });
   };
 
-  const showSummary = () => {
-    if (!sessionActive || summaryShown) return;
-    summaryShown = true;
-    sessionActive = false;
+  const prepareSummary = () => {
     const stats = collectStats();
     const achievements = getAchievements(stats);
     const shareText = shareTextFor(stats);
@@ -263,7 +339,7 @@
       stats.lines > 0 ? metric('Linee', stats.lines) : '',
       document.getElementById('playerScore') ? metric('Risultato', `${stats.playerScore}–${stats.cpuScore}`) : '',
       stats.continueCount > 0 ? metric('Continue usati', stats.continueCount) : '',
-      metric('Tempo di gioco', formatDuration(stats.activeMs)),
+      metric('Tempo', formatDuration(stats.activeMs)),
       metric('Record', formatNumber(stats.best))
     ].filter(Boolean);
     statsEl.innerHTML = metrics.join('');
@@ -281,10 +357,7 @@
       achievementsSection.hidden = true;
     }
 
-    challengeEl.textContent = `${shareText} ${canonical}`;
     setShareLinks(shareText);
-    layer.hidden = false;
-    document.body.classList.add('rwg-game-over-open');
 
     const detail = {
       game: gameName,
@@ -294,6 +367,44 @@
       achievements: achievements.map(({ id, label, isNew }) => ({ id, label, isNew }))
     };
     window.dispatchEvent(new CustomEvent('rwg:game-over-summary', { detail }));
+  };
+
+  const revealSummary = () => {
+    if (!introRunning) return;
+    introRunning = false;
+    clearTimeout(introTimer);
+    if (introSkipHandler) intro.removeEventListener('pointerdown', introSkipHandler);
+    introSkipHandler = null;
+
+    layer.hidden = false;
+    layer.classList.add('is-revealing');
+    intro.classList.add('is-exiting');
+    document.body.classList.add('rwg-game-over-open');
+    setTimeout(startAchievementMarquee, 80);
+
+    setTimeout(() => {
+      intro.hidden = true;
+      intro.classList.remove('is-active', 'is-exiting');
+      layer.classList.remove('is-revealing');
+    }, 1000);
+  };
+
+  const showSummary = () => {
+    if (!sessionActive || summaryShown || introRunning) return;
+    summaryShown = true;
+    sessionActive = false;
+    prepareSummary();
+
+    layer.hidden = true;
+    introRunning = true;
+    intro.hidden = false;
+    intro.classList.remove('is-active', 'is-exiting');
+    document.body.classList.add('rwg-game-over-open');
+
+    requestAnimationFrame(() => requestAnimationFrame(() => intro.classList.add('is-active')));
+    introSkipHandler = () => revealSummary();
+    intro.addEventListener('pointerdown', introSkipHandler, { once: true });
+    introTimer = setTimeout(revealSummary, 2000);
   };
 
   const checkGameOver = () => {
@@ -325,6 +436,8 @@
       sessionActive = true;
       lastTick = performance.now();
       layer.hidden = true;
+      layer.classList.remove('is-revealing');
+      stopAchievementMarquee();
       document.body.classList.remove('rwg-game-over-open');
 
       window.dispatchEvent(new CustomEvent('rwg:continue-game', {
@@ -348,6 +461,8 @@
 
   playAgain.addEventListener('click', () => {
     layer.hidden = true;
+    layer.classList.remove('is-revealing');
+    stopAchievementMarquee();
     document.body.classList.remove('rwg-game-over-open');
     window.dispatchEvent(new CustomEvent('rwg:game-replay', {
       detail: { game: gameName, gameSlug, url: canonical, previousContinues: continueCount }
@@ -368,8 +483,12 @@
     }
     try {
       await navigator.clipboard.writeText(`${text} ${canonical}`);
-      moreShare.textContent = 'Copiato!';
-      setTimeout(() => { moreShare.textContent = 'Altro'; }, 1500);
+      moreShare.classList.add('is-copied');
+      moreShare.setAttribute('aria-label', 'Link copiato');
+      setTimeout(() => {
+        moreShare.classList.remove('is-copied');
+        moreShare.setAttribute('aria-label', 'Altre opzioni di condivisione');
+      }, 1500);
     } catch (_) {
       window.location.href = `mailto:?subject=${q(`${gameName} — RetroWebGames`)}&body=${q(`${text}\n\n${canonical}`)}`;
     }
@@ -378,6 +497,7 @@
   window.RWGGameOver = Object.freeze({
     open: showSummary,
     close: () => {
+      resetPresentation();
       layer.hidden = true;
       document.body.classList.remove('rwg-game-over-open');
     },
