@@ -7,9 +7,7 @@ Sito ufficiale: `https://www.retrowebgames.it/`
 ## Giochi
 
 ### Star Swarm
-
 Space shooter originale ispirato al genere dei classici fixed shooter arcade.
-
 - controllo touch tramite trascinamento
 - fuoco automatico
 - formazione di nemici e attacchi in picchiata
@@ -22,9 +20,7 @@ Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 Percorso: `games/star-swarm/`
 
 ### Bubble Burst
-
 Bubble shooter originale ispirato ai classici puzzle arcade a bolle.
-
 - trascinamento per mirare e rilascio per sparare
 - traiettoria visualizzata e rimbalzi laterali
 - griglia esagonale
@@ -38,150 +34,136 @@ Bubble shooter originale ispirato ai classici puzzle arcade a bolle.
 Percorso: `games/bubble-burst/`
 
 ### Block Drop
-
 Falling-block puzzle originale ispirato ai classici giochi di incastro a blocchi.
-
 - campo 10×20
 - sette famiglie di pezzi distribuite con sistema 7-bag
 - spostamento, rotazione, soft drop e hard drop
 - piccoli wall-kick durante la rotazione
-- ghost piece per mostrare il punto di caduta
+- ghost piece
 - eliminazione da una a quattro linee contemporaneamente
 - punteggio moltiplicato per il livello
 - aumento di velocità ogni 10 linee
 - anteprima del prossimo pezzo
-- controlli touch dedicati e gesture sul campo
+- controlli touch e gesture
 - supporto tastiera su desktop
-- pausa automatica quando la pagina passa in background
-- high score salvato in `localStorage`
+- high score in `localStorage`
 
 Percorso: `games/block-drop/`
 
 ### Maze Munch
-
 Maze-chase originale ispirato ai grandi classici da sala giochi basati su labirinti e inseguimenti.
-
-- labirinto completo con punti da raccogliere e tunnel laterale
-- quattro inseguitori con strategie di caccia differenti
-- pathfinding sul labirinto per evitare movimenti casuali o loop banali
-- surge nodes che rendono temporaneamente vulnerabili gli inseguitori
-- combo progressiva catturando più nemici durante lo stesso surge
-- bonus temporanei che appaiono durante il livello
-- vite, punteggio, livelli e high score locale
-- difficoltà crescente con inseguitori più rapidi
-- controlli touch tramite swipe e pulsanti direzionali
-- supporto frecce/WASD su desktop
-- pausa, vibrazione e Web Audio
+- labirinto con punti e tunnel laterale
+- quattro inseguitori con strategie differenti
+- pathfinding sul labirinto
+- surge nodes e combo catture
+- bonus temporanei
+- vite, punteggio, livelli e high score
+- swipe, controlli touch e frecce/WASD
+- vibrazione e Web Audio
 
 Percorso: `games/maze-munch/`
 
 ### Neon Rally
-
 Paddle duel originale ispirato ai classici giochi arcade a racchette e pallina.
-
-- campo verticale ottimizzato per smartphone
-- racchetta del giocatore controllata trascinando il dito
-- CPU adattiva che diventa più precisa durante la partita
-- angolo di rimbalzo determinato dal punto d'impatto sulla racchetta
-- velocità della pallina crescente durante gli scambi
-- primo giocatore a 7 punti
-- contatore rally e miglior rally salvato in `localStorage`
-- supporto mouse e frecce/A-D su desktop
-- pausa automatica quando la pagina passa in background
-- vibrazione ed effetti Web Audio
+- campo verticale
+- racchetta touch
+- CPU adattiva
+- rimbalzi basati sul punto d'impatto
+- velocità crescente
+- primo a 7 punti
+- rally record
+- mouse e tastiera desktop
+- vibrazione e Web Audio
 
 Percorso: `games/neon-rally/`
 
 ### Neon Snake
-
-Snake arcade originale pensato per partite rapide su smartphone, con meccaniche aggiuntive rispetto alla formula classica.
-
-- griglia 20×28 e controlli swipe/pulsanti
-- supporto frecce e WASD su desktop
-- combo temporizzate fino a ×5
-- orb bonus a tempo con punteggio maggiorato
-- shield raccoglibile che salva da una collisione
-- ostacoli progressivi a partire dai livelli avanzati
-- aumento della velocità ogni 5 energie raccolte
+Snake arcade originale con meccaniche aggiuntive.
+- griglia 20×28
+- swipe, pulsanti e frecce/WASD
+- combo fino a ×5
+- orb bonus e shield
+- ostacoli progressivi
+- accelerazione graduale
 - particelle, vibrazione e Web Audio
-- high score salvato in `localStorage`
-- integrazione con portrait guard e countdown condiviso
+- high score locale
 
 Percorso: `games/neon-snake/`
 
-## Condivisione
+### Neon Tilt
+Gravity maze originale progettato per sfruttare accelerometro e giroscopio dei telefoni moderni.
+- controllo principale tramite `DeviceOrientationEvent` in HTTPS
+- richiesta permesso sensori avviata dal tap dell'utente quando richiesta dal browser
+- calibrazione della posizione neutra e pulsante `CAL` per ricalibrare
+- filtro dell'input, dead-zone e limite di inclinazione
+- fallback completo tramite joystick touch sul canvas e frecce/WASD
+- 12 labirinti portrait 13×19 generati con seed deterministici e percorso garantito
+- cristalli obbligatori per aprire il portale
+- voragini, bumper, ghiaccio e boost direzionali
+- fisica con accelerazione, attrito, velocità massima, sub-step e collisioni circle/AABB
+- tre vite, punteggio, bonus tempo, livelli continui e high score
+- particelle, vibrazione e Web Audio
+- integrazione con portrait guard, HUD comune, profilo, crediti, continue e modal game-over
+- motore fisico separato in `physics.js`, pronto per un eventuale porting WebAssembly se il profiling reale lo renderà utile
 
-La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Tutte le condivisioni puntano sempre all'URL canonico `https://www.retrowebgames.it/`, anche quando il progetto viene aperto da un host tecnico o da un ambiente di test.
+Percorso: `games/neon-tilt/`
+
+## Condivisione
+La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Le pagine gioco dispongono inoltre dell'HUD condiviso e del riepilogo game-over con condivisione del risultato.
 
 ## Modalità verticale
+Tutti i giochi condividono un guard di orientamento per smartphone. In landscape la partita viene messa in pausa e appare un avviso animato. Tornando portrait viene mostrato il countdown `3 → 2 → 1 → GO!` prima della ripresa.
 
-Tutti i giochi condividono un guard di orientamento per smartphone. Se una partita in corso viene portata in landscape, il gioco viene messo in pausa e coperto da un avviso animato che invita a ruotare il telefono. Tornando in portrait, prima della ripresa viene mostrato il countdown animato `3 → 2 → 1 → GO!`. Una pausa impostata manualmente dall'utente non viene invece ripresa automaticamente.
-
-Il manifest PWA dichiara inoltre `orientation: portrait`; quando il browser o la modalità standalone supportano il lock nativo, il componente prova anche a richiedere `portrait-primary` senza dipendere da questa capacità.
+## Profilo, crediti e avatar
+Il client mantiene attualmente un profilo anonimo persistente nel browser con statistiche di gioco e saldo crediti. Ogni nuovo profilo riceve 10 crediti iniziali. Il sistema è già astratto per una futura autorità server-side e per l'integrazione acquisti. È disponibile anche un avatar personalizzabile e persistente nella pagina `avatar/`.
 
 ## Identità visiva
-
-`favicon.svg` è l'icona vettoriale ufficiale del progetto e viene usata dalla home, dai singoli giochi e dal manifest PWA.
+`favicon.svg` è l'icona vettoriale ufficiale. La moneta dei crediti usa una skin pixel-art originale con animazione continua in stile arcade.
 
 ## Struttura
 
 ```text
 /
-├── index.html                  # hub RetroWebGames
-├── favicon.svg                 # favicon / icona vettoriale
-├── hub.css                     # stile principale della home
-├── hub-games.css               # illustrazioni aggiuntive del catalogo
-├── hub-share.css               # dock di condivisione
-├── hub-share.js                # URL e azioni social
-├── orientation.css             # overlay landscape + countdown
-├── orientation.js              # pausa/ripresa e controllo orientamento
-├── manifest.webmanifest        # manifest condiviso
-├── game.js                     # motore Star Swarm
-├── style.css                   # stile Star Swarm
+├── index.html
+├── favicon.svg
+├── hub.css
+├── hub-games.css
+├── hub-share.css
+├── hub-share.js
+├── rwg-profile.js / rwg-profile.css
+├── rwg-avatar.js / rwg-avatar.css
+├── game-hud.js / game-hud.css
+├── game-over.js / game-over.css
+├── orientation.js / orientation.css
+├── manifest.webmanifest
+├── avatar/
 └── games/
     ├── star-swarm/
-    │   └── index.html
     ├── bubble-burst/
-    │   ├── index.html
-    │   ├── style.css
-    │   └── game.js
     ├── block-drop/
-    │   ├── index.html
-    │   ├── style.css
-    │   └── game.js
     ├── maze-munch/
-    │   ├── index.html
-    │   ├── style.css
-    │   ├── config.js
-    │   ├── engine.js
-    │   ├── render.js
-    │   └── game.js
     ├── neon-rally/
-    │   ├── index.html
-    │   ├── style.css
-    │   └── game.js
-    └── neon-snake/
+    ├── neon-snake/
+    └── neon-tilt/
         ├── index.html
         ├── style.css
+        ├── levels.js
+        ├── physics.js
+        ├── render.js
         └── game.js
 ```
 
-La struttura mantiene ogni nuovo gioco in `games/<slug>/`, mentre la root resta il catalogo. Star Swarm continua a riutilizzare i file originali in root per evitare una migrazione distruttiva del primo motore.
-
 ## Avvio locale
-
 Il progetto è statico e non ha dipendenze esterne:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Aprire poi `http://localhost:8080/`.
+Aprire poi `http://localhost:8080/`. I sensori di orientamento richiedono un secure context; per il test reale del tilt usare il dominio HTTPS o un ambiente locale considerato sicuro dal browser.
 
 ## Compatibilità
-
-L'interfaccia usa Canvas HTML5 e Pointer Events, con Web Audio API nei giochi che includono effetti sonori. È ottimizzata per browser mobile moderni e supporta mouse/tastiera anche su desktop. I record vengono salvati nel browser tramite `localStorage`.
+L'interfaccia usa Canvas HTML5, Pointer Events, Web Audio API e, per Neon Tilt, Device Orientation Events. È ottimizzata per browser mobile moderni e mantiene fallback touch/tastiera quando i sensori non sono disponibili o il permesso viene negato.
 
 ## Nota sui giochi originali
-
-RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non include asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
+RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non includono asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
