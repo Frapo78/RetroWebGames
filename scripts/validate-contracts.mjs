@@ -138,17 +138,32 @@ if (bosses?.BOSSES) {
 
 const star = read('games/star-swarm/engine.js');
 const weaponSegmentCount = (star.match(/damageCoeff\s*:/g) || []).length;
-must(weaponSegmentCount === 20, `Star Swarm weapon progression must have exactly 20 damageCoeff segments; found ${weaponSegmentCount}`);
-must(star.includes('player.weapon=Math.max(0,player.weapon-2)') || /player\.weapon\s*=\s*Math\.max\(0,\s*player\.weapon\s*-\s*2\)/.test(star), 'Star Swarm: life loss must downgrade weapon by two segments');
+must(weaponSegmentCount === 8, `Star Swarm Weapon progression must have exactly 8 firing forms; found ${weaponSegmentCount}`);
+for (const name of ['SINGLE FIRE','DOUBLE FIRE','TRIPLE DIAGONAL FIRE','4 FIRE LINEAR','FIREBALLS 3 WAY','LASER','3 WAY LASERS','5 WAY LASERS']) {
+  must(star.includes(`name:'${name}'`), `Star Swarm Weapon form missing: ${name}`);
+}
+const powerDamageMatch = star.match(/const POWER_DAMAGE=\[([^\]]+)\]/);
+const powerColorMatch = star.match(/const POWER_COLORS=\[([\s\S]*?)\];/);
+const powerDamageSteps = powerDamageMatch ? powerDamageMatch[1].split(',').map(v => v.trim()).filter(Boolean) : [];
+const powerColorSteps = powerColorMatch ? (powerColorMatch[1].match(/#[0-9a-fA-F]{6}/g) || []) : [];
+must(powerDamageSteps.length === 20, `Star Swarm POWER damage progression must have exactly 20 levels; found ${powerDamageSteps.length}`);
+must(powerColorSteps.length === 20, `Star Swarm POWER must have exactly 20 projectile colors; found ${powerColorSteps.length}`);
+must(new Set(powerColorSteps).size === 20, 'Star Swarm POWER projectile colors must be distinct');
+must(star.includes('player.power<20'), 'Star Swarm POWER pickup must cap at level 20');
+must(star.includes('POWER_DAMAGE[player.power-1]'), 'Star Swarm projectile damage must use the 20-step POWER damage table');
+must(star.includes('player.weapon=Math.max(0,player.weapon-2)') || /player\.weapon\s*=\s*Math\.max\(0,\s*player\.weapon\s*-\s*2\)/.test(star), 'Star Swarm: life loss must downgrade Weapon by two forms');
 must(star.includes('player.power=Math.max(1,player.power-2)') || /player\.power\s*=\s*Math\.max\(1,\s*player\.power\s*-\s*2\)/.test(star), 'Star Swarm: life loss must downgrade POWER by two levels');
 must(star.includes('drops.power<2'), 'Star Swarm: POWER drops must be capped at two per level');
 must(star.includes('drops.shield<1'), 'Star Swarm: Shield drops must be capped at one per level');
 must(star.includes('level%2===0') && star.includes('drops.tractor<1'), 'Star Swarm: Tractor Beam must be limited to one eligible drop every two levels');
-must(star.includes("e.type===2?.0043:.00245"), 'Star Swarm: Weapon Upgrade rarity must remain at the reduced 0.43% / 0.245% baseline');
-must(!star.includes("e.type===2?.0086:.0049"), 'Star Swarm regression: old higher Weapon Upgrade drop rate reintroduced');
+must(star.includes("e.type===2?.0086:.0049"), 'Star Swarm: Weapon Upgrade rarity must remain at the intended 0.86% / 0.49% baseline');
+must(!star.includes("e.type===2?.0043:.00245"), 'Star Swarm regression: accidental extra Weapon Upgrade rarity halving reintroduced');
+must(star.includes("probs.push(['power',.010*elite])"), 'Star Swarm: POWER rarity must remain at the halved 1.0% baseline before elite multiplier');
+must(!star.includes("probs.push(['power',.020*elite])"), 'Star Swarm regression: old 2.0% POWER drop baseline reintroduced');
 must(!/b\.kind===['"]laser['"][^\n]{0,180}pierce--/.test(star), 'Star Swarm regression: laser must not be consumed by pierce decrement');
 must(star.includes("if(b.kind==='laser')continue;"), 'Star Swarm: laser must continue through normal enemies after a hit');
-must(/base\*\(WEAPONS\[player\.weapon\]\?\.damageCoeff\|\|1\)/.test(star), 'Star Swarm: weapon damage coefficient must actually affect projectile damage');
+must(/base\*\(WEAPONS\[player\.weapon\]\?\.damageCoeff\|\|1\)/.test(star), 'Star Swarm: Weapon damage coefficient must actually affect projectile damage');
+must(star.includes('W${player.weapon+1}/8') && star.includes('POWER ${player.power}/20'), 'Star Swarm HUD must expose Weapon 1/8 and POWER 1/20 semantics');
 
 const gameOver = read('game-over.js');
 for (const marker of [
@@ -209,7 +224,9 @@ for (const icon of [
 
 const agents = read('AGENTS.md');
 must(agents.includes('Game-over contract — CRITICAL'), 'AGENTS.md must retain the critical Game Over regression contract');
-must(agents.includes('20 segments'), 'AGENTS.md must document Star Swarm 20-segment weapon progression');
+must(agents.includes('exactly **8 firing forms**'), 'AGENTS.md must document Star Swarm 8-form Weapon progression');
+must(agents.includes('POWER range: **1..20**'), 'AGENTS.md must document Star Swarm 20-level POWER progression');
+must(agents.includes('Do not conflate these two systems'), 'AGENTS.md must retain the Weapon vs POWER semantic guardrail');
 
 if (failures.length) {
   console.error(`\nRetroWebGames contract validation FAILED (${failures.length})\n`);
@@ -223,7 +240,7 @@ console.log(`  ✓ all JavaScript sources pass node --check`);
 console.log(`  ✓ ${gamePages.length} game pages use shared platform contracts`);
 console.log(`  ✓ ${terminalRuntimes.length} terminal runtimes explicitly open shared Game Over`);
 console.log(`  ✓ ${continueRuntimes.length} continue handlers preserve full score/progress contract`);
-console.log('  ✓ Star Swarm campaign/weapon/drop/laser invariants are present');
+console.log('  ✓ Star Swarm campaign/Weapon/POWER/drop/laser invariants are present');
 console.log('  ✓ shared bootstrap/profile/Game Over resilience invariants are intact');
 console.log('  ✓ Neon Tilt audited physics/compatibility guards are present');
 console.log('  ✓ campaign uniqueness, boss roster and lifecycle pause guards are intact');
