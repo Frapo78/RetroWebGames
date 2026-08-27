@@ -340,6 +340,9 @@
     startBtn.textContent = 'RIGIOCA';
     overlay.classList.add('visible');
     pauseBtn.textContent = 'Ⅱ';
+    const detail = { game: 'Block Drop', score, lines, level, best };
+    window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail }));
+    requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
 
   function startGame() {
@@ -455,7 +458,7 @@
   });
 
   window.addEventListener('rwg:continue-game', e => {
-    score = Math.max(0, Math.floor(e.detail?.score ?? score * .5));
+    score = Math.max(0, Math.floor(e.detail?.score ?? score));
     for (let y = 0; y < 6; y++) board[y] = Array(COLS).fill(null);
     current = makePiece();
     next = next || makePiece();
