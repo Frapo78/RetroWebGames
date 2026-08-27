@@ -14,7 +14,13 @@ Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 - proiettili nemici
 - livelli progressivi
 - vite, punteggio e high score locale
-- power-up Rapid Fire
+- power-up giallo Rapid Fire temporaneo
+- power-up rosso a rombo con 8 livelli arma: Single Fire, Double Fire, Triple Diagonal, 4 Fire Linear, Fireballs 3 Way, Laser, 3 Way Lasers e 5 Way Lasers
+- power-up verde Tractor Beam per risucchiare fino a 2 navicelle nemiche
+- nemici catturati convertiti in wingmen che affiancano il player e sparano sempre in Single Fire
+- wingmen vulnerabili a proiettili e collisioni nemiche
+- fireball e laser con comportamento e grafica propri; i laser possono attraversare più bersagli
+- stato arma, Rapid Fire, Tractor Beam e numero di wingmen mostrati direttamente sul campo
 - particelle, vibrazione e Web Audio
 
 Percorso: `games/star-swarm/`
