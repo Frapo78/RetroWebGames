@@ -10,9 +10,14 @@ Sito ufficiale: `https://www.retrowebgames.it/`
 Space shooter originale ispirato al genere dei classici fixed shooter arcade.
 - controllo touch tramite trascinamento
 - fuoco automatico
-- formazione di nemici e attacchi in picchiata
-- proiettili nemici
-- livelli progressivi
+- campagna di almeno 100 livelli
+- nei primi 100 stage ogni livello usa una combinazione univoca formazione/ingresso, con seed, geometria, curve, ritardi e coreografie dedicate
+- ogni livello multiplo di 10 presenta prima una wave di scorta e poi un boss gigante
+- 10 boss differenti nei livelli 10, 20, …, 100, con forme, energia, movimento, IA e armi differenti
+- barra energia boss aggiornata in tempo reale, con stato critico e indicazione dello scudo quando previsto
+- pattern boss progressivi: raffiche mirate, ventagli, teletrasporto, anelli radiali, mine, homing, torrette, laser a corsia e a scansione, pattern combinati finali
+- dopo ogni boss appare una schermata arcade dedicata con riepilogo punti, vite, arma, wingmen e tempo boss, starfield in movimento e ripresa al tap
+- dopo il boss del livello 100 viene mostrato il completamento campagna e si sblocca la prosecuzione Overdrive
 - vite, punteggio e high score locale
 - power-up giallo Rapid Fire temporaneo
 - power-up rosso a rombo con 8 livelli arma: Single Fire, Double Fire, Triple Diagonal, 4 Fire Linear, Fireballs 3 Way, Laser, 3 Way Lasers e 5 Way Lasers
@@ -145,6 +150,10 @@ Il client mantiene attualmente un profilo anonimo persistente nel browser con st
 ├── avatar/
 └── games/
     ├── star-swarm/
+    │   ├── index.html
+    │   ├── campaign.js
+    │   ├── bosses.js
+    │   └── campaign.css
     ├── bubble-burst/
     ├── block-drop/
     ├── maze-munch/
