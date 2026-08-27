@@ -96,7 +96,7 @@ must(game.includes('Math.round(levelPoints * bonusRate)'), 'Bubble Burst complet
 must(game.includes('levelClearReadyAt = performance.now() + 2200'), 'Bubble Burst level-clear animation must remain readable before tap-to-continue');
 must(game.includes('startNextLevel()'), 'Bubble Burst level-clear tap must advance to the next level without terminal Game Over');
 must(game.includes('function registerPoppingShot(') && game.includes('if (!popped) { poppingShotStreak = 0; return; }'), 'Bubble Burst non-popping shots must reset the consecutive pop streak');
-must(game.includes('if (poppingShotStreak < 3) return;') && game.includes("banner = 'COMBO ×3 • BOMBA PRONTA!'"), 'Bubble Burst must award a Bomb after exactly three consecutive popping shots');
+must(game.includes('if (poppingShotStreak < 5) return;') && game.includes("banner = 'COMBO ×5 • BOMBA PRONTA!'"), 'Bubble Burst must award a Bomb after exactly five consecutive popping shots');
 must(game.includes('function applyPendingBombReward(') && game.includes('else if (nextShot.kind === SHOT_NORMAL)'), 'Bubble Burst streak Bomb must preserve rare queued special shots');
 
 const css = read('games/bubble-burst/style.css');

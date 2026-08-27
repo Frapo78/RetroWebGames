@@ -110,7 +110,7 @@ Do not turn either special shot into frequent ammunition without an explicit bal
 
 ## Consecutive popping-shot Bomb reward
 
-Every third consecutive shot that removes at least one structure bubble awards a Bomb. A shot with no popped bubble resets the streak. The reward promotes the first normal current/next ammunition slot, so an already queued rare Bomb or Color Wipe is never overwritten; if both slots are special, the earned Bomb remains pending until a normal slot becomes available.
+Every fifth consecutive shot that removes at least one structure bubble awards a Bomb. A shot with no popped bubble resets the streak. The reward promotes the first normal current/next ammunition slot, so an already queued rare Bomb or Color Wipe is never overwritten; if both slots are special, the earned Bomb remains pending until a normal slot becomes available.
 
 ## Timed ceiling pressure
 

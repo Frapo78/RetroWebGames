@@ -184,7 +184,7 @@ Bubble Burst files:
 
 ### Bubble Burst consecutive-pop reward
 
-- Every third consecutive shot that removes at least one bubble awards one Bomb.
+- Every fifth consecutive shot that removes at least one bubble awards one Bomb.
 - A shot that removes no bubble resets the streak.
 - Reward delivery MUST NOT overwrite an already queued rare Bomb or Color Wipe; defer to the first normal ammunition slot.
 

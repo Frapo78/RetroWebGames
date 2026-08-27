@@ -208,9 +208,9 @@
   function registerPoppingShot(popped) {
     if (!popped) { poppingShotStreak = 0; return; }
     poppingShotStreak++;
-    if (poppingShotStreak < 3) return;
+    if (poppingShotStreak < 5) return;
     poppingShotStreak = 0; rewardBombsPending++; applyPendingBombReward();
-    banner = 'COMBO ×3 • BOMBA PRONTA!'; bannerTime = 1.35; tone(1040, .12, 'triangle', .04, 360); navigator.vibrate?.([12, 18, 28]);
+    banner = 'COMBO ×5 • BOMBA PRONTA!'; bannerTime = 1.35; tone(1040, .12, 'triangle', .04, 360); navigator.vibrate?.([12, 18, 28]);
   }
 
   function updateNextPreview() {
