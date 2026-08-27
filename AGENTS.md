@@ -164,7 +164,32 @@ Bubble Burst files:
 - The first 200 signatures MUST remain unique.
 - Current construction uses 20 motif families × 10 variants.
 - Layout geometry must remain top-connected/playable; decorative floating islands must not be generated initially.
+- Every layout MUST expose a deterministic `optimalSeconds` derived from actual layout complexity rather than one global hard-coded target.
 - Difficulty may continue beyond level 200 by cycling geometry while increasing rows/colors/special pressure.
+
+### Bubble Burst timing/bonus invariants — CRITICAL
+
+- The gameplay timer is large, centered immediately below the upper `SCORE / LEVEL / FALLI` HUD and displays centiseconds as `MM:SS.CC`.
+- Timer is **green** through `optimalSeconds`.
+- Timer is **orange** after optimal time through `optimalSeconds + (optimalSeconds × 2.5)`, therefore total orange deadline = `3.5 × optimalSeconds`.
+- Timer is **red** after that deadline with no additional threshold.
+- Green clear awards `+50%` of points generated in the level.
+- Orange clear awards `+25%`.
+- Red clear gives no timing bonus.
+- Level points include gameplay points plus the existing base clear award; percentage bonus is applied to that level subtotal.
+- Timer advances only during active gameplay. Pause/background/orientation pause and the level-clear summary MUST freeze it.
+- Credit Continue MUST preserve elapsed level time and the start-of-level score baseline. Resetting either would allow bonus farming.
+- Board clear opens an INTERMEDIATE arcade calculation screen with `LIVELLO COMPLETATO!`, points, time, bonus and emphasized total, then advances only after user tap.
+- Intermediate level-clear MUST NOT emit `rwg:game-ended` or invoke `RWGGameOver`.
+
+### Bubble Burst timed-pressure invariants
+
+- Level 1 ceiling descent must not begin before 60 seconds; current target is 65 seconds.
+- Descent interval contracts progressively with level, currently floored around 16 seconds.
+- Descent step grows gradually from roughly 0.5 row toward a cap below one full row.
+- Pressure countdown runs only during active gameplay and waits for an in-flight projectile before moving geometry.
+- The final six seconds must visibly warn the player.
+- Continue preserves accumulated ceiling descent but resets only the next pressure countdown.
 
 ### Bubble Burst special-structure invariants
 
@@ -190,6 +215,7 @@ Bubble Burst files:
 - Static background artwork is cached and rebuilt on resize rather than recomputed each frame.
 - BFS/graph traversal must use index-based queues; do not reintroduce repeated `queue.shift()` in hot paths.
 - Keep particle/falling visual counts bounded.
+- Timer DOM text should update only when the displayed centisecond changes, not with redundant same-value writes.
 - Current scale does not justify WASM; profile first and follow `docs/WASM-EVALUATION.md` thresholds.
 
 Run `node scripts/validate-bubble-burst.mjs` after Bubble Burst gameplay/layout changes in addition to the repository-wide validator.
@@ -261,6 +287,6 @@ Documentation is part of the implementation, not optional cleanup.
   must remain a deletion. Never resurrect obsolete root `game.js` through a
   rename/delete conflict.
 - Do not confuse Star Swarm Weapon Upgrade with POWER strength. Weapon has 8 firing forms and a small damage coefficient per advancement; POWER has 20 damage-strength levels and is the pickup whose drop probability was halved.
-- Do not regress Bubble Burst to fully random rectangular boards, full-grid collision scans, per-frame gradient construction, or frequent Bomb/Color Wipe ammunition.
+- Do not regress Bubble Burst to fully random rectangular boards, full-grid collision scans, per-frame gradient construction, frequent Bomb/Color Wipe ammunition, or a level-clear overlay that accidentally invokes terminal Game Over.
 - Static validation does not replace browser checks for console errors, failed
   requests, narrow viewports and credit debit flows.
