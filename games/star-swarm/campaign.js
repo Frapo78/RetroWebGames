@@ -28,7 +28,7 @@
     for(let i=0;i<count;i++){
       const row=Math.floor(i/cols), col=i%cols, u=cols===1?0:(col/(cols-1))*2-1, v=rows===1?0:row/(rows-1);
       let x=cx+u*width*.48, y=top+v*height;
-      const a=(i/count)*Math.PI*2;
+      const a=(i/count)*Math.PI*2, r0=Math.min(width,height)*(.25+.18*((i%5)/4));
       switch(kind){
         case 'chevron': x=cx+u*width*.46; y=top+Math.abs(u)*height*.58+row*11; break;
         case 'diamond': x=cx+u*width*.42*(1-Math.abs(v-.5)*.55); y=top+v*height; break;
@@ -84,8 +84,9 @@
 
   function getStage(level, W, H) {
     const seed=0x51f15e + level*7919, rand=rng(seed);
-    const formationIndex=((level-1)*7 + Math.floor((level-1)/20))%FORMATIONS.length;
-    const entranceIndex=((level-1)*5 + Math.floor((level-1)/12))%ENTRANCES.length;
+    const n=level-1;
+    const formationIndex=n%FORMATIONS.length;
+    const entranceIndex=(n+2*Math.floor(n/FORMATIONS.length))%ENTRANCES.length;
     const kind=FORMATIONS[formationIndex], entrance=ENTRANCES[entranceIndex];
     const bossEscort=level%10===0;
     const count=bossEscort ? 24+((level/10)%3)*2 : Math.min(42,28+((level*3)%11)+Math.floor(level/25)*2);
