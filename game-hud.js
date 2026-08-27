@@ -6,19 +6,45 @@
   const selfSrc = document.currentScript?.src;
   if (selfSrc) {
     const base = new URL('.', selfSrc);
-    if (!document.querySelector('link[data-rwg-game-over-style]')) {
-      const style = document.createElement('link');
-      style.rel = 'stylesheet';
-      style.href = new URL('game-over.css', base).href;
-      style.dataset.rwgGameOverStyle = 'true';
-      document.head.appendChild(style);
-    }
-    if (!document.querySelector('script[data-rwg-game-over-script]')) {
-      const script = document.createElement('script');
-      script.src = new URL('game-over.js', base).href;
-      script.dataset.rwgGameOverScript = 'true';
-      document.body.appendChild(script);
-    }
+
+    const loadGameOver = () => {
+      if (!document.querySelector('link[data-rwg-game-over-style]')) {
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = new URL('game-over.css', base).href;
+        style.dataset.rwgGameOverStyle = 'true';
+        document.head.appendChild(style);
+      }
+      if (!document.querySelector('script[data-rwg-game-over-script]')) {
+        const script = document.createElement('script');
+        script.src = new URL('game-over.js', base).href;
+        script.dataset.rwgGameOverScript = 'true';
+        document.body.appendChild(script);
+      }
+    };
+
+    const ensureProfileThenGameOver = () => {
+      if (window.RWGProfile) {
+        loadGameOver();
+        return;
+      }
+
+      const existing = document.querySelector('script[data-rwg-profile-script], script[src$="/rwg-profile.js"], script[src="rwg-profile.js"]');
+      if (existing) {
+        existing.addEventListener('load', loadGameOver, { once: true });
+        setTimeout(() => { if (window.RWGProfile) loadGameOver(); }, 0);
+        return;
+      }
+
+      const profileScript = document.createElement('script');
+      profileScript.src = new URL('rwg-profile.js', base).href;
+      profileScript.dataset.rwgProfileScript = 'true';
+      profileScript.addEventListener('load', loadGameOver, { once: true });
+      profileScript.addEventListener('error', loadGameOver, { once: true });
+      document.body.appendChild(profileScript);
+    };
+
+    ensureProfileThenGameOver();
   }
 
   if (document.querySelector('.rwg-game-tools')) return;
