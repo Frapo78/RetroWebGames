@@ -9,31 +9,38 @@
   const HISTORY_LIMIT = 200;
   const nowIso = () => new Date().toISOString();
 
-  const coinSvg = (className = 'rwg-coin-icon') => `
-    <svg class="${className}" viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="rwgCoinFill" x1="5" y1="3" x2="27" y2="29" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#fff7a8"/>
-          <stop offset=".34" stop-color="#ffe454"/>
-          <stop offset=".72" stop-color="#f6ad22"/>
-          <stop offset="1" stop-color="#d9780e"/>
-        </linearGradient>
-        <linearGradient id="rwgCoinRim" x1="6" y1="5" x2="27" y2="27" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#fff278"/>
-          <stop offset="1" stop-color="#c96809"/>
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="13.2" fill="url(#rwgCoinRim)" />
-      <circle cx="16" cy="16" r="10.7" fill="url(#rwgCoinFill)" stroke="rgba(91,49,2,.42)" stroke-width="1.2"/>
-      <path d="M11 10.5h7.1c2.55 0 4.4 1.38 4.4 3.56 0 1.43-.78 2.5-2.02 3.04 1.48.48 2.42 1.67 2.42 3.23 0 2.55-2.12 4.17-5.2 4.17H11v-14Zm4.02 2.8v2.63h2.48c.9 0 1.45-.48 1.45-1.3 0-.84-.55-1.33-1.45-1.33h-2.48Zm0 5.25v3.08h2.82c1.02 0 1.62-.58 1.62-1.53 0-.97-.62-1.55-1.68-1.55h-2.76Z" fill="#7c3d05" opacity=".86"/>
-      <path d="M9.1 8.5c2.6-2.7 8.15-4.18 12.35-1.45" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="1.35" stroke-linecap="round"/>
-    </svg>`;
+  let coinSeq = 0;
+  const coinSvg = (className = 'rwg-coin-icon') => {
+    const suffix = ++coinSeq;
+    const fillId = `rwgCoinFill${suffix}`;
+    const rimId = `rwgCoinRim${suffix}`;
+    return `
+      <svg class="${className}" viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <linearGradient id="${fillId}" x1="5" y1="3" x2="27" y2="29" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fff7a8"/>
+            <stop offset=".34" stop-color="#ffe454"/>
+            <stop offset=".72" stop-color="#f6ad22"/>
+            <stop offset="1" stop-color="#d9780e"/>
+          </linearGradient>
+          <linearGradient id="${rimId}" x1="6" y1="5" x2="27" y2="27" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fff278"/>
+            <stop offset="1" stop-color="#c96809"/>
+          </linearGradient>
+        </defs>
+        <circle cx="16" cy="16" r="13.2" fill="url(#${rimId})" />
+        <circle cx="16" cy="16" r="10.7" fill="url(#${fillId})" stroke="rgba(91,49,2,.42)" stroke-width="1.2"/>
+        <path d="M11 10.5h7.1c2.55 0 4.4 1.38 4.4 3.56 0 1.43-.78 2.5-2.02 3.04 1.48.48 2.42 1.67 2.42 3.23 0 2.55-2.12 4.17-5.2 4.17H11v-14Zm4.02 2.8v2.63h2.48c.9 0 1.45-.48 1.45-1.3 0-.84-.55-1.33-1.45-1.33h-2.48Zm0 5.25v3.08h2.82c1.02 0 1.62-.58 1.62-1.53 0-.97-.62-1.55-1.68-1.55h-2.76Z" fill="#7c3d05" opacity=".86"/>
+        <path d="M9.1 8.5c2.6-2.7 8.15-4.18 12.35-1.45" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="1.35" stroke-linecap="round"/>
+      </svg>`;
+  };
 
   const makeId = () => {
-    if (crypto?.randomUUID) return `rwg_${crypto.randomUUID()}`;
-    if (crypto?.getRandomValues) {
+    const secureCrypto = globalThis.crypto;
+    if (secureCrypto?.randomUUID) return `rwg_${secureCrypto.randomUUID()}`;
+    if (secureCrypto?.getRandomValues) {
       const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
+      secureCrypto.getRandomValues(bytes);
       return `rwg_${[...bytes].map(v => v.toString(16).padStart(2, '0')).join('')}`;
     }
     return `rwg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`;
@@ -45,9 +52,12 @@
     continues: 0,
     playTimeMs: 0,
     bestScore: 0,
+    recordValue: 0,
     lastScore: 0,
     maxLevel: 0,
     maxLines: 0,
+    maxCombo: 1,
+    maxRally: 0,
     achievements: [],
     lastPlayedAt: null
   });
@@ -285,15 +295,21 @@
     transient.set(slug, t);
 
     const score = Math.max(0, Number(detail?.score || 0));
+    const recordValue = Math.max(0, Number(detail?.best || score));
     const level = Math.max(0, Number(detail?.level || 0));
     const lines = Math.max(0, Number(detail?.lines || 0));
+    const maxCombo = Math.max(1, Number(detail?.maxCombo || 1));
+    const maxRally = Math.max(0, Number(detail?.maxRally || 0));
 
     g.gameOvers++;
     g.playTimeMs += deltaMs;
     g.lastScore = score;
     g.bestScore = Math.max(g.bestScore, score);
+    g.recordValue = Math.max(g.recordValue, recordValue);
     g.maxLevel = Math.max(g.maxLevel, level);
     g.maxLines = Math.max(g.maxLines, lines);
+    g.maxCombo = Math.max(g.maxCombo, maxCombo);
+    g.maxRally = Math.max(g.maxRally, maxRally);
     g.lastPlayedAt = nowIso();
 
     const earned = Array.isArray(detail?.achievements) ? detail.achievements : [];
@@ -311,8 +327,11 @@
       type: 'game-over',
       game: slug,
       score,
+      recordValue,
       level,
       lines,
+      maxCombo,
+      maxRally,
       activeMs,
       continues: Math.max(0, Number(detail?.continueCount || 0))
     });
