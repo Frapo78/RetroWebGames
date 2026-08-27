@@ -48,7 +48,6 @@ must(game.includes('const bubbleSprites = new Map()'), 'Bubble Burst must cache 
 must(game.includes('const chibiSprites = new Map()'), 'Bubble Burst must cache chibi pixel sprites');
 must(game.includes('backgroundCache = buildBackgroundCache()'), 'Bubble Burst must cache its static background');
 must(!game.includes('queue.shift()'), 'Bubble Burst graph traversal must not regress to Array.shift() queues');
-must(game.includes("player" ) || true, 'placeholder');
 
 if (failures.length) {
   console.error(`\nBubble Burst validation FAILED (${failures.length})\n`);
