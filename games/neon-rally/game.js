@@ -72,6 +72,7 @@ canvas.addEventListener('pointermove',e=>{if(pointer)setTarget(e);});canvas.addE
 window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')player.targetX-=34;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')player.targetX+=34;if(e.key===' '&&running){paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';}});
 startBtn.addEventListener('click',start);pauseBtn.addEventListener('click',()=>{if(!running)return;paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';announce(paused?'PAUSA':'VIA');});
 muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';});
+window.addEventListener('rwg:continue-game',e=>{playerScore=Math.max(0,Math.floor(e.detail?.score??playerScore*.5));cpuScore=Math.min(cpuScore,6);running=true;paused=false;player.x=player.targetX=W/2;cpu.x=W/2;resetBall(-1,true);overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';startBtn.textContent='RIGIOCA';last=performance.now();updateHud();ensureAudio();announce('CONTINUA!');tone(520,.16,'triangle',.035,900);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused){paused=true;pauseBtn.textContent='▶';}});
 window.addEventListener('resize',resize);bestEl.textContent=best;resize();requestAnimationFrame(loop);
 })();
