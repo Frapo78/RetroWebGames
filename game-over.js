@@ -22,6 +22,7 @@
   let maxCombo = 1;
   let maxRally = 0;
   let summaryShown = false;
+  let continueCount = 0;
 
   const layer = document.createElement('section');
   layer.className = 'rwg-game-over-layer';
@@ -57,9 +58,14 @@
 
       <section class="rwg-credits-slot" data-rwg-credits-slot hidden aria-label="Continua con crediti"></section>
 
+      <div class="rwg-continue-box">
+        <button class="rwg-continue-free" type="button">Continua gratis</button>
+        <span>Riparti da qui con il <strong>50% dei punti</strong></span>
+      </div>
+
       <div class="rwg-game-over-actions">
-        <a class="rwg-back-games" href="${HOME_URL}">Tutti i giochi</a>
         <button class="rwg-play-again" type="button">Gioca ancora</button>
+        <a class="rwg-back-games" href="${HOME_URL}">Tutti i giochi</a>
       </div>
       <div class="rwg-game-over-credit">Made with 💙 by Francesco Poltero</div>
     </div>`;
@@ -71,6 +77,7 @@
   const achievementsSection = layer.querySelector('.rwg-achievements');
   const achievementsEl = layer.querySelector('.rwg-achievement-list');
   const challengeEl = layer.querySelector('.rwg-challenge-copy');
+  const continueBtn = layer.querySelector('.rwg-continue-free');
   const playAgain = layer.querySelector('.rwg-play-again');
   const moreShare = layer.querySelector('[data-go-share="more"]');
 
@@ -124,6 +131,7 @@
     activeMs = 0;
     maxCombo = 1;
     maxRally = 0;
+    continueCount = 0;
     startingBest = parseNumber(document.getElementById('best'));
     lastTick = performance.now();
     layer.hidden = true;
@@ -226,7 +234,7 @@
     layer.hidden = false;
     document.body.classList.add('rwg-game-over-open');
 
-    const detail = { game: gameName, url: canonical, ...stats, achievements: achievements.map(({ id, label, isNew }) => ({ id, label, isNew })) };
+    const detail = { game: gameName, url: canonical, continueCount, ...stats, achievements: achievements.map(({ id, label, isNew }) => ({ id, label, isNew })) };
     window.dispatchEvent(new CustomEvent('rwg:game-over-summary', { detail }));
   };
 
@@ -237,6 +245,28 @@
 
   new MutationObserver(checkGameOver).observe(overlay, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(checkGameOver).observe(startBtn, { childList: true, characterData: true, subtree: true });
+
+  continueBtn.addEventListener('click', () => {
+    const stats = collectStats();
+    const discountedScore = Math.floor(stats.score * .5);
+    continueCount++;
+    summaryShown = false;
+    sessionActive = true;
+    lastTick = performance.now();
+    layer.hidden = true;
+    document.body.classList.remove('rwg-game-over-open');
+    window.dispatchEvent(new CustomEvent('rwg:continue-game', {
+      detail: {
+        game: gameName,
+        url: canonical,
+        mode: 'free',
+        penalty: .5,
+        continueCount,
+        previousScore: stats.score,
+        score: discountedScore
+      }
+    }));
+  });
 
   playAgain.addEventListener('click', () => {
     layer.hidden = true;
@@ -271,7 +301,7 @@
       layer.hidden = true;
       document.body.classList.remove('rwg-game-over-open');
     },
-    getSession: () => ({ game: gameName, url: canonical, activeMs, active: sessionActive }),
+    getSession: () => ({ game: gameName, url: canonical, activeMs, active: sessionActive, continueCount }),
     getCreditsSlot: () => layer.querySelector('[data-rwg-credits-slot]')
   });
 })();
