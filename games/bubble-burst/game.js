@@ -273,6 +273,9 @@
   function endGame() {
     if (!running) return;
     running = false; paused = false; aiming = false; moving = null; best = Math.max(best, score); localStorage.setItem('bubbleBurstBest', String(best)); updateHud(); overlayText.innerHTML = `Le bolle hanno raggiunto la linea di pericolo.<br>Punteggio <strong>${score.toLocaleString('it-IT')}</strong> • livello ${level}.`; startBtn.textContent = 'RIGIOCA'; overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ'; tone(95, .25, 'sawtooth', .05, -55);
+    const detail = { game: 'Bubble Burst', score, level, best };
+    window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail }));
+    requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
 
   function updateMoving(dt) {
@@ -330,7 +333,7 @@
   pauseBtn.addEventListener('click', () => { if (!running) return; paused = !paused; aiming = false; pauseBtn.textContent = paused ? '▶' : 'Ⅱ'; if (!paused) last = performance.now(); });
   muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; if (!muted) ensureAudio(); });
   window.addEventListener('rwg:continue-game', e => {
-    score = Math.max(0, Math.floor(e.detail?.score ?? score * .5)); misses = 0; moving = null; aiming = false;
+    score = Math.max(0, Math.floor(e.detail?.score ?? score)); misses = 0; moving = null; aiming = false;
     const dangerY = launcherY - R * 3.25;
     while ([...grid.values()].some(b => cellPos(b.r, b.c).y + R >= dangerY - R * 1.2)) {
       const maxRow = Math.max(...[...grid.values()].map(b => b.r));
