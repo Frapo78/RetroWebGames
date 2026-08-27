@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050816" />
+  <meta name="description" content="Crea e personalizza il tuo avatar RetroWebGames." />
+  <link rel="canonical" href="https://www.retrowebgames.it/avatar/" />
+  <link rel="icon" type="image/svg+xml" href="https://www.retrowebgames.it/favicon.svg" />
+  <title>Il mio avatar — RetroWebGames</title>
+  <link rel="stylesheet" href="../rwg-avatar.css" />
+  <link rel="stylesheet" href="avatar-editor.css" />
+</head>
+<body class="avatar-page">
+  <main class="avatar-shell">
+    <div class="avatar-top">
+      <a class="avatar-back" href="https://www.retrowebgames.it/">← Tutti i giochi</a>
+      <span class="avatar-credit-slot" aria-hidden="true"></span>
+    </div>
+
+    <header class="avatar-heading">
+      <small>RETROWEBGAMES • PLAYER ID</small>
+      <h1>IL MIO AVATAR</h1>
+      <p>Il tuo omino viene generato casualmente alla prima visita e resta associato al profilo anonimo di questo browser. Personalizzalo come vuoi.</p>
+    </header>
+
+    <section class="avatar-grid">
+      <aside class="avatar-preview-card">
+        <div id="avatarStage" class="avatar-stage" aria-label="Anteprima 3D del tuo avatar">
+          <div id="avatarPreview" data-rwg-avatar-mode="full"></div>
+        </div>
+        <div id="avatarId" class="avatar-mini-id"></div>
+        <div class="avatar-actions">
+          <button id="randomizeBtn" class="randomize" type="button">RANDOMIZZA</button>
+          <button id="resetViewBtn" class="reset-view" type="button">↻ VISTA</button>
+        </div>
+      </aside>
+
+      <section class="avatar-editor-card" aria-label="Personalizzazione avatar">
+        <div class="editor-section" data-section="bodyStyle"><h2>CORPORATURA</h2><div class="choice-row"></div></div>
+        <div class="editor-section" data-section="skin"><h2>CARNAGIONE</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="faceStyle"><h2>FACCIA</h2><div class="choice-row"></div></div>
+        <div class="editor-section" data-section="eyeColor"><h2>OCCHI</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="hairStyle"><h2>CAPELLI</h2><div class="choice-row"></div></div>
+        <div class="editor-section" data-section="hairColor"><h2>COLORE CAPELLI</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="topStyle"><h2>MAGLIA / GIACCA</h2><div class="choice-row"></div></div>
+        <div class="editor-section" data-section="shirtColor"><h2>COLORE TOP</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="bottomStyle"><h2>PANTALONI</h2><div class="choice-row"></div></div>
+        <div class="editor-section" data-section="pantsColor"><h2>COLORE PANTALONI</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="shoeColor"><h2>SCARPE</h2><div class="swatches"></div></div>
+        <div class="editor-section" data-section="accessory"><h2>ACCESSORIO</h2><div class="choice-row"></div></div>
+
+        <div class="savebar">
+          <div id="saveStatus" class="save-status" aria-live="polite">SALVATO</div>
+          <button id="saveBtn" type="button">SALVA AVATAR</button>
+        </div>
+      </section>
+    </section>
+
+    <p class="profile-note">L'avatar è attualmente salvato localmente insieme all'identità anonima del browser. La struttura è pronta per essere sincronizzata con il futuro profilo server-side.</p>
+  </main>
+
+  <script src="../rwg-profile.js"></script>
+  <script src="../rwg-avatar.js"></script>
+  <script src="avatar-editor.js"></script>
+</body>
+</html>
