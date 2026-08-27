@@ -41,11 +41,16 @@
     let dx = ball.x - bumper.x;
     let dy = ball.y - bumper.y;
     let d = len(dx, dy);
+    // Intentionally smaller than the visual bumper radius so narrow maze corridors
+    // remain traversable. Once activated, move the ball to the contact boundary to
+    // prevent repeated impulses on consecutive physics substeps.
     const minD = bumper.r * .55;
     if (d >= minD) return false;
     if (d < 1e-5) { dx = 1; dy = 0; d = 1; }
     const nx = dx / d;
     const ny = dy / d;
+    ball.x = bumper.x + nx * minD;
+    ball.y = bumper.y + ny * minD;
     const speed = Math.max(3.8, len(ball.vx, ball.vy) * 1.04);
     ball.vx = nx * speed;
     ball.vy = ny * speed;
@@ -72,7 +77,7 @@
 
     for (let n = 0; n < chunks; n++) {
       let friction = 3.15;
-      let accelScale = 11.3 * Math.min(1.22, difficulty);
+      const accelScale = 11.3 * Math.min(1.22, difficulty);
       const tile = world.surfaceAt(ball.x, ball.y);
       if (tile === '~') friction = .72;
 
