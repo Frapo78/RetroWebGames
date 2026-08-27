@@ -2,6 +2,25 @@
   'use strict';
 
   if (!document.body || !document.body.hasAttribute('data-rwg-game')) return;
+
+  const selfSrc = document.currentScript?.src;
+  if (selfSrc) {
+    const base = new URL('.', selfSrc);
+    if (!document.querySelector('link[data-rwg-game-over-style]')) {
+      const style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = new URL('game-over.css', base).href;
+      style.dataset.rwgGameOverStyle = 'true';
+      document.head.appendChild(style);
+    }
+    if (!document.querySelector('script[data-rwg-game-over-script]')) {
+      const script = document.createElement('script');
+      script.src = new URL('game-over.js', base).href;
+      script.dataset.rwgGameOverScript = 'true';
+      document.body.appendChild(script);
+    }
+  }
+
   if (document.querySelector('.rwg-game-tools')) return;
 
   const HOME_URL = 'https://www.retrowebgames.it/';
