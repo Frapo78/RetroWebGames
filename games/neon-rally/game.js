@@ -1,0 +1,77 @@
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const pScoreEl=document.getElementById('playerScore'),cScoreEl=document.getElementById('cpuScore'),rallyEl=document.getElementById('rally');
+const bestEl=document.getElementById('best'),overlay=document.getElementById('overlay'),overlayText=document.getElementById('overlayText');
+const startBtn=document.getElementById('startBtn'),pauseBtn=document.getElementById('pauseBtn'),muteBtn=document.getElementById('muteBtn'),statusEl=document.getElementById('status');
+
+let W=390,H=844,DPR=1,running=false,paused=false,muted=false,last=0,playerScore=0,cpuScore=0,rally=0;
+let best=Number(localStorage.getItem('neonRallyBest')||0),serveTimer=0,flash=0,trail=[];
+const player={x:195,y:760,w:96,h:12,targetX:195};
+const cpu={x:195,y:84,w:90,h:12,targetX:195};
+const ball={x:195,y:422,r:7,vx:170,vy:280,speed:330};
+let audio=null,pointer=false;
+
+function ensureAudio(){if(audio)return;const AC=window.AudioContext||window.webkitAudioContext;if(AC)audio=new AC();}
+function tone(f,d=.05,type='square',vol=.025,end=f){if(muted)return;ensureAudio();if(!audio)return;if(audio.state==='suspended')audio.resume().catch(()=>{});
+ const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(20,end),audio.currentTime+d);
+ g.gain.setValueAtTime(vol,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d);
+}
+function resize(){const r=canvas.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
+ player.y=H-86;cpu.y=Math.max(84,H*.12);player.x=Math.min(W-player.w/2,Math.max(player.w/2,player.x));cpu.x=W/2;
+ if(!running){player.x=player.targetX=W/2;resetBall(Math.random()<.5?-1:1,false);}
+}
+function resetBall(dir=1,countdown=true){ball.x=W/2;ball.y=H/2;ball.speed=Math.min(520,320+(playerScore+cpuScore)*13);const angle=(Math.random()*.5-.25);
+ ball.vx=Math.sin(angle)*ball.speed;ball.vy=Math.cos(angle)*ball.speed*dir;trail.length=0;rally=0;updateHud();serveTimer=countdown?1.0:0;
+}
+function updateHud(){pScoreEl.textContent=playerScore;cScoreEl.textContent=cpuScore;rallyEl.textContent=rally;bestEl.textContent=best;}
+function announce(text){statusEl.textContent=text;statusEl.classList.add('show');clearTimeout(announce.t);announce.t=setTimeout(()=>statusEl.classList.remove('show'),650);}
+function start(){playerScore=cpuScore=rally=0;running=true;paused=false;player.x=player.targetX=W/2;cpu.x=W/2;resetBall(Math.random()<.5?-1:1,true);overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';updateHud();ensureAudio();}
+function finish(win){running=false;paused=false;best=Math.max(best,rally);localStorage.setItem('neonRallyBest',String(best));updateHud();
+ overlayText.innerHTML=win?`Hai vinto <strong>${playerScore}-${cpuScore}</strong>.<br>Best rally: <strong>${best}</strong>.`:`La CPU vince <strong>${cpuScore}-${playerScore}</strong>.<br>Best rally: <strong>${best}</strong>.`;
+ startBtn.textContent='RIGIOCA';overlay.classList.add('visible');tone(win?660:120,.24,'sawtooth',.045,win?990:70);
+}
+function point(playerWon){if(playerWon){playerScore++;tone(520,.12,'triangle',.04,780);}else{cpuScore++;tone(130,.15,'sawtooth',.04,75);}flash=.22;updateHud();
+ if(playerScore>=7||cpuScore>=7){finish(playerScore>cpuScore);return;}announce(playerWon?'PUNTO TU':'PUNTO CPU');resetBall(playerWon?-1:1,true);
+}
+function paddleBounce(p,isPlayer){const movingToward=isPlayer?ball.vy>0:ball.vy<0;if(!movingToward)return;
+ const withinY=isPlayer?ball.y+ball.r>=p.y-p.h/2&&ball.y-ball.r<=p.y+p.h/2:ball.y-ball.r<=p.y+p.h/2&&ball.y+ball.r>=p.y-p.h/2;
+ if(!withinY||Math.abs(ball.x-p.x)>p.w/2+ball.r)return;
+ const rel=Math.max(-1,Math.min(1,(ball.x-p.x)/(p.w/2)));ball.speed=Math.min(680,ball.speed*1.045+3);const vyMag=Math.max(ball.speed*.58,Math.sqrt(Math.max(1,ball.speed*ball.speed-(rel*ball.speed*.78)**2)));
+ ball.vx=rel*ball.speed*.78+(isPlayer?(player.targetX-player.x)*1.1:0);const mag=Math.hypot(ball.vx,vyMag);ball.vx=ball.vx/mag*ball.speed;ball.vy=(isPlayer?-1:1)*(vyMag/mag*ball.speed);
+ ball.y=isPlayer?p.y-p.h/2-ball.r-1:p.y+p.h/2+ball.r+1;rally++;best=Math.max(best,rally);updateHud();tone(260+rally*9,.035,'square',.018,420+rally*6);
+ if(navigator.vibrate&&isPlayer)navigator.vibrate(8);
+}
+function update(dt){if(!running||paused)return;if(serveTimer>0){serveTimer-=dt;return;}
+ player.x+=(player.targetX-player.x)*(1-Math.pow(.0008,dt));player.x=Math.max(player.w/2+8,Math.min(W-player.w/2-8,player.x));
+ const difficulty=Math.min(.93,.58+(playerScore+cpuScore)*.025);const predict=ball.vy<0?ball.x+ball.vx*Math.max(0,(cpu.y-ball.y)/ball.vy):W/2;
+ cpu.targetX=predict*(difficulty)+(W/2)*(1-difficulty);const maxCpu=(245+(playerScore+cpuScore)*8)*dt;const dx=cpu.targetX-cpu.x;cpu.x+=Math.max(-maxCpu,Math.min(maxCpu,dx));cpu.x=Math.max(cpu.w/2+8,Math.min(W-cpu.w/2-8,cpu.x));
+ trail.push({x:ball.x,y:ball.y,a:1});if(trail.length>14)trail.shift();for(const t of trail)t.a-=dt*2.7;
+ ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
+ if(ball.x-ball.r<8&&ball.vx<0){ball.x=8+ball.r;ball.vx*=-1;tone(180,.025,'square',.012,220);}
+ if(ball.x+ball.r>W-8&&ball.vx>0){ball.x=W-8-ball.r;ball.vx*=-1;tone(180,.025,'square',.012,220);}
+ paddleBounce(player,true);paddleBounce(cpu,false);
+ if(ball.y<-24)point(true);else if(ball.y>H+24)point(false);
+ flash=Math.max(0,flash-dt);
+}
+function roundedRect(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();}
+function draw(){ctx.clearRect(0,0,W,H);const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#091b39');g.addColorStop(.5,'#030916');g.addColorStop(1,'#061329');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle='rgba(101,231,255,.13)';ctx.lineWidth=1;for(let y=0;y<H;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+ ctx.setLineDash([8,12]);ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(16,H/2);ctx.lineTo(W-16,H/2);ctx.stroke();ctx.setLineDash([]);
+ for(const t of trail){if(t.a<=0)continue;ctx.globalAlpha=Math.max(0,t.a*.42);ctx.fillStyle='#65e7ff';ctx.beginPath();ctx.arc(t.x,t.y,ball.r*(.35+t.a*.45),0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+ ctx.shadowBlur=18;ctx.shadowColor='#ff5ecf';roundedRect(cpu.x-cpu.w/2,cpu.y-cpu.h/2,cpu.w,cpu.h,6,'#ff5ecf');
+ ctx.shadowColor='#65e7ff';roundedRect(player.x-player.w/2,player.y-player.h/2,player.w,player.h,6,'#65e7ff');
+ ctx.shadowBlur=22;ctx.shadowColor='#ffe66d';ctx.fillStyle='#fff7ad';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ if(serveTimer>0){ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='700 11px ui-monospace';ctx.textAlign='center';ctx.fillText('SERVE',W/2,H/2-24);}
+ if(flash>0){ctx.fillStyle=`rgba(255,255,255,${flash*.45})`;ctx.fillRect(0,0,W,H);}
+}
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000||0);last=ts;update(dt);draw();requestAnimationFrame(loop);}
+function setTarget(e){const r=canvas.getBoundingClientRect();player.targetX=e.clientX-r.left;}
+canvas.addEventListener('pointerdown',e=>{pointer=true;canvas.setPointerCapture(e.pointerId);setTarget(e);});
+canvas.addEventListener('pointermove',e=>{if(pointer)setTarget(e);});canvas.addEventListener('pointerup',()=>pointer=false);canvas.addEventListener('pointercancel',()=>pointer=false);
+window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')player.targetX-=34;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')player.targetX+=34;if(e.key===' '&&running){paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';}});
+startBtn.addEventListener('click',start);pauseBtn.addEventListener('click',()=>{if(!running)return;paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';announce(paused?'PAUSA':'VIA');});
+muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused){paused=true;pauseBtn.textContent='▶';}});
+window.addEventListener('resize',resize);bestEl.textContent=best;resize();requestAnimationFrame(loop);
+})();
