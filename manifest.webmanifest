@@ -8,5 +8,13 @@
   "background_color": "#050816",
   "theme_color": "#050816",
   "orientation": "portrait",
-  "description": "RetroWebGames: raccolta mobile-first di piccoli titoli arcade originali ispirati ai grandi classici."
+  "description": "RetroWebGames: raccolta mobile-first di piccoli titoli arcade originali ispirati ai grandi classici.",
+  "icons": [
+    {
+      "src": "https://www.retrowebgames.it/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
