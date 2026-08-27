@@ -45,6 +45,10 @@ Bubble shooter originale con campagna procedurale deterministica e grafica arcad
 - traiettoria visualizzata e rimbalzi laterali
 - griglia esagonale a lookup locale
 - **200 configurazioni artistiche distinte**: 20 famiglie visive × 10 varianti, con difficoltà crescente
+- ogni layout calcola un proprio **tempo ottimale** in base a quantità di bolle, profondità, colori e special bubble
+- timer grande sotto l'HUD con centesimi: verde entro il tempo ottimale, arancione fino a 3,5× il tempo ottimale, rosso oltre
+- clear verde: bonus **+50%** sui punti del livello; clear arancione: **+25%**; clear rosso: nessun bonus tempo
+- a fine livello appare un riepilogo arcade intermedio con punti, tempo, bonus e totale, poi il gioco riprende al tap
 - combinazioni di almeno tre bolle dello stesso colore e caduta automatica dei gruppi non più collegati al soffitto
 - Armor Bubble dal livello 8: il primo match rompe la corazza
 - Star Bubble dal livello 18: quando eliminata genera un'esplosione locale
@@ -52,7 +56,8 @@ Bubble shooter originale con campagna procedurale deterministica e grafica arcad
 - rara munizione **Bomba** dal livello 10, con esplosione locale e probabilità massima circa 3%
 - rara munizione **Color Wipe** dal livello 22, che cancella tutte le bolle del colore toccato e resta sotto circa il 2%
 - penalità con nuova riga dopo una serie di tiri senza combinazioni
-- difficoltà crescente tramite geometrie, numero di colori, special bubble, limite errori e velocità di tiro
+- la struttura scende periodicamente verso la danger line: dal livello 1 dopo almeno un minuto, poi sempre più rapidamente nei livelli avanzati
+- difficoltà crescente tramite geometrie, numero di colori, special bubble, limite errori, velocità di tiro e pressione temporale
 - due personaggi **chibi pixel-art originali** gestiscono il lanciatore: operatore a sinistra e addetto munizioni a destra con preview della prossima bolla
 - rendering ottimizzato con sprite Canvas cache, background cache e collisioni limitate alle celle vicine invece di scansioni complete della griglia
 - lifecycle Game Over/Continue delegato all'infrastruttura condivisa RetroWebGames
@@ -154,7 +159,7 @@ Il repository contiene contratti espliciti per evitare regressioni tra motori di
 - `AGENTS.md` — istruzioni machine-oriented e invarianti obbligatorie per agenti/coding assistant
 - `docs/ARCHITECTURE.md` — lifecycle e responsabilità dei componenti condivisi
 - `docs/STAR-SWARM.md` — source of truth per campagna, boss, drop, Weapon/POWER/Shield/wingmen
-- `docs/BUBBLE-BURST.md` — source of truth per 200 layout, special bubble, munizioni rare e performance
+- `docs/BUBBLE-BURST.md` — source of truth per 200 layout, timing/bonus, special bubble, munizioni rare e performance
 - `docs/WASM-EVALUATION.md` — decisione e soglie tecniche per un eventuale uso futuro di WebAssembly
 - `scripts/validate-contracts.mjs` — validatore statico anti-regressione repository-wide
 - `scripts/validate-bubble-burst.mjs` — guardrail specifici Bubble Burst
