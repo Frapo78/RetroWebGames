@@ -75,6 +75,23 @@ Maze-chase originale ispirato ai grandi classici da sala giochi basati su labiri
 
 Percorso: `games/maze-munch/`
 
+### Neon Rally
+
+Paddle duel originale ispirato ai classici giochi arcade a racchette e pallina.
+
+- campo verticale ottimizzato per smartphone
+- racchetta del giocatore controllata trascinando il dito
+- CPU adattiva che diventa più precisa durante la partita
+- angolo di rimbalzo determinato dal punto d'impatto sulla racchetta
+- velocità della pallina crescente durante gli scambi
+- primo giocatore a 7 punti
+- contatore rally e miglior rally salvato in `localStorage`
+- supporto mouse e frecce/A-D su desktop
+- pausa automatica quando la pagina passa in background
+- vibrazione ed effetti Web Audio
+
+Percorso: `games/neon-rally/`
+
 ## Struttura
 
 ```text
@@ -96,12 +113,16 @@ Percorso: `games/maze-munch/`
     │   ├── index.html
     │   ├── style.css
     │   └── game.js
-    └── maze-munch/
+    ├── maze-munch/
+    │   ├── index.html
+    │   ├── style.css
+    │   ├── config.js
+    │   ├── engine.js
+    │   ├── render.js
+    │   └── game.js
+    └── neon-rally/
         ├── index.html
         ├── style.css
-        ├── config.js
-        ├── engine.js
-        ├── render.js
         └── game.js
 ```
 
