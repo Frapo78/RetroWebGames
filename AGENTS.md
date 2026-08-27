@@ -44,10 +44,12 @@ When a run truly ends, a game engine MUST:
 - stop its simulation;
 - update final score/best/level DOM values;
 - set the local start button to `RIGIOCA` as a fallback lifecycle signal;
-- emit `rwg:game-ended` for observability;
+- emit `rwg:game-ended` as the authoritative terminal lifecycle event;
 - explicitly request the shared presentation with `window.RWGGameOver?.open?.()` after the final DOM state is committed;
 - keep listening to `rwg:continue-game` and resume the exact interrupted run when credit continue succeeds;
 - allow the shared `Nuova partita` action to reset through the normal start button path.
+
+The shared `game-over.js` MUST listen to `rwg:game-ended` and recover/create a session when necessary. This is deliberately independent from the older MutationObserver path, because the asynchronous HUD bootstrap may otherwise miss a very early initial tap on `GIOCA`. MutationObserver detection is compatibility fallback only.
 
 The shared Game Over is expected to retain:
 
@@ -105,7 +107,7 @@ Root `game.js` is legacy Star Swarm history and MUST NOT be loaded by `games/sta
 - Each weapon segment carries a small damage coefficient so, at equal POWER, a later weapon segment is modestly stronger.
 - Laser projectiles MUST continue through enemies to screen exit; hitting or destroying an enemy MUST NOT consume a laser projectile.
 - A laser may damage each individual target at most once per projectile unless explicitly redesigned.
-- Captured wingmen always shoot basic single-fire damage and do not inherit player weapon/PPOWER upgrades.
+- Captured wingmen always shoot basic single-fire damage and do not inherit player weapon/POWER upgrades.
 
 ### Star Swarm POWER invariants
 
