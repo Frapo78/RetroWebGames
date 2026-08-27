@@ -9,6 +9,7 @@ c.addEventListener('pointerup',e=>{if(!M.swipe)return;const x=e.clientX-M.swipe.
 c.addEventListener('pointercancel',()=>M.swipe=null);
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase(),d=k==='arrowleft'||k==='a'?'left':k==='arrowright'||k==='d'?'right':k==='arrowup'||k==='w'?'up':k==='arrowdown'||k==='s'?'down':null;if(d){e.preventDefault();M.setDir(d);}else if(k==='p'||k===' '){e.preventDefault();M.dom.pause.click();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&M.running&&!M.paused){M.paused=true;M.dom.pause.textContent='▶';M.status('PAUSA');}});
+window.addEventListener('rwg:continue-game',e=>{M.score=Math.max(0,Math.floor(e.detail?.score??M.score*.5));M.lives=1;M.running=true;M.paused=false;M.dom.pause.textContent='Ⅱ';M.dom.start.textContent='RIGIOCA';M.dom.overlay.classList.remove('visible');M.resetActors(2.8);M.hud();M.last=performance.now();M.status('CONTINUA!');M.tone(520,.16,'triangle',.035,900);});
 window.addEventListener('resize',M.resize);
 M.resetBoard();M.resetActors(0);M.hud();M.resize();
 function loop(t){const dt=Math.min(.035,(t-M.last)/1000||0);M.last=t;M.update(dt);M.draw();requestAnimationFrame(loop);}requestAnimationFrame(loop);
