@@ -311,6 +311,11 @@
     else overlay.classList.remove('visible');
   });
   muteBtn.addEventListener('click',()=>{ muted=!muted; muteBtn.textContent=muted?'🔇':'🔊'; });
+  window.addEventListener('rwg:continue-game',e=>{
+    score=Math.max(0,Math.floor(e.detail?.score??score*.5));lives=1;running=true;paused=false;
+    bullets.length=0;enemyBullets.length=0;player.x=player.targetX=W/2;player.y=player.targetY=H*.84;player.inv=3;player.rapid=Math.max(player.rapid,1.5);
+    overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent='Ⅱ';last=performance.now();updateHud();tone(520,.16,'triangle',.035,900);
+  });
   window.addEventListener('resize',resize);
   document.addEventListener('visibilitychange',()=>{ if(document.hidden && running && !paused){paused=true;overlayText.textContent='Partita in pausa.';startBtn.textContent='RIPRENDI';overlay.classList.add('visible');pauseBtn.textContent='▶';} });
 
