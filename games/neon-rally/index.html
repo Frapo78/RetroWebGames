@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#050816" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Neon Rally — RetroWebGames</title>
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app">
+    <header id="hud">
+      <div><span>CPU</span><strong id="cpuScore">0</strong></div>
+      <div class="center"><span>RALLY</span><strong id="rally">0</strong></div>
+      <div><span>TU</span><strong id="playerScore">0</strong></div>
+    </header>
+
+    <div id="topbar">
+      <a class="icon-btn" href="../../" aria-label="Torna a RetroWebGames">⌂</a>
+      <button id="muteBtn" class="icon-btn" aria-label="Attiva o disattiva audio">🔊</button>
+      <button id="pauseBtn" class="icon-btn" aria-label="Pausa">Ⅱ</button>
+    </div>
+
+    <section id="arenaWrap">
+      <canvas id="game" aria-label="Neon Rally"></canvas>
+      <div id="status" aria-live="polite">PRONTO</div>
+    </section>
+
+    <p class="gesture-hint">Trascina il dito orizzontalmente per muovere la racchetta. Primo a 7 punti.</p>
+
+    <section id="overlay" class="visible">
+      <div class="panel">
+        <p class="eyebrow">RETROWEBGAMES • PADDLE DUEL</p>
+        <h1>NEON<br><span>RALLY</span></h1>
+        <p id="overlayText">Difendi il fondo campo, rimanda la sfera e usa il punto d'impatto sulla racchetta per cambiare angolo e velocità.</p>
+        <div class="stats-line">BEST RALLY <strong id="best">0</strong></div>
+        <button id="startBtn" class="primary-btn">GIOCA</button>
+        <p class="hint">Verticale • touch / mouse • tastiera</p>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
