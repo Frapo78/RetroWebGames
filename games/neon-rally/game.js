@@ -30,6 +30,8 @@ function start(){playerScore=cpuScore=rally=0;running=true;paused=false;player.x
 function finish(win){running=false;paused=false;best=Math.max(best,rally);localStorage.setItem('neonRallyBest',String(best));updateHud();
  overlayText.innerHTML=win?`Hai vinto <strong>${playerScore}-${cpuScore}</strong>.<br>Best rally: <strong>${best}</strong>.`:`La CPU vince <strong>${cpuScore}-${playerScore}</strong>.<br>Best rally: <strong>${best}</strong>.`;
  startBtn.textContent='RIGIOCA';overlay.classList.add('visible');tone(win?660:120,.24,'sawtooth',.045,win?990:70);
+ const detail={game:'Neon Rally',score:playerScore,playerScore,cpuScore,best,maxRally:best,result:win?'win':'loss'};
+ window.dispatchEvent(new CustomEvent('rwg:game-ended',{detail}));requestAnimationFrame(()=>window.RWGGameOver?.open?.(detail));
 }
 function point(playerWon){if(playerWon){playerScore++;tone(520,.12,'triangle',.04,780);}else{cpuScore++;tone(130,.15,'sawtooth',.04,75);}flash=.22;updateHud();
  if(playerScore>=7||cpuScore>=7){finish(playerScore>cpuScore);return;}announce(playerWon?'PUNTO TU':'PUNTO CPU');resetBall(playerWon?-1:1,true);
@@ -72,7 +74,7 @@ canvas.addEventListener('pointermove',e=>{if(pointer)setTarget(e);});canvas.addE
 window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')player.targetX-=34;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')player.targetX+=34;if(e.key===' '&&running){paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';}});
 startBtn.addEventListener('click',start);pauseBtn.addEventListener('click',()=>{if(!running)return;paused=!paused;pauseBtn.textContent=paused?'▶':'Ⅱ';announce(paused?'PAUSA':'VIA');});
 muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';});
-window.addEventListener('rwg:continue-game',e=>{playerScore=Math.max(0,Math.floor(e.detail?.score??playerScore*.5));cpuScore=Math.min(cpuScore,6);running=true;paused=false;player.x=player.targetX=W/2;cpu.x=W/2;resetBall(-1,true);overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';startBtn.textContent='RIGIOCA';last=performance.now();updateHud();ensureAudio();announce('CONTINUA!');tone(520,.16,'triangle',.035,900);});
+window.addEventListener('rwg:continue-game',e=>{playerScore=Math.min(6,Math.max(0,Math.floor(e.detail?.score??playerScore)));cpuScore=Math.min(cpuScore,6);running=true;paused=false;player.x=player.targetX=W/2;cpu.x=W/2;resetBall(-1,true);overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';startBtn.textContent='RIGIOCA';last=performance.now();updateHud();ensureAudio();announce('CONTINUA!');tone(520,.16,'triangle',.035,900);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused){paused=true;pauseBtn.textContent='▶';}});
 window.addEventListener('resize',resize);bestEl.textContent=best;resize();requestAnimationFrame(loop);
 })();
