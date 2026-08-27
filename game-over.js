@@ -109,7 +109,7 @@
 
       <div class="rwg-game-over-actions">
         <button class="rwg-play-again" type="button">Nuova partita</button>
-        <a class="rwg-back-games" href="${HOME_URL}">Tutti i giochi</a>
+        <a class="rwg-back-games" href="${HOME_URL}" style="min-height:32px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(159,180,201,.18);border-radius:10px;background:rgba(159,180,201,.055);font-size:8.5px;">Scegli un altro gioco</a>
       </div>
       <div class="rwg-game-over-credit">Made with 💙 by Francesco Poltero</div>
     </div>`;
