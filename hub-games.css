@@ -69,3 +69,40 @@
   background: #ffe66d;
   box-shadow: 0 0 13px #ffe66d;
 }
+
+.rally-art {
+  background:
+    linear-gradient(rgba(101,231,255,.07) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, #15315a, #081127 62%, #03050b);
+  background-size: 100% 22px, auto;
+}
+.rally-line {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.38) 0 7px, transparent 7px 14px);
+}
+.rally-paddle {
+  position: absolute;
+  left: 50%;
+  width: 62px;
+  height: 9px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+}
+.rp-top { top: 24px; background: #ff5ecf; box-shadow: 0 0 12px rgba(255,94,207,.8); }
+.rp-bottom { bottom: 24px; background: #65e7ff; box-shadow: 0 0 12px rgba(101,231,255,.8); }
+.rally-ball {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 13px;
+  height: 13px;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: #fff3a5;
+  box-shadow: 0 0 14px #ffe66d;
+}
