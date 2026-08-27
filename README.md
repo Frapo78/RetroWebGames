@@ -92,6 +92,23 @@ Paddle duel originale ispirato ai classici giochi arcade a racchette e pallina.
 
 Percorso: `games/neon-rally/`
 
+### Neon Snake
+
+Snake arcade originale pensato per partite rapide su smartphone, con meccaniche aggiuntive rispetto alla formula classica.
+
+- griglia 20×28 e controlli swipe/pulsanti
+- supporto frecce e WASD su desktop
+- combo temporizzate fino a ×5
+- orb bonus a tempo con punteggio maggiorato
+- shield raccoglibile che salva da una collisione
+- ostacoli progressivi a partire dai livelli avanzati
+- aumento della velocità ogni 5 energie raccolte
+- particelle, vibrazione e Web Audio
+- high score salvato in `localStorage`
+- integrazione con portrait guard e countdown condiviso
+
+Percorso: `games/neon-snake/`
+
 ## Condivisione
 
 La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Tutte le condivisioni puntano sempre all'URL canonico `https://www.retrowebgames.it/`, anche quando il progetto viene aperto da un host tecnico o da un ambiente di test.
@@ -139,7 +156,11 @@ Il manifest PWA dichiara inoltre `orientation: portrait`; quando il browser o la
     │   ├── engine.js
     │   ├── render.js
     │   └── game.js
-    └── neon-rally/
+    ├── neon-rally/
+    │   ├── index.html
+    │   ├── style.css
+    │   └── game.js
+    └── neon-snake/
         ├── index.html
         ├── style.css
         └── game.js
