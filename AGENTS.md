@@ -146,6 +146,54 @@ Treat rarity as gameplay economy. Do not return to the original high drop flood.
 - Tractor Beam: maximum one eligible drop every two levels; no more than one in an eligible level.
 - Shield: max 1 per level.
 
+## 5B. Bubble Burst source of truth
+
+Bubble Burst files:
+
+- `games/bubble-burst/index.html`
+- `games/bubble-burst/levels.js` — authoritative deterministic level catalogue
+- `games/bubble-burst/game.js` — authoritative gameplay/runtime
+- `games/bubble-burst/style.css`
+- `docs/BUBBLE-BURST.md`
+
+`levels.js` MUST load before `game.js`. Do not collapse the catalogue back into random `spawnBoard()` rows.
+
+### Bubble Burst level invariants
+
+- Base catalogue: exactly **200 deterministic artistic layout signatures**.
+- The first 200 signatures MUST remain unique.
+- Current construction uses 20 motif families × 10 variants.
+- Layout geometry must remain top-connected/playable; decorative floating islands must not be generated initially.
+- Difficulty may continue beyond level 200 by cycling geometry while increasing rows/colors/special pressure.
+
+### Bubble Burst special-structure invariants
+
+- Armor Bubble begins from level 8 and needs a normal color-match hit to break its shell before ordinary removal.
+- Star Bubble begins from level 18 and triggers a compact local blast when removed.
+- Prism Bubble unlocks from level 35 and acts as a wildcard in same-color component matching.
+- These special structure bubbles become more common gradually; do not flood early levels.
+
+### Bubble Burst rare launched-shot invariants
+
+- Bomb unlocks from level 10, starts around 1.2% probability and is capped around 3%.
+- Color Wipe unlocks from level 22, starts around 0.7% probability and is capped around 2%.
+- Bomb removes a compact local radius on first structure contact.
+- Color Wipe removes all structure bubbles matching the color of the bubble first touched.
+- Both resolve disconnected groups afterward.
+- Normal ammunition must remain dominant.
+
+### Bubble Burst performance invariants
+
+- Moving-shot collision and aim tracing use `nearbyBubbles()`/local hex lookup, not full-grid scans per trajectory step.
+- Bubble visual gradients/shadows are cached in `bubbleSprites`; do not recreate them for every bubble every frame.
+- Pixel-art chibi launcher sprites are cached in `chibiSprites`.
+- Static background artwork is cached and rebuilt on resize rather than recomputed each frame.
+- BFS/graph traversal must use index-based queues; do not reintroduce repeated `queue.shift()` in hot paths.
+- Keep particle/falling visual counts bounded.
+- Current scale does not justify WASM; profile first and follow `docs/WASM-EVALUATION.md` thresholds.
+
+Run `node scripts/validate-bubble-burst.mjs` after Bubble Burst gameplay/layout changes in addition to the repository-wide validator.
+
 ## 6. Rendering and performance
 
 Current architecture intentionally uses JavaScript + Canvas 2D.
@@ -166,12 +214,13 @@ Before publishing a gameplay change:
 
 1. run `node --check` on every modified `.js` file;
 2. run `node scripts/validate-contracts.mjs`;
-3. verify the affected game HTML still loads shared HUD/orientation;
-4. verify terminal death opens shared Game Over;
-5. verify Continue with credit resumes rather than starts a new run;
-6. verify New Game resets state;
-7. verify intermediate screens (boss clear, level clear) do not trigger terminal Game Over;
-8. verify mobile portrait layout has no essential action below an unreachable viewport.
+3. when Bubble Burst is touched, also run `node scripts/validate-bubble-burst.mjs`;
+4. verify the affected game HTML still loads shared HUD/orientation;
+5. verify terminal death opens shared Game Over;
+6. verify Continue with credit resumes rather than starts a new run;
+7. verify New Game resets state;
+8. verify intermediate screens (boss clear, level clear) do not trigger terminal Game Over;
+9. verify mobile portrait layout has no essential action below an unreachable viewport.
 
 If a real browser/device test cannot be run, state that limitation explicitly. Static validation is not a substitute for a playtest.
 
@@ -193,6 +242,7 @@ Any material gameplay/architecture change MUST update the relevant document in t
 
 - global architecture → `docs/ARCHITECTURE.md`;
 - Star Swarm balance/progression → `docs/STAR-SWARM.md`;
+- Bubble Burst layout/special/performance contract → `docs/BUBBLE-BURST.md`;
 - performance/WASM decision → `docs/WASM-EVALUATION.md`;
 - new invariant/regression → this `AGENTS.md` and/or validator.
 
@@ -211,5 +261,6 @@ Documentation is part of the implementation, not optional cleanup.
   must remain a deletion. Never resurrect obsolete root `game.js` through a
   rename/delete conflict.
 - Do not confuse Star Swarm Weapon Upgrade with POWER strength. Weapon has 8 firing forms and a small damage coefficient per advancement; POWER has 20 damage-strength levels and is the pickup whose drop probability was halved.
+- Do not regress Bubble Burst to fully random rectangular boards, full-grid collision scans, per-frame gradient construction, or frequent Bomb/Color Wipe ammunition.
 - Static validation does not replace browser checks for console errors, failed
   requests, narrow viewports and credit debit flows.
