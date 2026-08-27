@@ -1,0 +1,100 @@
+.share-dock {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  width: min(calc(100% - 20px), 620px);
+  transform: translateX(-50%);
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 22px;
+  background: rgba(7,12,27,.88);
+  box-shadow: 0 18px 60px rgba(0,0,0,.46), inset 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+.share-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 15px;
+  color: #04130b;
+  text-decoration: none;
+  background: linear-gradient(135deg, #32e676, #21c863);
+  box-shadow: 0 9px 24px rgba(37,211,102,.25), inset 0 1px rgba(255,255,255,.42);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+.share-primary svg { width: 22px; height: 22px; fill: currentColor; }
+.share-primary:active { transform: scale(.992); }
+.share-caption {
+  display: block;
+  margin-top: 2px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  opacity: .7;
+}
+.share-secondary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+.share-btn {
+  display: flex;
+  min-width: 0;
+  min-height: 43px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 2px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px;
+  color: #dbe8f5;
+  text-decoration: none;
+  background: rgba(255,255,255,.055);
+  font: inherit;
+  cursor: pointer;
+}
+.share-btn svg { width: 17px; height: 17px; fill: currentColor; flex: 0 0 auto; }
+.share-btn span { overflow: hidden; font-size: 7px; letter-spacing: -.02em; text-overflow: ellipsis; }
+.share-btn:active { transform: scale(.96); background: rgba(255,255,255,.1); }
+.share-btn[data-share="facebook"] { color: #8db8ff; }
+.share-btn[data-share="x"] { color: #f3f7fb; }
+.share-btn[data-share="telegram"] { color: #78ccff; }
+.share-btn[data-share="linkedin"] { color: #7db8ff; }
+.share-btn[data-share="more"] { color: #ffe66d; }
+.share-btn:focus-visible,
+.share-primary:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.share-dock + .share-spacer { height: 0; }
+.shell { padding-bottom: calc(env(safe-area-inset-bottom) + 160px); }
+
+@media (min-width: 620px) {
+  .share-dock {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.35fr) 2fr;
+    gap: 8px;
+    padding: 9px;
+  }
+  .share-secondary { margin-top: 0; }
+  .share-primary { min-height: 46px; }
+  .share-btn { min-height: 46px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .share-primary, .share-btn { transition: transform .14s ease, background .14s ease, box-shadow .14s ease; }
+  .share-primary:hover { box-shadow: 0 11px 32px rgba(37,211,102,.34), inset 0 1px rgba(255,255,255,.42); }
+}
+
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  .share-dock { background: rgba(7,12,27,.97); }
+}
