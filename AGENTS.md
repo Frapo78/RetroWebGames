@@ -179,8 +179,14 @@ Bubble Burst files:
 - Level points include gameplay points plus the existing base clear award; percentage bonus is applied to that level subtotal.
 - Timer advances only during active gameplay. Pause/background/orientation pause and the level-clear summary MUST freeze it.
 - Credit Continue MUST preserve elapsed level time and the start-of-level score baseline. Resetting either would allow bonus farming.
-- Board clear opens an INTERMEDIATE arcade calculation screen with `LIVELLO COMPLETATO!`, points, time, bonus and emphasized total, then advances only after user tap.
+- Board clear opens an INTERMEDIATE arcade calculation screen with `LIVELLO {level} COMPLETATO!`, points, time, bonus and emphasized total, then advances only after user tap.
 - Intermediate level-clear MUST NOT emit `rwg:game-ended` or invoke `RWGGameOver`.
+
+### Bubble Burst consecutive-pop reward
+
+- Every third consecutive shot that removes at least one bubble awards one Bomb.
+- A shot that removes no bubble resets the streak.
+- Reward delivery MUST NOT overwrite an already queued rare Bomb or Color Wipe; defer to the first normal ammunition slot.
 
 ### Bubble Burst timed-pressure invariants
 

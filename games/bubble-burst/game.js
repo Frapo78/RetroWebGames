@@ -12,7 +12,7 @@
   const pauseBtn = $('pauseBtn'), muteBtn = $('muteBtn'), nextBubbleEl = $('nextBubble');
   const nextDot = document.querySelector('#nextBubble i');
   const levelTimerEl = $('levelTimer');
-  const levelClearEl = $('levelClear');
+  const levelClearEl = $('levelClear'), levelClearTitleEl = $('levelClearTitle');
   const clearPointsEl = $('clearPoints'), clearTimeEl = $('clearTime'), clearBonusEl = $('clearBonus'), clearTotalEl = $('clearTotal');
 
   const PALETTE = ['#ff5f73', '#65e7ff', '#ffe66d', '#8d7cff', '#7cffb2', '#ff934f'];
@@ -38,6 +38,7 @@
   let currentShot = { kind: SHOT_NORMAL, color: PALETTE[0] };
   let nextShot = { kind: SHOT_NORMAL, color: PALETTE[1] };
   let moving = null, banner = '', bannerTime = 0, operatorPulse = 0;
+  let poppingShotStreak = 0, rewardBombsPending = 0;
   let boardMeta = null, backgroundCache = null, audio = null;
   let pressureRows = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
   let levelElapsed = 0, levelStartScore = 0, lastTimerCentis = -1;
@@ -195,6 +196,23 @@
     return 'NORMALE';
   }
 
+  function applyPendingBombReward() {
+    while (rewardBombsPending > 0) {
+      if (currentShot.kind === SHOT_NORMAL) currentShot = { kind: SHOT_BOMB, color: currentShot.color };
+      else if (nextShot.kind === SHOT_NORMAL) nextShot = { kind: SHOT_BOMB, color: nextShot.color };
+      else break;
+      rewardBombsPending--;
+    }
+  }
+
+  function registerPoppingShot(popped) {
+    if (!popped) { poppingShotStreak = 0; return; }
+    poppingShotStreak++;
+    if (poppingShotStreak < 3) return;
+    poppingShotStreak = 0; rewardBombsPending++; applyPendingBombReward();
+    banner = 'COMBO ×3 • BOMBA PRONTA!'; bannerTime = 1.35; tone(1040, .12, 'triangle', .04, 360); navigator.vibrate?.([12, 18, 28]);
+  }
+
   function updateNextPreview() {
     nextDot.className = '';
     nextDot.textContent = '';
@@ -229,7 +247,7 @@
 
   function resetGame() {
     score = 0; level = 1; misses = 0; missLimit = 5; moving = null; aiming = false;
-    particles.length = 0; falling.length = 0; operatorPulse = 0;
+    particles.length = 0; falling.length = 0; operatorPulse = 0; poppingShotStreak = 0; rewardBombsPending = 0;
     hideLevelClear();
     resetPressure(); spawnBoard(); resetLevelMetrics();
     currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
@@ -260,7 +278,7 @@
     if (!running || paused || moving || levelClearActive) return;
     const v = aimVector(), speed = Math.min(720, 535 + level * .85 + H * .05);
     moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, ...currentShot };
-    currentShot = nextShot; nextShot = makeQueuedShot(); operatorPulse = .18;
+    currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18;
     updateHud(); tone(moving.kind === SHOT_BOMB ? 320 : moving.kind === SHOT_COLOR_CLEAR ? 820 : 520, .055, 'triangle', .028, 180);
   }
 
@@ -389,6 +407,7 @@
     moving = null;
     levelClearReadyAt = performance.now() + 2200;
 
+    levelClearTitleEl.textContent = `LIVELLO ${level} COMPLETATO!`;
     clearPointsEl.textContent = `Punti livello: ${levelPoints.toLocaleString('it-IT')}`;
     clearTimeEl.textContent = `Tempo: ${formatLevelTime(levelElapsed)}`;
     clearBonusEl.textContent = bonusRate > 0
@@ -419,9 +438,9 @@
     if (matches.length >= 3) {
       const removed = removeCells(matches, 35, false), dropped = dropDisconnected();
       score += Math.max(0, matches.length - 3) * 15; tone(640, .09, 'triangle', .04, 280); if (dropped) tone(330, .14, 'sine', .035, -110);
-      finishResolution({ resetMisses: removed > 0 || matches.length >= 3 });
+      registerPoppingShot(removed > 0); finishResolution({ resetMisses: removed > 0 || matches.length >= 3 });
     } else {
-      misses++; tone(210, .04, 'square', .018, -35); if (misses >= missLimit) addPenaltyRow();
+      registerPoppingShot(false); misses++; tone(210, .04, 'square', .018, -35); if (misses >= missLimit) addPenaltyRow();
       if (!grid.size) completeLevel(); else { reconcileQueue(); updateHud(); checkDanger(); }
     }
   }
@@ -432,9 +451,10 @@
     for (const b of nearbyBubbles(hp.x, hp.y, 2)) {
       const p = cellPos(b.r, b.c); if ((p.x - hp.x) ** 2 + (p.y - hp.y) ** 2 <= radius * radius) cells.push([b.r, b.c]);
     }
-    moving = null; removeCells(cells, 48, true); const dropped = dropDisconnected();
+    moving = null; const removed = removeCells(cells, 48, true), dropped = dropDisconnected();
     burst(hp.x, hp.y, '#ff934f', 34, 260); tone(110, .14, 'sawtooth', .05, 420); navigator.vibrate?.([22, 18, 35]);
-    if (dropped) score += dropped * 18; finishResolution();
+    if (dropped) score += dropped * 18;
+    registerPoppingShot(removed > 0); finishResolution();
   }
 
   function resolveColorClear(hit) {
@@ -443,7 +463,8 @@
     const x = hit ? cellPos(hit.r, hit.c).x : moving.x, y = hit ? cellPos(hit.r, hit.c).y : moving.y;
     moving = null; const removed = removeCells(cells, 42, true), dropped = dropDisconnected(); score += removed * 8;
     burst(x, y, targetColor, 30, 230); tone(980, .14, 'triangle', .045, -450); navigator.vibrate?.([12, 12, 12]);
-    if (dropped) score += dropped * 18; finishResolution();
+    if (dropped) score += dropped * 18;
+    registerPoppingShot(removed > 0); finishResolution();
   }
 
   function attachNormal() {

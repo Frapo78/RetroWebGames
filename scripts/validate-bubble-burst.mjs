@@ -23,10 +23,10 @@ must(html.indexOf('levels.js') < html.indexOf('game.js'), 'Bubble Burst levels.j
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'Bubble Burst game engine must load before shared HUD');
 must(html.includes('la struttura scende verso la linea di pericolo'), 'Bubble Burst intro must explain timed descending-board pressure');
 must(html.includes('id="levelTimer"'), 'Bubble Burst must expose a dedicated level timer below the upper HUD');
-for (const id of ['levelClear', 'clearPoints', 'clearTime', 'clearBonus', 'clearTotal']) {
+for (const id of ['levelClear', 'levelClearTitle', 'clearPoints', 'clearTime', 'clearBonus', 'clearTotal']) {
   must(html.includes(`id="${id}"`), `Bubble Burst level-clear UI missing #${id}`);
 }
-must(html.includes('LIVELLO COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Bubble Burst must retain the arcade intermediate level-clear presentation');
+must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Bubble Burst must retain the arcade intermediate level-clear presentation');
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
@@ -91,9 +91,13 @@ must(game.includes("return 'green'") && game.includes("return 'orange'") && game
 must(game.includes('levelElapsed += dt;') && game.includes('updateLevelTimer();'), 'Bubble Burst timer must advance from active gameplay time');
 must(game.includes('levelStartScore = score'), 'Bubble Burst must track per-level score independently from run total');
 must(game.includes('function completeLevel()'), 'Bubble Burst must retain an intermediate level-complete calculation phase');
+must(game.includes('levelClearTitleEl.textContent = `LIVELLO ${level} COMPLETATO!`'), 'Bubble Burst level-clear title must identify the level just completed');
 must(game.includes('Math.round(levelPoints * bonusRate)'), 'Bubble Burst completion bonus must be calculated from points generated in the level');
 must(game.includes('levelClearReadyAt = performance.now() + 2200'), 'Bubble Burst level-clear animation must remain readable before tap-to-continue');
 must(game.includes('startNextLevel()'), 'Bubble Burst level-clear tap must advance to the next level without terminal Game Over');
+must(game.includes('function registerPoppingShot(') && game.includes('if (!popped) { poppingShotStreak = 0; return; }'), 'Bubble Burst non-popping shots must reset the consecutive pop streak');
+must(game.includes('if (poppingShotStreak < 3) return;') && game.includes("banner = 'COMBO ×3 • BOMBA PRONTA!'"), 'Bubble Burst must award a Bomb after exactly three consecutive popping shots');
+must(game.includes('function applyPendingBombReward(') && game.includes('else if (nextShot.kind === SHOT_NORMAL)'), 'Bubble Burst streak Bomb must preserve rare queued special shots');
 
 const css = read('games/bubble-burst/style.css');
 must(css.includes('#levelTimer.is-green') && css.includes('#levelTimer.is-orange') && css.includes('#levelTimer.is-red'), 'Bubble Burst timer color tiers missing from CSS');
