@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#050816" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Neon Snake: snake arcade mobile-first di RetroWebGames." />
+  <link rel="canonical" href="https://www.retrowebgames.it/games/neon-snake/" />
+  <link rel="icon" type="image/svg+xml" href="https://www.retrowebgames.it/favicon.svg" />
+  <link rel="shortcut icon" href="https://www.retrowebgames.it/favicon.svg" />
+  <title>Neon Snake — RetroWebGames</title>
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../../orientation.css" />
+</head>
+<body data-rwg-game="true">
+  <main id="app">
+    <header id="hud" aria-live="polite">
+      <div><span class="hud-label">SCORE</span><strong id="score">0</strong></div>
+      <div><span class="hud-label">LEVEL</span><strong id="level">1</strong></div>
+      <div><span class="hud-label">COMBO</span><strong id="combo">×1</strong></div>
+    </header>
+
+    <div id="topbar">
+      <a class="icon-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
+      <div id="statusBadges" aria-live="polite">
+        <span id="shieldBadge" class="status-badge" hidden>◈ SHIELD</span>
+      </div>
+      <button id="muteBtn" class="icon-btn" aria-label="Attiva o disattiva audio">🔊</button>
+      <button id="pauseBtn" class="icon-btn" aria-label="Pausa">Ⅱ</button>
+    </div>
+
+    <section id="gameWrap">
+      <canvas id="game" aria-label="Neon Snake"></canvas>
+      <div id="banner" aria-live="polite"></div>
+    </section>
+
+    <section id="controls" aria-label="Controlli direzionali">
+      <button data-dir="up" class="up" aria-label="Su">▲</button>
+      <button data-dir="left" class="left" aria-label="Sinistra">◀</button>
+      <button data-dir="down" class="down" aria-label="Giù">▼</button>
+      <button data-dir="right" class="right" aria-label="Destra">▶</button>
+    </section>
+
+    <p class="gesture-hint">Swipe sul campo oppure usa i pulsanti. Mangia in fretta per aumentare la combo e cerca gli orb speciali.</p>
+
+    <section id="overlay" class="visible">
+      <div class="panel">
+        <p class="eyebrow">RETROWEBGAMES • NEON ARCADE</p>
+        <h1>NEON<br><span>SNAKE</span></h1>
+        <p id="overlayText">Cresci, evita muri e ostacoli e costruisci combo raccogliendo energia in rapida successione. Gli orb azzurri regalano uno shield.</p>
+        <div class="stats-line">BEST <strong id="best">0</strong></div>
+        <button id="startBtn" class="primary-btn">GIOCA</button>
+        <p class="hint">Verticale • swipe / touch • frecce / WASD</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+  <script src="../../orientation.js"></script>
+</body>
+</html>
