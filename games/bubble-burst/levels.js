@@ -69,6 +69,18 @@
     return 'normal';
   }
 
+  function optimalSecondsFor(cells, colorCount, rows, level) {
+    let specialWeight = 0;
+    for (const cell of cells) {
+      if (cell.special === 'armor') specialWeight += .35;
+      else if (cell.special === 'star') specialWeight += .6;
+      else if (cell.special === 'prism') specialWeight += .8;
+    }
+    const complexity = cells.length * .28 + colorCount * 2.5 + rows * 1.1 + specialWeight;
+    const masteryAdjustment = Math.min(8, Math.log2(Math.max(1, level)) * 1.15);
+    return clamp(Math.round((28 + complexity - masteryAdjustment) * 2) / 2, 38, 82);
+  }
+
   function getLevel(level, cols = 11) {
     const safeLevel = Math.max(1, Math.floor(level || 1));
     const id = ((safeLevel - 1) % TOTAL_CONFIGS) + 1;
@@ -91,8 +103,9 @@
       }
     }
 
+    const optimalSeconds = optimalSecondsFor(cells, colorCount, rows, safeLevel);
     const signature = `${id}:${motif}:${variant}:${rows}:${colorCount}:${heights.join('.')}`;
-    return { id, cycle, motif, variant, name: MOTIFS[motif], rows, colorCount, cells, signature };
+    return { id, cycle, motif, variant, name: MOTIFS[motif], rows, colorCount, cells, optimalSeconds, signature };
   }
 
   window.BubbleBurstLevels = Object.freeze({ TOTAL_CONFIGS, MOTIFS: [...MOTIFS], getLevel });
