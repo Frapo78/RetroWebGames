@@ -15,17 +15,20 @@
   const HOME_URL = 'https://www.retrowebgames.it/';
   const q = encodeURIComponent;
 
+  const fallbackCoin = `
+    <svg class="rwg-modal-coin" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="13.2" fill="#d98a10"/>
+      <circle cx="16" cy="16" r="10.7" fill="#ffe45b" stroke="#9b5b08" stroke-width="1.2"/>
+      <path d="M11 10.5h7.1c2.55 0 4.4 1.38 4.4 3.56 0 1.43-.78 2.5-2.02 3.04 1.48.48 2.42 1.67 2.42 3.23 0 2.55-2.12 4.17-5.2 4.17H11v-14Zm4.02 2.8v2.63h2.48c.9 0 1.45-.48 1.45-1.3 0-.84-.55-1.33-1.45-1.33h-2.48Zm0 5.25v3.08h2.82c1.02 0 1.62-.58 1.62-1.53 0-.97-.62-1.55-1.68-1.55h-2.76Z" fill="#6f3805"/>
+    </svg>`;
+  const coinSvg = () => window.RWGProfile?.coinSvg?.('rwg-modal-coin') || fallbackCoin;
+
   if (!window.RWGContinueProvider) {
     window.RWGContinueProvider = {
-      mode: 'free',
-      async requestContinue({ score }) {
-        return {
-          granted: true,
-          mode: 'free',
-          penalty: .5,
-          score: Math.floor(Number(score || 0) * .5),
-          costCredits: 0
-        };
+      mode: 'unavailable',
+      async requestContinue() {
+        window.RWGProfile?.showInsufficientCredits?.(1);
+        return { granted: false, reason: 'provider-unavailable', costCredits: 1 };
       }
     };
   }
@@ -71,15 +74,17 @@
         </div>
       </section>
 
-      <section class="rwg-credits-slot" data-rwg-credits-slot hidden aria-label="Continua con crediti"></section>
+      <section class="rwg-credits-slot" data-rwg-credits-slot hidden aria-label="Acquista crediti"></section>
 
       <div class="rwg-continue-box">
-        <button class="rwg-continue-free" type="button">Continua gratis</button>
-        <span>Riparti da qui con il <strong>50% dei punti</strong></span>
+        <button class="rwg-continue-credit" type="button">
+          <span>Continua con 1</span>${coinSvg()}
+        </button>
+        <span>Mantieni punteggio e progresso • costa <strong>1 credito</strong></span>
       </div>
 
       <div class="rwg-game-over-actions">
-        <button class="rwg-play-again" type="button">Gioca ancora</button>
+        <button class="rwg-play-again" type="button">Nuova partita</button>
         <a class="rwg-back-games" href="${HOME_URL}">Tutti i giochi</a>
       </div>
       <div class="rwg-game-over-credit">Made with 💙 by Francesco Poltero</div>
@@ -92,7 +97,7 @@
   const achievementsSection = layer.querySelector('.rwg-achievements');
   const achievementsEl = layer.querySelector('.rwg-achievement-list');
   const challengeEl = layer.querySelector('.rwg-challenge-copy');
-  const continueBtn = layer.querySelector('.rwg-continue-free');
+  const continueBtn = layer.querySelector('.rwg-continue-credit');
   const playAgain = layer.querySelector('.rwg-play-again');
   const moreShare = layer.querySelector('[data-go-share="more"]');
 
@@ -126,7 +131,13 @@
     return document.body.classList.contains('rwg-landscape-blocked') || Boolean(countdown && !countdown.hidden);
   };
 
-  const canCountTime = () => sessionActive && !document.hidden && !isOverlayVisible() && !isPaused() && !orientationBlocked() && layer.hidden;
+  const canCountTime = () =>
+    sessionActive &&
+    !document.hidden &&
+    !isOverlayVisible() &&
+    !isPaused() &&
+    !orientationBlocked() &&
+    layer.hidden;
 
   const tick = now => {
     const dt = Math.max(0, Math.min(1000, now - lastTick));
@@ -153,7 +164,9 @@
     lastTick = performance.now();
     layer.hidden = true;
     document.body.classList.remove('rwg-game-over-open');
-    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: gameName, url: canonical } }));
+    window.dispatchEvent(new CustomEvent('rwg:game-session-start', {
+      detail: { game: gameName, gameSlug, url: canonical }
+    }));
   };
 
   startBtn.addEventListener('click', () => {
@@ -177,7 +190,9 @@
     let unlocked = [];
     try { unlocked = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (_) {}
     const unlockedSet = new Set(Array.isArray(unlocked) ? unlocked : []);
-    const earned = achievementDefinitions(stats).filter(item => item.earned).map(item => ({ ...item, isNew: !unlockedSet.has(item.id) }));
+    const earned = achievementDefinitions(stats)
+      .filter(item => item.earned)
+      .map(item => ({ ...item, isNew: !unlockedSet.has(item.id) }));
     earned.forEach(item => unlockedSet.add(item.id));
     try { localStorage.setItem(storageKey, JSON.stringify([...unlockedSet])); } catch (_) {}
     return earned;
@@ -196,7 +211,26 @@
     const playerScore = parseNumber(document.getElementById('playerScore'));
     const cpuScore = parseNumber(document.getElementById('cpuScore'));
     const best = Math.max(startingBest, parseNumber(document.getElementById('best')), score);
-    return { score, level, levelsCleared: level ? Math.max(0, level - 1) : null, lines, playerScore, cpuScore, best, activeMs };
+    return {
+      score,
+      level,
+      levelsCleared: level ? Math.max(0, level - 1) : null,
+      lines,
+      playerScore,
+      cpuScore,
+      best,
+      activeMs,
+      continueCount
+    };
+  };
+
+  const shareTextFor = stats => {
+    const base = `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
+    if (!stats.continueCount) return base;
+    const suffix = stats.continueCount === 1
+      ? ' Ho usato 1 continuazione.'
+      : ` Ho usato ${stats.continueCount} continuazioni.`;
+    return base + suffix;
   };
 
   const setShareLinks = text => {
@@ -218,7 +252,7 @@
     sessionActive = false;
     const stats = collectStats();
     const achievements = getAchievements(stats);
-    const shareText = `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
+    const shareText = shareTextFor(stats);
 
     titleEl.textContent = gameName;
     scorelineEl.innerHTML = `<strong>${formatNumber(stats.score)}</strong> punti`;
@@ -228,6 +262,7 @@
       stats.levelsCleared !== null ? metric('Livelli superati', stats.levelsCleared) : '',
       stats.lines > 0 ? metric('Linee', stats.lines) : '',
       document.getElementById('playerScore') ? metric('Risultato', `${stats.playerScore}–${stats.cpuScore}`) : '',
+      stats.continueCount > 0 ? metric('Continue usati', stats.continueCount) : '',
       metric('Tempo di gioco', formatDuration(stats.activeMs)),
       metric('Record', formatNumber(stats.best))
     ].filter(Boolean);
@@ -251,7 +286,13 @@
     layer.hidden = false;
     document.body.classList.add('rwg-game-over-open');
 
-    const detail = { game: gameName, url: canonical, continueCount, ...stats, achievements: achievements.map(({ id, label, isNew }) => ({ id, label, isNew })) };
+    const detail = {
+      game: gameName,
+      gameSlug,
+      url: canonical,
+      ...stats,
+      achievements: achievements.map(({ id, label, isNew }) => ({ id, label, isNew }))
+    };
     window.dispatchEvent(new CustomEvent('rwg:game-over-summary', { detail }));
   };
 
@@ -276,6 +317,7 @@
         continueCount,
         creditsSlot: layer.querySelector('[data-rwg-credits-slot]')
       });
+
       if (!grant?.granted) return;
 
       continueCount++;
@@ -284,14 +326,16 @@
       lastTick = performance.now();
       layer.hidden = true;
       document.body.classList.remove('rwg-game-over-open');
+
       window.dispatchEvent(new CustomEvent('rwg:continue-game', {
         detail: {
           game: gameName,
           gameSlug,
           url: canonical,
-          mode: grant.mode || provider.mode || 'free',
+          mode: grant.mode || provider.mode || 'credits',
           penalty: Number.isFinite(grant.penalty) ? grant.penalty : 1,
           costCredits: Number(grant.costCredits || 0),
+          remainingCredits: Number(grant.remainingCredits ?? window.RWGProfile?.getCredits?.() ?? 0),
           continueCount,
           previousScore: stats.score,
           score: Number.isFinite(grant.score) ? Math.max(0, Math.floor(grant.score)) : stats.score
@@ -305,13 +349,15 @@
   playAgain.addEventListener('click', () => {
     layer.hidden = true;
     document.body.classList.remove('rwg-game-over-open');
-    window.dispatchEvent(new CustomEvent('rwg:game-replay', { detail: { game: gameName, url: canonical } }));
+    window.dispatchEvent(new CustomEvent('rwg:game-replay', {
+      detail: { game: gameName, gameSlug, url: canonical, previousContinues: continueCount }
+    }));
     startBtn.click();
   });
 
   moreShare?.addEventListener('click', async () => {
     const stats = collectStats();
-    const text = `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
+    const text = shareTextFor(stats);
     if (navigator.share) {
       try {
         await navigator.share({ title: `${gameName} — RetroWebGames`, text, url: canonical });
@@ -335,11 +381,14 @@
       layer.hidden = true;
       document.body.classList.remove('rwg-game-over-open');
     },
-    getSession: () => ({ game: gameName, url: canonical, activeMs, active: sessionActive, continueCount }),
-    getCreditsSlot: () => layer.querySelector('[data-rwg-credits-slot]'),
-    setContinueProvider(provider) {
-      if (!provider || typeof provider.requestContinue !== 'function') throw new TypeError('Invalid continue provider');
-      window.RWGContinueProvider = provider;
-    }
+    getSession: () => ({
+      game: gameName,
+      gameSlug,
+      url: canonical,
+      activeMs,
+      active: sessionActive,
+      continueCount
+    }),
+    getCreditsSlot: () => layer.querySelector('[data-rwg-credits-slot]')
   });
 })();
