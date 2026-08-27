@@ -10,7 +10,7 @@ This document is the gameplay source of truth for Star Swarm. Keep it synchroniz
 - `games/star-swarm/bosses.js` — boss roster and scaling
 - `games/star-swarm/campaign.css` — boss HUD and clear screen
 
-`games/star-swarm/index.html` must load `engine.js`, never root `game.js`.
+`games/star-swarm/index.html` must load `engine.js`. A root `/game.js` Star Swarm runtime must remain absent.
 
 ## Campaign
 
@@ -53,68 +53,77 @@ Normal enemies are separated visually and mechanically into five durability fami
 
 Higher tiers appear more often as campaign level rises. Enemies with meaningful HP show an individual health strip.
 
-## Weapon progression — 20 segments
+## Two independent offensive progressions — do not conflate them
 
-Weapon level is independent from POWER. Every weapon segment has a small damage coefficient. At the same POWER value, later weapon segments are modestly more damaging.
+Star Swarm has two deliberately separate offensive axes:
+
+1. **Weapon Upgrade** — the red diamond. Changes the firing pattern/type through 8 forms.
+2. **POWER** — the damage-strength pickup. Raises the damage of each player projectile through 20 fine-grained strength levels.
+
+This distinction is a critical regression guardrail. Do not expand Weapon to 20 merely because POWER has 20 levels, and do not apply POWER rarity rules to the red Weapon Upgrade.
+
+## Weapon Upgrade progression — 8 firing forms
+
+Weapon level changes the shape/type of fire. Each advancement also adds a **small** damage multiplier, so at identical POWER a later weapon is modestly stronger without replacing POWER as the main damage axis.
 
 Target progression:
 
-1. SINGLE FIRE
-2. SINGLE FIRE +
-3. DOUBLE FIRE
-4. DOUBLE FIRE FOCUS
-5. DOUBLE FIRE WIDE
-6. TRIPLE DIAGONAL
-7. TRIPLE DIAGONAL +
-8. TRIPLE WIDE
-9. 4 FIRE LINEAR
-10. 4 FIRE LINEAR +
-11. FIREBALLS 3 WAY
-12. FIREBALLS 3 WAY +
-13. FIREBALLS WIDE
-14. LASER
-15. LASER MK II
-16. TWIN LASERS
-17. 3 WAY LASERS
-18. 3 WAY LASERS WIDE
-19. 5 WAY LASERS
-20. 5 WAY LASERS OVERDRIVE
+1. SINGLE FIRE — damage coefficient `×1.00`
+2. DOUBLE FIRE — `×1.03`
+3. TRIPLE DIAGONAL FIRE — `×1.06`
+4. 4 FIRE LINEAR — `×1.09`
+5. FIREBALLS 3 WAY — `×1.12`
+6. LASER — `×1.15`
+7. 3 WAY LASERS — `×1.18`
+8. 5 WAY LASERS — `×1.21`
 
-Damage coefficient should rise gently from about `1.00` to `1.38`, rather than doubling damage through weapon level alone.
+The coefficient grows gently by roughly 3% per weapon advancement. Most of the gameplay advantage of Weapon Upgrade comes from the new firing geometry/type; POWER remains the primary per-projectile strength system.
 
 ### Laser invariant
 
 A laser projectile is not consumed by a normal enemy collision. It:
 
 - may damage each enemy once;
-- keeps travelling;
+- keeps travelling whether the target survives or is destroyed;
 - can cross additional enemies;
 - exits only when it leaves the screen (or the run changes state).
 
 The same projectile must not repeatedly damage the same enemy every frame.
 
-## POWER progression
+## POWER strength progression — 20 levels
 
-POWER is a second, independent damage axis.
+POWER is the independent damage-strength axis and is intentionally more granular than Weapon.
 
-- range: 1–10;
-- one distinct projectile color per level;
-- POWER affects damage regardless of weapon spread/type;
-- fireballs may retain a small intrinsic damage bonus;
-- wingmen always use base single-fire damage and do not inherit POWER.
+- range: 1–20;
+- 20 distinct projectile colors;
+- POWER affects the damage of every player projectile regardless of weapon spread/type;
+- the 20 levels subdivide roughly the former `1 → 10` damage range rather than doubling maximum strength;
+- current base damage curve: `1.00 → 10.00` across 20 steps;
+- fireballs retain a small intrinsic damage bonus before the weapon coefficient;
+- wingmen always use base single-fire damage and do not inherit POWER or Weapon damage multipliers.
 
-A POWER pickup advances one level until 10.
+A POWER pickup advances one level until 20.
+
+## Damage composition
+
+For ordinary player fire, damage is conceptually:
+
+`POWER base damage × current Weapon damage coefficient`
+
+Fireballs add their intrinsic bonus before the Weapon multiplier.
+
+This means two players at POWER 10 do not necessarily inflict identical damage if their Weapon form differs: the later Weapon has the intended small multiplier.
 
 ## Life-loss penalties
 
 An unshielded damaging hit that costs a life applies:
 
-- weapon progression `-2` segments, min segment 1;
-- POWER `-2`, min POWER 1;
-- tractor beam cancelled;
+- Weapon progression `-2` forms, minimum form 1;
+- POWER `-2` levels, minimum POWER 1;
+- Tractor Beam cancelled;
 - normal respawn invulnerability.
 
-A shielded hit consumes Shield and does not lose a life or downgrade weapon/POWER.
+A shielded hit consumes Shield and does not lose a life or downgrade Weapon/POWER.
 
 ## Power-up economy
 
@@ -129,15 +138,24 @@ Current base kill probabilities before elite multiplier:
 - commander/type-2 enemy: about `2.4%`;
 - other enemies: about `1.35%`.
 
-### Weapon Upgrade
+### Weapon Upgrade — red diamond
 
-Extremely rare. The previous already-reduced probability is halved again in the current balance target:
+Weapon Upgrade uses the already-reduced rarity target that existed before the Weapon/POWER misunderstanding:
 
-- commander/type-2: `0.43%` per eligible kill;
-- others: `0.245%` per eligible kill;
+- commander/type-2: `0.86%` per eligible kill;
+- others: `0.49%` per eligible kill;
 - elite multiplier may modestly raise these values.
 
-Do not casually increase this rate. Twenty weapon segments are intended to make a high weapon tier valuable across a long run.
+These values are intentionally uncommon, but **must not be confused with the rarer POWER-strength rebalancing**. Do not halve them again unless an explicit future balance decision changes Weapon Upgrade itself.
+
+### POWER — damage strength
+
+POWER is the pickup whose frequency was intentionally reduced while being expanded to 20 levels.
+
+- base probability: about `1.0%` per eligible kill before elite multiplier;
+- this is half the previous `2.0%` POWER baseline;
+- max 2 POWER drops per level;
+- each pickup advances POWER by one, capped at 20.
 
 ### Tractor Beam
 
@@ -145,11 +163,6 @@ Do not casually increase this rate. Twenty weapon segments are intended to make 
 - eligible only once every two levels;
 - only when fewer than two wingmen are present;
 - captured enemies become wingmen, max two.
-
-### POWER
-
-- max 2 drops per level;
-- advances POWER by one, capped at 10.
 
 ### Shield
 
