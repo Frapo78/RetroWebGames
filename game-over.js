@@ -15,6 +15,21 @@
   const HOME_URL = 'https://www.retrowebgames.it/';
   const q = encodeURIComponent;
 
+  if (!window.RWGContinueProvider) {
+    window.RWGContinueProvider = {
+      mode: 'free',
+      async requestContinue({ score }) {
+        return {
+          granted: true,
+          mode: 'free',
+          penalty: .5,
+          score: Math.floor(Number(score || 0) * .5),
+          costCredits: 0
+        };
+      }
+    };
+  }
+
   let sessionActive = false;
   let activeMs = 0;
   let lastTick = performance.now();
@@ -106,8 +121,10 @@
 
   const isOverlayVisible = () => overlay.classList.contains('visible');
   const isPaused = () => pauseBtn && pauseBtn.textContent.trim() === '▶';
-  const orientationBlocked = () => document.body.classList.contains('rwg-landscape-blocked') ||
-    !document.getElementById('rwgResumeCountdown')?.hidden;
+  const orientationBlocked = () => {
+    const countdown = document.getElementById('rwgResumeCountdown');
+    return document.body.classList.contains('rwg-landscape-blocked') || Boolean(countdown && !countdown.hidden);
+  };
 
   const canCountTime = () => sessionActive && !document.hidden && !isOverlayVisible() && !isPaused() && !orientationBlocked() && layer.hidden;
 
@@ -246,26 +263,43 @@
   new MutationObserver(checkGameOver).observe(overlay, { attributes: true, attributeFilter: ['class'] });
   new MutationObserver(checkGameOver).observe(startBtn, { childList: true, characterData: true, subtree: true });
 
-  continueBtn.addEventListener('click', () => {
+  continueBtn.addEventListener('click', async () => {
     const stats = collectStats();
-    const discountedScore = Math.floor(stats.score * .5);
-    continueCount++;
-    summaryShown = false;
-    sessionActive = true;
-    lastTick = performance.now();
-    layer.hidden = true;
-    document.body.classList.remove('rwg-game-over-open');
-    window.dispatchEvent(new CustomEvent('rwg:continue-game', {
-      detail: {
+    continueBtn.disabled = true;
+    try {
+      const provider = window.RWGContinueProvider;
+      const grant = await provider.requestContinue({
         game: gameName,
+        gameSlug,
         url: canonical,
-        mode: 'free',
-        penalty: .5,
+        score: stats.score,
         continueCount,
-        previousScore: stats.score,
-        score: discountedScore
-      }
-    }));
+        creditsSlot: layer.querySelector('[data-rwg-credits-slot]')
+      });
+      if (!grant?.granted) return;
+
+      continueCount++;
+      summaryShown = false;
+      sessionActive = true;
+      lastTick = performance.now();
+      layer.hidden = true;
+      document.body.classList.remove('rwg-game-over-open');
+      window.dispatchEvent(new CustomEvent('rwg:continue-game', {
+        detail: {
+          game: gameName,
+          gameSlug,
+          url: canonical,
+          mode: grant.mode || provider.mode || 'free',
+          penalty: Number.isFinite(grant.penalty) ? grant.penalty : 1,
+          costCredits: Number(grant.costCredits || 0),
+          continueCount,
+          previousScore: stats.score,
+          score: Number.isFinite(grant.score) ? Math.max(0, Math.floor(grant.score)) : stats.score
+        }
+      }));
+    } finally {
+      continueBtn.disabled = false;
+    }
   });
 
   playAgain.addEventListener('click', () => {
@@ -302,6 +336,10 @@
       document.body.classList.remove('rwg-game-over-open');
     },
     getSession: () => ({ game: gameName, url: canonical, activeMs, active: sessionActive, continueCount }),
-    getCreditsSlot: () => layer.querySelector('[data-rwg-credits-slot]')
+    getCreditsSlot: () => layer.querySelector('[data-rwg-credits-slot]'),
+    setContinueProvider(provider) {
+      if (!provider || typeof provider.requestContinue !== 'function') throw new TypeError('Invalid continue provider');
+      window.RWGContinueProvider = provider;
+    }
   });
 })();
