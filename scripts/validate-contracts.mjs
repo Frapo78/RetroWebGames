@@ -88,7 +88,17 @@ for (const rel of gamePages) {
   must(html.includes('../../orientation.js'), `${rel}: shared orientation.js must be loaded`);
   must(/https:\/\/www\.retrowebgames\.it\//.test(html), `${rel}: canonical production origin missing`);
   must(html.indexOf('../../game-hud.js') < html.indexOf('../../orientation.js'), `${rel}: game-hud.js must load before orientation.js`);
+  const startIndex = html.indexOf('id="startBtn"');
+  const menuIndex = html.indexOf('class="primary-btn rwg-intro-secondary"');
+  must(startIndex >= 0, `${rel}: intro GIOCA button missing`);
+  must(menuIndex > startIndex, `${rel}: intro return-to-menu action must immediately follow GIOCA`);
+  must(/<a class="primary-btn rwg-intro-secondary" href="\/">TORNA AL MENU<\/a>/.test(html), `${rel}: intro return-to-menu action must target local-compatible root /`);
 }
+
+const sharedHudCss = read('game-hud.css');
+must(sharedHudCss.includes('.rwg-intro-secondary'), 'game-hud.css: shared intro secondary action style missing');
+const sharedHudJs = read('game-hud.js');
+must(sharedHudJs.includes('introMenu.hidden = true'), 'game-hud.js: intro return-to-menu action must be dismissed when gameplay starts');
 
 must(!fs.existsSync(path.join(root, 'game.js')), 'Obsolete root game.js must remain deleted; Star Swarm has one authoritative engine only');
 

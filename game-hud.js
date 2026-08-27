@@ -63,6 +63,11 @@
     ensureProfileThenExtras();
   }
 
+  const introMenu = document.querySelector('.rwg-intro-secondary');
+  document.getElementById('startBtn')?.addEventListener('click', () => {
+    if (introMenu) introMenu.hidden = true;
+  }, { once: true });
+
   if (document.querySelector('.rwg-game-tools')) return;
 
   const HOME_URL = 'https://www.retrowebgames.it/';
