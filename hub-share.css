@@ -78,6 +78,16 @@
 .share-dock + .share-spacer { height: 0; }
 .shell { padding-bottom: calc(env(safe-area-inset-bottom) + 160px); }
 
+footer::after {
+  content: "Made with 💙 by Francesco Poltero";
+  display: block;
+  margin-top: 9px;
+  color: #7f94aa;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .035em;
+}
+
 @media (min-width: 620px) {
   .share-dock {
     display: grid;
