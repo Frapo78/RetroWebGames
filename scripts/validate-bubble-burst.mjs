@@ -21,6 +21,7 @@ must(html.includes('<script src="levels.js"></script>'), 'Bubble Burst must load
 must(html.includes('<script src="game.js"></script>'), 'Bubble Burst must load game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'Bubble Burst levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'Bubble Burst game engine must load before shared HUD');
+must(html.includes('la struttura scende verso la linea di pericolo'), 'Bubble Burst intro must explain timed descending-board pressure');
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
@@ -49,6 +50,24 @@ must(game.includes('const chibiSprites = new Map()'), 'Bubble Burst must cache c
 must(game.includes('backgroundCache = buildBackgroundCache()'), 'Bubble Burst must cache its static background');
 must(!game.includes('queue.shift()'), 'Bubble Burst graph traversal must not regress to Array.shift() queues');
 
+const pressureStart = Number(game.match(/PRESSURE_START_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
+const pressureMin = Number(game.match(/PRESSURE_MIN_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
+const pressureDecay = Number(game.match(/PRESSURE_DECAY\s*=\s*([0-9.]+)/)?.[1]);
+const pressureStartRows = Number(game.match(/PRESSURE_START_ROWS\s*=\s*([0-9.]+)/)?.[1]);
+const pressureMaxRows = Number(game.match(/PRESSURE_MAX_ROWS\s*=\s*([0-9.]+)/)?.[1]);
+must(Number.isFinite(pressureStart) && pressureStart >= 60, `Bubble Burst level-1 pressure must not begin before 60 seconds; found ${pressureStart}`);
+must(Number.isFinite(pressureMin) && pressureMin >= 12 && pressureMin < pressureStart, `Bubble Burst pressure floor must remain progressive and playable; found ${pressureMin}`);
+must(Number.isFinite(pressureDecay) && pressureDecay > 0 && pressureDecay < 1, `Bubble Burst pressure interval must decrease progressively by level; found decay ${pressureDecay}`);
+must(Number.isFinite(pressureStartRows) && pressureStartRows > 0 && pressureStartRows <= .6, `Bubble Burst initial pressure step should stay around half a row; found ${pressureStartRows}`);
+must(Number.isFinite(pressureMaxRows) && pressureMaxRows >= pressureStartRows && pressureMaxRows <= 1, `Bubble Burst max pressure step must stay at or below one row; found ${pressureMaxRows}`);
+must(game.includes('y: ceilingY() + R + r * ROW_H'), 'Bubble Burst cell geometry must include the descending ceiling offset');
+must(game.includes('function updatePressure(dt)'), 'Bubble Burst timed ceiling pressure update missing');
+must(game.includes('if (pressureDue && !moving) applyPressureDrop();'), 'Bubble Burst pressure drop must wait for an in-flight projectile to resolve');
+must(game.includes('if (!running || paused) return;') && game.includes('updatePressure(dt);'), 'Bubble Burst pressure timer must only advance during active unpaused gameplay');
+must(game.includes("banner = '↓ STRUTTURA IN DISCESA!'"), 'Bubble Burst pressure drop must provide arcade feedback');
+must(game.includes('remaining > 6 && pressurePulse <= 0'), 'Bubble Burst should warn during the final six seconds before descent');
+must(game.includes('pressureElapsed = 0; pressureDue = false; pressurePulse = 0;'), 'Bubble Burst credit Continue must reset the pressure countdown without resetting score/level');
+
 if (failures.length) {
   console.error(`\nBubble Burst validation FAILED (${failures.length})\n`);
   failures.forEach(failure => console.error(`  ✗ ${failure}`));
@@ -60,5 +79,7 @@ console.log('Bubble Burst validation OK');
 console.log('  ✓ 200 unique deterministic artistic configurations');
 console.log('  ✓ progressive Armor / Star / Prism structure bubbles');
 console.log('  ✓ rare Bomb / Color Wipe launched specials');
+console.log('  ✓ progressive timed ceiling pressure starts after >=60s at level 1');
+console.log('  ✓ pressure pauses with gameplay and intensifies by interval/step');
 console.log('  ✓ cached rendering + nearby-cell collision performance guards');
 console.log('  ✓ shared Game Over / Continue lifecycle markers');
