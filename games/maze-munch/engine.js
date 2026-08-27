@@ -52,6 +52,8 @@ function endGame(){
   M.running=false;M.paused=false;M.best=Math.max(M.best,M.score);localStorage.setItem('mazeMunchBest',String(M.best));M.hud();
   M.dom.overlayText.innerHTML=`Caccia terminata.<br>Punteggio <strong>${M.score.toLocaleString('it-IT')}</strong> • livello ${M.level}.`;
   M.dom.start.textContent='RIGIOCA';M.dom.overlay.classList.add('visible');
+  const detail={game:'Maze Munch',score:M.score,level:M.level,best:M.best,maxCombo:M.combo};
+  window.dispatchEvent(new CustomEvent('rwg:game-ended',{detail}));requestAnimationFrame(()=>window.RWGGameOver?.open?.(detail));
 }
 function hit(){
   if(M.player.inv>0||M.ready>0)return;M.lives--;M.hud();M.tone(105,.3,'sawtooth',.05,45);
