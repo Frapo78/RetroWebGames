@@ -231,6 +231,13 @@ Run `node scripts/validate-bubble-burst.mjs` after Bubble Burst gameplay/layout 
 
 ## 6. Rendering and performance
 
+### Solitaire classic-card invariants
+
+- `games/solitaire/card-art.js` is the presentation source of truth for the 52-card deck and classic back.
+- Cards use original inline SVG with traditional French suits, mirrored indices, standard pip layouts A–10, mirrored J/Q/K portraits and an ornamental Ace of Spades.
+- Do not replace the classic deck with arcade/cartoon styling, external branded assets or per-render uncached SVG generation.
+- Artwork changes MUST preserve the existing card aspect ratio, DOM hitboxes and multi-card drag behavior.
+
 Current architecture intentionally uses JavaScript + Canvas 2D.
 
 Do NOT port whole games to WebAssembly without measured evidence.

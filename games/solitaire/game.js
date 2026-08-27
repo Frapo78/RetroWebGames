@@ -3,6 +3,8 @@
 
   const Variants = window.RWGSolitaireVariants;
   if (!Variants?.get) throw new Error('Solitaire variants module missing');
+  const CardArt = window.RWGSolitaireCardArt;
+  if (!CardArt?.getCardFaceSvg || !CardArt?.getCardBackSvg) throw new Error('Solitaire card-art module missing');
 
   const $ = id => document.getElementById(id);
   const board = $('board');
@@ -331,14 +333,11 @@
   }
 
   function cardInner(card) {
-    const rank = rankLabel(card.rank);
-    const suit = SUIT_SYMBOL[card.suit];
-    const center = card.rank >= 11 ? `<span class="face-mark">${rank}${suit}</span>` : suit;
-    return `<span class="corner"><b>${rank}</b><i>${suit}</i></span><span class="pip-center">${center}</span><span class="corner bottom"><b>${rank}</b><i>${suit}</i></span>`;
+    return CardArt.getCardFaceSvg(card);
   }
 
   function cardMarkup(card, attrs = '', extraClass = '', top = 0, z = 1) {
-    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="Carta coperta"></div>`;
+    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="Carta coperta">${CardArt.getCardBackSvg()}</div>`;
     return `<div class="playing-card face-up ${cardColor(card)} ${extraClass}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="${cardLabel(card)}">${cardInner(card)}</div>`;
   }
 
@@ -370,6 +369,7 @@
 
   function renderStockWaste() {
     stockEl.className = `pile-slot stock-slot ${stock.length ? 'has-cards' : 'is-empty'}`;
+    stockEl.innerHTML = stock.length ? CardArt.getCardBackSvg() : '';
     stockEl.setAttribute('aria-label', stock.length ? `Mazzo: ${stock.length} carte` : waste.length ? 'Ricarica il mazzo' : 'Mazzo vuoto');
     const top = waste[waste.length - 1];
     wasteEl.innerHTML = top ? cardMarkup(top, 'data-source="waste"', selectedClass({ type: 'waste' })) : '';
