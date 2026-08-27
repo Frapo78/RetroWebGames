@@ -249,7 +249,7 @@ node scripts/validate-seo-geo.mjs
 Il progetto è statico e non ha dipendenze esterne:
 
 ```bash
-python3 -m http.server 8080
+python3 -m http.server 8080 --directory public
 ```
 
 Aprire `http://localhost:8080/`. Per il test reale dei sensori di Neon Tilt usare HTTPS o un ambiente considerato sicuro dal browser.
