@@ -3,6 +3,7 @@
 
   const NOTICE_KEY = 'rwg.pwa.install.notice.v1';
   const INSTALL_SELECTOR = '[data-pwa-install]';
+  const IOS_GUIDANCE = 'Su iPhone o iPad: tocca Condividi ⤴︎, poi “Aggiungi alla schermata Home”.';
   let deferredPrompt = null;
 
   function isStandalone() {
@@ -10,7 +11,9 @@
   }
 
   function isIos() {
-    return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    const ua = navigator.userAgent || '';
+    return /iphone|ipad|ipod/i.test(ua)
+      || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
   }
 
   function wasNoticeSeen() {
@@ -38,6 +41,14 @@
       node.textContent = message;
       node.hidden = false;
     });
+  }
+
+  function configureIosInstallUi() {
+    if (!isIos()) return false;
+    document.body.classList.add('rwg-ios-install');
+    document.querySelectorAll(INSTALL_SELECTOR).forEach(button => { button.hidden = true; });
+    setGuidance(IOS_GUIDANCE);
+    return true;
   }
 
   function dismissNotice() {
@@ -70,7 +81,7 @@
     }
 
     if (isIos()) {
-      setGuidance('Su iPhone: tocca Condividi ⤴︎, poi “Aggiungi alla schermata Home”.');
+      setGuidance(IOS_GUIDANCE);
       track('ios_guidance', 'shown');
       return;
     }
@@ -91,6 +102,8 @@
       hideInstallUi();
       return;
     }
+
+    configureIosInstallUi();
 
     window.setTimeout(() => {
       const notice = document.getElementById('pwaInstallNotice');

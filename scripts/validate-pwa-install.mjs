@@ -29,6 +29,9 @@ for (const marker of ['beforeinstallprompt', 'event.preventDefault()', 'promptEv
 }
 must(script.includes('rwg.pwa.install.notice.v1') && script.includes('localStorage.setItem'), 'notice-once persistence contract is missing');
 must(script.includes('Aggiungi alla schermata Home'), 'iOS/browser installation fallback guidance is missing');
+must(script.includes('/macintosh/i.test(ua)') && script.includes('navigator.maxTouchPoints > 1'), 'modern iPadOS desktop-user-agent detection is missing');
+must(script.includes('configureIosInstallUi()') && script.includes('button.hidden = true') && script.includes('setGuidance(IOS_GUIDANCE)'), 'iOS/iPadOS must show instructions directly and hide install buttons');
+must(css.includes('.pwa-install-action[hidden]'), 'hidden iOS install actions need an explicit CSS guard');
 must(css.includes('position: fixed') && css.includes('translate(-50%, calc(-100% - 30px))'), 'notice must slide in from the top');
 must(css.includes('@media (max-width: 380px)') && css.includes('width: calc(100% - 16px)'), 'small-mobile overflow guard is missing');
 for (const marker of ["addEventListener('install'", "addEventListener('activate'", "addEventListener('fetch'", 'caches.open', "request.mode === 'navigate'"]) {

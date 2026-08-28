@@ -8,7 +8,7 @@ RetroWebGames is installable from the home page as a lightweight Progressive Web
 - The notice is recorded under `rwg.pwa.install.notice.v1` in localStorage, with a cookie fallback if storage is unavailable.
 - A permanent install card follows the game list until the app is running in standalone mode or installation completes.
 - Chromium browsers use the deferred `beforeinstallprompt` event: the CTA opens the native install prompt directly.
-- iOS/iPadOS Safari does not expose a programmable install prompt. The same CTA therefore reveals the shortest correct system path: Share, then “Add to Home Screen”.
+- iOS/iPadOS Safari does not expose a programmable install prompt. Install buttons are therefore hidden on iOS/iPadOS and the shortest correct system path is shown directly: Share, then “Add to Home Screen”.
 - Other unsupported browsers receive equivalent menu guidance.
 
 The wording must not claim zero disk usage. The app is lightweight, but the browser can retain shell/game resources in its cache.
