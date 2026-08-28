@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#0b3f32" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -24,8 +24,8 @@
     <div id="variantBadge"><span>VARIANTE</span><strong id="variantName">CLASSICO</strong></div>
     <section id="board" aria-label="Tavolo del Solitario">
       <div id="upperPiles">
-        <button id="stock" class="pile-slot stock-slot" data-drop="stock" aria-label="Mazzo"></button>
-        <div id="waste" class="pile-slot" data-drop="waste" aria-label="Scarti"></div>
+        <span class="pile-spacer" aria-hidden="true"></span>
+        <span class="pile-spacer" aria-hidden="true"></span>
         <label class="pile-slot card-style-control" title="Scegli lo stile delle carte">
           <span class="card-style-icon" aria-hidden="true">♤</span><small id="cardStyleLabel">MIN.</small>
           <select id="cardStyleSelect" aria-label="Stile delle carte"><option value="classic">CARTE CLASSICHE</option><option value="essential" selected>CARTE ESSENZIALI</option></select>
@@ -37,6 +37,10 @@
       </div>
       <div id="tableau" aria-label="Colonne del tavolo"></div>
     </section>
+    <aside id="drawPileDock" aria-label="Mazzo di pesca e carta girata">
+      <button id="stock" class="pile-slot stock-slot" data-drop="stock" aria-label="Mazzo"></button>
+      <div id="waste" class="pile-slot" data-drop="waste" aria-label="Carta girata"></div>
+    </aside>
     <div id="gameControls">
       <a class="round-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
       <button id="undoBtn" class="tool-btn" type="button" aria-label="Annulla ultima mossa">↶ <span>ANNULLA</span></button>
