@@ -22,7 +22,7 @@ must(home.includes('src="/pwa-install.js"'), 'home must load pwa-install.js');
 must(home.includes('id="pwaInstallNotice"') && home.includes('id="pwaInstallCard"'), 'home must expose the first-visit notice and persistent install card');
 must((home.match(/data-pwa-install/g) || []).length >= 2, 'both PWA install CTAs must use the shared controller');
 must(home.indexOf('id="pwaInstallCard"') > home.indexOf('</section>'), 'PWA install card must follow the game list');
-must(script.includes("setTimeout(() =>") && script.includes('}, 500)'), 'first-visit notice must wait 500 ms');
+must(script.includes("setTimeout(() =>") && script.includes('}, 2000)'), 'first-visit notice must wait 2 seconds');
 must(script.includes("setTimeout(dismissNotice, 10000)"), "first-visit notice must auto-dismiss non-invasively");
 for (const marker of ['beforeinstallprompt', 'event.preventDefault()', 'promptEvent.prompt()', 'promptEvent.userChoice', 'appinstalled', 'display-mode: standalone', 'navigator.standalone', 'serviceWorker.register']) {
   must(script.includes(marker), 'PWA controller missing: ' + marker);
@@ -38,7 +38,7 @@ must(manifest.display === 'standalone', 'manifest must remain installable in sta
 must(brandCss.includes('object-fit: contain') && brandCss.includes('object-position: center') && brandCss.includes('overflow: visible'), 'wordmark CSS must never crop the transparent asset');
 must(home.includes('width="1600" height="250"'), 'home wordmark intrinsic dimensions must remain stable');
 must(wordmarkPng.readUInt32BE(16) === 1600 && wordmarkPng.readUInt32BE(20) === 250, 'wordmark PNG must retain its 1600x250 safety canvas');
-must(brandGenerator.includes('697x130+420+255') && brandGenerator.includes('1450x220!') && brandGenerator.includes('1600x250'), 'wordmark generator must retain the complete crop and transparent safety margins');
+must(brandGenerator.includes('720x150+405+245') && brandGenerator.includes('1450x220!') && brandGenerator.includes('1600x250'), 'wordmark generator must retain the complete crop and transparent safety margins');
 
 if (failures.length) {
   console.error('PWA install validation FAILED');

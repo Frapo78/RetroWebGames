@@ -99,7 +99,7 @@
       notice.hidden = false;
       requestAnimationFrame(() => notice.classList.add('is-visible'));
       window.setTimeout(dismissNotice, 10000);
-    }, 500);
+    }, 2000);
   }
 
   window.addEventListener('beforeinstallprompt', event => {

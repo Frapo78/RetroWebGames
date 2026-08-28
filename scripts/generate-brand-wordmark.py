@@ -31,11 +31,11 @@ with tempfile.TemporaryDirectory(prefix="rwg-wordmark-") as tmp_name:
 
     # The wider crop includes the whole final S; edge bands are explicitly
     # excluded from alpha so no source-cover decorations can leak into the logo.
-    run(SRC, "-crop", "697x130+420+255", "+repage", crop)
+    run(SRC, "-crop", "720x150+405+245", "+repage", crop)
     run(crop, "-colorspace", "Gray", "-threshold", "12%",
-        "-morphology", "Open", "Disk:1", "-morphology", "Dilate", "Disk:1",
+        "-morphology", "Open", "Disk:2", "-morphology", "Dilate", "Disk:1",
         "-blur", "0x0.5", "-fill", "black",
-        "-draw", "rectangle 0,0 24,129 rectangle 683,0 696,129", alpha)
+        "-draw", "rectangle 0,0 7,149 rectangle 703,0 719,149 rectangle 0,0 719,12 rectangle 0,135 719,149", alpha)
     for channel, target in (("R", red), ("G", green), ("B", blue)):
         run(crop, "-channel", channel, "-separate", target)
     run(red, green, blue, alpha, "-channel", "RGBA", "-combine", rgba)

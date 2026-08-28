@@ -4,7 +4,7 @@ RetroWebGames is installable from the home page as a lightweight Progressive Web
 
 ## User flow
 
-- On the first home visit only, after 500 ms, a compact notice slides in from the top.
+- On the first home visit only, after 2 seconds, a compact notice slides in from the top.
 - The notice is recorded under `rwg.pwa.install.notice.v1` in localStorage, with a cookie fallback if storage is unavailable.
 - A permanent install card follows the game list until the app is running in standalone mode or installation completes.
 - Chromium browsers use the deferred `beforeinstallprompt` event: the CTA opens the native install prompt directly.
