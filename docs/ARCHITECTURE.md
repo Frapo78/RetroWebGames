@@ -2,114 +2,172 @@
 
 ## Goal
 
-RetroWebGames is a static, mobile-first arcade platform. Individual games own gameplay simulation and rendering; platform-level identity, credits, resumable sessions, game-over, sharing and orientation are shared.
+RetroWebGames is a static, mobile-first arcade platform. Individual games own gameplay simulation and rendering; platform-level identity, credits, resumable unfinished runs, game-over, sharing and orientation are shared.
+
+Resumable unfinished-run persistence is mandatory for every current and future game.
 
 ## Dependency flow
 
 ```text
 Game page
-  ├─ game-specific engine
-  ├─ rwg-session.js / rwg-session.css (when explicitly preloaded by a resumable game)
+  ├─ game-specific runtime/modules
+  ├─ game-specific RWGResumeAdapter
   ├─ game-hud.js
-  │    ├─ rwg-session.js / rwg-session.css (shared fallback/bootstrap)
-  │    ├─ rwg-profile.js
-  │    │    └─ rwg-profile.css
-  │    ├─ rwg-avatar.js
-  │    │    └─ rwg-avatar.css
-  │    ├─ game-over.css
-  │    └─ game-over.js
-  └─ orientation.js
-       └─ orientation.css
+  │    ├─ rwg-session.js / rwg-session.css
+  │    ├─ rwg-profile.js / rwg-profile.css
+  │    ├─ rwg-avatar.js / rwg-avatar.css
+  │    └─ game-over.js / game-over.css
+  └─ orientation.js / orientation.css
 ```
 
-A game engine must never copy these shared systems locally. A resumable game owns only its small state adapter (`serialize`, `validate`, `restore`, `isInProgress`); storage cadence, lifecycle flush and resume UI belong to `rwg-session.js`.
+A game must never copy shared systems locally. It owns only the small logical persistence adapter and its gameplay-specific state.
+
+`game-hud.js` is the centralized bootstrap for `RWGSession`; game pages must not separately load root `rwg-session.js` or `rwg-session.css`.
 
 ## Game lifecycle contract
 
 ### Start
 
-The page exposes a game-specific `#startBtn`. The shared Game Over component observes start/replay and begins a session when the label is `GIOCA` or `RIGIOCA`.
+Every page exposes a game-specific `#startBtn` and a complete `window.RWGResumeAdapter` before `game-hud.js` loads.
 
-A resumable game may additionally register `window.RWGResumeAdapter`. If a compatible unfinished snapshot already exists, the shared resume service blocks normal startup with the prompt **“Vuoi continuare la partita precedente?”**. `No` discards that snapshot and starts a fresh game; `Sì` restores it.
+When no unfinished snapshot exists, normal start behavior is unchanged.
+
+When a valid unfinished snapshot exists, `RWGSession` shows:
+
+**“Vuoi continuare la partita precedente?”**
+
+- `No` — red, left: discard the old snapshot and start a genuine fresh run.
+- `Sì` — green, right: restore the saved run.
+
+This restore is free and is not the one-credit Game Over Continue.
 
 ### Running
 
-The game owns simulation state. Shared components may read stable DOM metrics such as score, level, best, lines, player/cpu score.
+The game owns simulation state. Shared components may read stable DOM metrics such as score, level, best, lines and match score.
 
-Games that opt into resumable persistence call `RWGSession.markDirty()` only after meaningful discrete state changes. `rwg-session.js` throttles those writes and also performs a low-frequency heartbeat so timer/progress state is not lost even when no discrete move occurs.
+Games call `RWGSession.markDirty()` after meaningful discrete logical mutations. Continuous simulations rely on the shared heartbeat for moving position/velocity continuity between those mutations.
 
-### Resumable interruption / exit
+Never write persistence per animation frame.
 
-Resumable-session persistence is distinct from credit Continue.
+## RWGSession v2
 
-Shared `rwg-session.js` responsibilities:
+Shared `rwg-session.js` owns all persistence scheduling, storage and UI.
 
-- versioned per-game local envelope under `rwg.session.v1:<game-id>`;
-- debounced save after discrete state changes;
-- lightweight periodic checkpoint;
-- forced synchronous checkpoint on `visibilitychange` hidden, `pagehide`, `beforeunload`, Page Lifecycle `freeze`, and same-tab navigation;
-- corruption/incompatibility rejection before restore;
-- shared resume modal with `No` red on the left and `Sì` green on the right;
-- no storage writes per animation frame;
-- no dependency on profile, avatar, Game Over or credits.
+Current platform contract:
 
-Game adapter responsibilities:
+- namespace: `rwg.session.v2:<game-id>`;
+- envelope schema: `2`;
+- dirty-save debounce: 750 ms;
+- heartbeat: 5 seconds;
+- heartbeat prefers `requestIdleCallback`;
+- lifecycle checkpoint on hidden, `pagehide`, `beforeunload`, `freeze` and normal same-tab navigation;
+- unchanged payloads are not rewritten unnecessarily;
+- snapshot-size limit: 384 KiB;
+- obsolete `rwg.session.v1:*` snapshots are removed when an adapter registers.
 
-- report whether a run is genuinely in progress;
-- serialize only the minimum authoritative state needed to resume;
-- validate restored state strongly enough to reject impossible/corrupt snapshots;
-- restore the exact run without counting it as a new game/deal;
-- clear the resumable snapshot when the run is successfully completed or otherwise becomes terminal;
-- start a clean run when the user declines resume.
+A stored run is accepted only if all of these match:
 
-Resume after browser close/menu exit is **free**. It must never debit a credit and must never dispatch `rwg:continue-game`.
+1. platform envelope schema;
+2. game id;
+3. adapter version;
+4. adapter compatibility token;
+5. current semantic `adapter.validate(payload, envelope)`.
 
-### Pause/orientation
+Any mismatch invalidates and removes the snapshot instead of attempting unsafe migration.
 
-Local pause overlays are allowed. Orientation guard may pause/resume around landscape mode. These are not terminal run states. A paused resumable game is still considered an unfinished run and remains eligible for autosave/resume.
+See `SESSION-PERSISTENCE.md` for the complete persistence contract.
 
-### Intermediate clear screens
+## Game adapter contract
+
+Every game exposes:
+
+```js
+window.RWGResumeAdapter = Object.freeze({
+  id,
+  version,
+  compatibility,
+  isInProgress,
+  serialize,
+  validate,
+  restore,
+  startFresh,
+  describe // optional
+});
+```
+
+Responsibilities:
+
+- report whether meaningful unfinished progress exists;
+- serialize minimum authoritative logical state;
+- validate corruption and semantic compatibility;
+- restore exact logical progress without counting it as a new run/deal;
+- start cleanly after No;
+- bump version and/or compatibility whenever an engine/content/state change makes old snapshots unsafe.
+
+Persist logical gameplay state, not visual caches. Particles, trails, Canvas caches, starfields, AudioContext, DOM nodes and pointer objects should normally be reconstructed.
+
+## Automatic invalidation examples
+
+Current adapters add game-specific validation beyond the shared envelope:
+
+- **Star Swarm** checks campaign signature and boss identity in addition to combat state;
+- **Bubble Burst** persists and validates the current deterministic layout signature;
+- **Block Drop** validates the 10×20 board, piece domains and 7-bag state;
+- **Maze Munch** validates map pellet/power-node domains and actor state;
+- **Neon Rally** validates first-to-7 match bounds and ball/paddle state;
+- **Neon Snake** validates grid bounds, unique snake cells, obstacles and pickups;
+- **Neon Tilt** validates level identity, physics state and collected shard indices;
+- **Solitario** validates exactly 52 unique canonical cards and legal Klondike structure.
+
+## Pause/orientation
+
+Local pause overlays are allowed. Orientation guard may pause/resume around landscape mode. These are not terminal states.
+
+A paused game remains an unfinished run and must remain eligible for persistence.
+
+## Intermediate clear screens
 
 Allowed examples:
 
 - Star Swarm boss clear;
 - Bubble Burst level clear;
-- future stage/mission clear;
-- tutorial/intermission screens.
+- future mission/stage clears.
 
-These must pause the engine without triggering terminal Game Over.
+These pause or transition the game without triggering terminal Game Over. If the intermediate state itself contains meaningful progress, the adapter must represent it safely.
 
-### Terminal Game Over
+## Terminal Game Over
 
-Authoritative presentation lives in root `game-over.js` / `game-over.css`.
+Authoritative terminal presentation lives in root `game-over.js` / `game-over.css`.
 
 Game engine responsibilities:
 
-1. commit final score/level/best values to DOM;
+1. commit final score/level/best values;
 2. stop simulation;
 3. make local replay state available (`RIGIOCA`) as fallback;
 4. emit `rwg:game-ended`;
 5. request `window.RWGGameOver.open()`.
 
-Shared responsibilities:
+`RWGSession` automatically clears unfinished-run persistence on terminal `rwg:game-ended`.
+
+Shared Game Over owns:
 
 - animated GAME OVER intro;
 - metrics;
 - achievements;
 - sharing;
-- continue via credit provider;
+- one-credit Continue;
 - replay;
 - main menu.
 
-### Credit Continue
+## Credit Continue
 
-`game-over.js` asks `RWGContinueProvider` for a one-credit continue. On success it dispatches `rwg:continue-game` with the preserved score and metadata.
+`game-over.js` asks `RWGContinueProvider` for one credit. On success it dispatches `rwg:continue-game` with preserved score/metadata.
 
-The engine must restore the interrupted run, not reset it. This mechanism is unrelated to `RWGSession` browser/menu resume.
+This is distinct from free `RWGSession` restore after reload/navigation.
 
-### Replay
+## Successful non-Game-Over completion
 
-Shared Game Over dispatches `rwg:game-replay`, then uses the game start button. The normal new-game path must completely reset runtime state.
+A game that completes successfully without terminal GAME OVER, such as Solitario victory, must ensure the unfinished snapshot is cleared. `RWGSession` also understands `rwg:session-completed` as a shared completion signal.
 
 ## Profile / wallet
 
@@ -117,24 +175,17 @@ Current profile state is stored locally under `rwg.profile.v1` and contains a ps
 
 This is a prototype persistence layer, not payment security. Future paid credits require server authority and an append-only/idempotent ledger.
 
-The per-game record contains `attempts`, `gameOvers`, `continues`, `playTimeMs`, `bestScore`, `lastScore`, `maxLevel`, `maxLines`, `maxCombo`, `maxRally`, `recordValue` and unlocked `achievements`. Continue debits exactly one local prototype credit and dispatches the preserved score to the engine.
-
 ## Avatar
 
-`rwg-avatar.js` renders a lightweight CSS/DOM 3D avatar and stores its configuration in the profile. `/avatar/` is the editor. Games should consume avatar identity through shared components instead of storing copies.
+`rwg-avatar.js` renders the shared avatar identity and `/avatar/` is the editor. Games consume shared identity instead of maintaining copies.
 
-## Shared game-over invariants
+## Future-game enforcement
 
-The centralized terminal modal is a platform feature. It must retain:
+`scripts/validate-session.mjs` dynamically discovers every `games/*/index.html` with `data-rwg-game="true"`.
 
-- GAME OVER intro animation;
-- compact mobile layout;
-- statistics;
-- achievement strip with auto-scroll on overflow;
-- SVG-only share buttons;
-- one-credit continue;
-- new game;
-- choose another game.
+For every discovered game it requires a conforming `RWGResumeAdapter` loaded before `game-hud.js`. Because discovery is filesystem-driven rather than list-driven, adding a new game without autosave/resume fails validation automatically.
+
+The repository-wide validator invokes this guard.
 
 ## Static validation
 
@@ -144,12 +195,28 @@ Run:
 node scripts/validate-contracts.mjs
 ```
 
-The validator intentionally checks architecture contracts rather than gameplay correctness. Device/browser playtests remain necessary for touch, timing, layout, lifecycle persistence and sensor behavior.
+Direct specialized checks:
+
+```bash
+node scripts/validate-session.mjs
+node scripts/validate-bubble-burst.mjs
+node scripts/validate-solitaire.mjs
+```
+
+The validators cover architecture/invariants, not full gameplay correctness.
 
 ## Browser and production validation
 
-The supported smoke matrix includes `/`, `/avatar/` and all eight game routes at 390×844, 375×667, 320×568 and desktop width. Tests must collect JavaScript console errors, page errors and failed/4xx/5xx requests, and exercise the shared Game Over, one-credit Continue and insufficient-credit path where applicable.
+The supported smoke matrix includes `/`, `/avatar/` and all game routes at common phone sizes plus desktop width.
 
-For resumable games, smoke tests must also cover: start → make progress → return to menu/reload → resume prompt → `Sì` exact-state restore; and repeat with `No` to verify a clean new run.
+For resumable persistence test at least:
 
-Neon Tilt production responses must send `accelerometer=(self)` and `gyroscope=(self)` in `Permissions-Policy`. HTTPS alone does not make device orientation usable when the response header disables the sensors. Real accelerometer behavior still requires a physical-device test.
+1. start and make meaningful progress;
+2. reload or return to menu;
+3. reopen and choose Sì, verifying exact logical continuation;
+4. repeat and choose No, verifying a fresh run;
+5. background/pause and reopen;
+6. terminal Game Over or successful completion, verifying no stale prompt;
+7. intentionally stale/corrupt/version-mismatched storage, verifying safe discard rather than crash.
+
+Neon Tilt production responses must allow accelerometer/gyroscope through `Permissions-Policy`, and real sensor behavior still requires a physical-device test.
