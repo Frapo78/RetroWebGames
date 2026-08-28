@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="../../orientation.css" />
   <link rel="stylesheet" href="../../game-hud.css" />
-  <link rel="stylesheet" href="../../rwg-session.css" data-rwg-session-style="true" />
 </head>
 <body data-rwg-game="true">
   <main id="app">
@@ -22,30 +21,22 @@
       <div><span>TEMPO</span><strong id="timer">00:00</strong></div>
       <div><span>PUNTI</span><strong id="score">0</strong></div>
     </section>
-
     <div id="variantBadge"><span>VARIANTE</span><strong id="variantName">CLASSICO</strong></div>
-
     <section id="board" aria-label="Tavolo del Solitario">
       <div id="upperPiles">
         <button id="stock" class="pile-slot stock-slot" data-drop="stock" aria-label="Mazzo"></button>
         <div id="waste" class="pile-slot" data-drop="waste" aria-label="Scarti"></div>
         <label class="pile-slot card-style-control" title="Scegli lo stile delle carte">
-          <span class="card-style-icon" aria-hidden="true">♤</span>
-          <small id="cardStyleLabel">MIN.</small>
-          <select id="cardStyleSelect" aria-label="Stile delle carte">
-            <option value="classic">CARTE CLASSICHE</option>
-            <option value="essential" selected>CARTE ESSENZIALI</option>
-          </select>
+          <span class="card-style-icon" aria-hidden="true">♤</span><small id="cardStyleLabel">MIN.</small>
+          <select id="cardStyleSelect" aria-label="Stile delle carte"><option value="classic">CARTE CLASSICHE</option><option value="essential" selected>CARTE ESSENZIALI</option></select>
         </label>
         <div id="foundation-s" class="pile-slot foundation-slot" data-drop="foundation" data-suit="s" aria-label="Fondazione picche"><span class="slot-suit">♠</span></div>
         <div id="foundation-h" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="h" aria-label="Fondazione cuori"><span class="slot-suit">♥</span></div>
         <div id="foundation-d" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="d" aria-label="Fondazione quadri"><span class="slot-suit">♦</span></div>
         <div id="foundation-c" class="pile-slot foundation-slot" data-drop="foundation" data-suit="c" aria-label="Fondazione fiori"><span class="slot-suit">♣</span></div>
       </div>
-
       <div id="tableau" aria-label="Colonne del tavolo"></div>
     </section>
-
     <div id="gameControls">
       <a class="round-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
       <button id="undoBtn" class="tool-btn" type="button" aria-label="Annulla ultima mossa">↶ <span>ANNULLA</span></button>
@@ -53,50 +44,30 @@
       <button id="hintBtn" class="tool-btn" type="button" aria-label="Mostra un suggerimento">✦ <span>AIUTO</span></button>
       <button id="newDealBtn" class="tool-btn" type="button" aria-label="Nuova mano">↻ <span>NUOVA</span></button>
     </div>
-
     <div id="toast" role="status" aria-live="polite"></div>
-
     <section id="winScreen" aria-hidden="true">
       <div class="win-rays" aria-hidden="true"></div>
       <div class="win-panel">
-        <div class="win-suits" aria-hidden="true">♠ ♥ ♦ ♣</div>
-        <p class="win-kicker">SOLITARIO • KLONDIKE</p>
-        <h2>PARTITA<br><span>COMPLETATA!</span></h2>
-        <div class="win-stats">
-          <div><span>TEMPO</span><strong id="winTime">00:00</strong></div>
-          <div><span>MOSSE</span><strong id="winMoves">0</strong></div>
-          <div><span>PUNTI</span><strong id="winScore">0</strong></div>
-        </div>
-        <p id="bestTimeLine">MIGLIOR TEMPO —</p>
-        <button id="winNewBtn" class="primary-btn">NUOVA MANO</button>
-        <a class="primary-btn secondary-btn" href="/">TORNA AL MENU</a>
+        <div class="win-suits" aria-hidden="true">♠ ♥ ♦ ♣</div><p class="win-kicker">SOLITARIO • KLONDIKE</p><h2>PARTITA<br><span>COMPLETATA!</span></h2>
+        <div class="win-stats"><div><span>TEMPO</span><strong id="winTime">00:00</strong></div><div><span>MOSSE</span><strong id="winMoves">0</strong></div><div><span>PUNTI</span><strong id="winScore">0</strong></div></div>
+        <p id="bestTimeLine">MIGLIOR TEMPO —</p><button id="winNewBtn" class="primary-btn">NUOVA MANO</button><a class="primary-btn secondary-btn" href="/">TORNA AL MENU</a>
       </div>
     </section>
-
     <section id="overlay" class="visible">
       <div class="intro-panel">
-        <p class="eyebrow">RETROWEBGAMES • CARTE</p>
-        <h1>SOLI<span>TARIO</span></h1>
-        <div class="variant-picker">
-          <label for="variantSelect">VARIANTE</label>
-          <select id="variantSelect" aria-label="Variante del Solitario">
-            <option value="klondike">CLASSICO • KLONDIKE</option>
-          </select>
-          <small>Altre varianti verranno aggiunte qui.</small>
-        </div>
+        <p class="eyebrow">RETROWEBGAMES • CARTE</p><h1>SOLI<span>TARIO</span></h1>
+        <div class="variant-picker"><label for="variantSelect">VARIANTE</label><select id="variantSelect" aria-label="Variante del Solitario"><option value="klondike">CLASSICO • KLONDIKE</option></select><small>Altre varianti verranno aggiunte qui.</small></div>
         <p class="intro-copy">Il classico Klondike con un mazzo da 52 carte. Costruisci le colonne in ordine decrescente alternando i colori e porta ogni seme dall'Asso al Re nelle quattro fondazioni.</p>
         <div class="rules-mini"><span>PESCA 1</span><span>7 COLONNE</span><span>52 CARTE</span></div>
-        <button id="startBtn" class="primary-btn">GIOCA</button>
-        <a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
+        <button id="startBtn" class="primary-btn">GIOCA</button><a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
         <p class="hint">Tap per selezionare • trascina per spostare • doppio tap verso fondazione</p>
       </div>
     </section>
   </main>
-
   <script src="variants.js"></script>
   <script src="card-art.js"></script>
   <script src="game.js"></script>
-  <script src="../../rwg-session.js" data-rwg-session-script="true"></script>
+  <script src="session-adapter.js"></script>
   <script src="../../game-hud.js"></script>
   <script src="../../orientation.js"></script>
 </body>
