@@ -10,7 +10,7 @@ const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
 
-for (const rel of ['games/solitaire/variants.js', 'games/solitaire/card-art.js', 'games/solitaire/game.js']) {
+for (const rel of ['rwg-session.js', 'games/solitaire/variants.js', 'games/solitaire/card-art.js', 'games/solitaire/game.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -19,7 +19,8 @@ const html = read('games/solitaire/index.html');
 must(html.includes('data-rwg-game="true"'), 'Solitaire page must use shared RWG game contract');
 must(html.indexOf('variants.js') < html.indexOf('game.js'), 'Solitaire variants.js must load before game.js');
 must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('game.js'), 'Solitaire card-art.js must load between variants.js and game.js');
-must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'Solitaire engine must load before shared HUD');
+must(html.indexOf('game.js') < html.indexOf('../../rwg-session.js') && html.indexOf('../../rwg-session.js') < html.indexOf('../../game-hud.js'), 'Solitaire resume service must load after its adapter and before shared HUD');
+must(html.includes('../../rwg-session.css') && html.includes('data-rwg-session-style="true"'), 'Solitaire must preload shared resume modal styling');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared orientation lifecycle');
 must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose the classic Klondike variant');
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain shared return-to-menu action');
@@ -65,7 +66,7 @@ for (const rank of [1, 6, 10, 11, 12, 13]) {
   const essential = art?.getCardFaceSvg?.({ rank, suit: rank % 2 ? 'h' : 's' }, 'essential') || '';
   must(essential.includes('card-style-essential') && essential.includes('essential-rank'), `Solitaire essential rank ${rank} must use the centered-rank template`);
   must((essential.match(/essential-corner/g) || []).length === 2, `Solitaire essential rank ${rank} must expose exactly two large corner suits`);
-  must(essential.includes(`font-size="57.5"`), `Solitaire essential corner suits must remain at the 2.5x size`);
+  must(essential.includes('font-size="57.5"'), `Solitaire essential corner suits must remain at the 2.5x size`);
   must(!essential.includes('court-portrait') && !essential.includes('ace-of-spades'), `Solitaire essential rank ${rank} must contain no classic drawing`);
 }
 must(art?.getCardBackSvg?.() === art?.getCardBackSvg?.(), 'Solitaire card sets must reuse one cached card back');
@@ -86,6 +87,31 @@ must(game.includes("CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1'"), 'Solitaire
 must(game.includes("localStorage.getItem(CARD_STYLE_KEY) === 'classic' ? 'classic' : 'essential'") && game.includes("catch (_) { return 'essential'; }"), 'Solitaire essential card set must be the runtime default');
 must(game.includes("cardStyleSelect.addEventListener('change'") && game.includes('changeCardStyle(cardStyleSelect.value)'), 'Solitaire card set must switch live during a hand');
 
+for (const marker of ['RESUME_SCHEMA = 1', 'serializeResumeState()', 'validateResumeState(state)', 'restoreResumeState(state)', 'window.RWGResumeAdapter', "id: 'solitaire'", 'markSessionDirty', 'window.RWGSession?.clear?.()']) {
+  must(game.includes(marker), `Solitaire resumable-state contract missing: ${marker}`);
+}
+must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Solitaire resume validation must require exactly 52 unique cards');
+must(game.includes('state.stock.some(card => card.faceUp)') && game.includes('state.waste.some(card => !card.faceUp)'), 'Solitaire resume validation must reject impossible stock/waste visibility');
+must(game.includes('card.suit !== suit || card.rank !== i + 1'), 'Solitaire resume validation must verify foundation suit/rank ordering');
+must(game.includes("markSessionDirty('move')") && game.includes("markSessionDirty('stock')") && game.includes("markSessionDirty('undo')"), 'Solitaire must dirty-save all discrete card-state changes');
+must(game.includes("showToast('PARTITA PRECEDENTE RIPRESA')"), 'Solitaire restore path must visibly confirm successful resume');
+
+const session = read('rwg-session.js');
+const sessionCss = read('rwg-session.css');
+const hud = read('game-hud.js');
+for (const marker of ['Vuoi continuare la partita precedente?', 'data-rwg-resume-no>No</button>', 'data-rwg-resume-yes>Sì</button>', 'pagehide', 'beforeunload', 'visibilitychange', "forceLifecycleSave('navigation')", 'adapterVersion', 'MAX_SNAPSHOT_BYTES']) {
+  must(session.includes(marker), `Shared resumable-session service missing: ${marker}`);
+}
+const debounce = Number(session.match(/DIRTY_DEBOUNCE_MS\s*=\s*(\d+)/)?.[1]);
+const heartbeat = Number(session.match(/HEARTBEAT_MS\s*=\s*(\d+)/)?.[1]);
+must(Number.isFinite(debounce) && debounce >= 500 && debounce <= 2000, `Shared session dirty debounce must remain frequent but throttled; found ${debounce}`);
+must(Number.isFinite(heartbeat) && heartbeat >= 4000 && heartbeat <= 15000, `Shared session heartbeat must remain frequent without per-frame storage writes; found ${heartbeat}`);
+must(session.includes("payloadJson === lastPayloadJson && !FORCE_WRITE_REASONS.has(reason)"), 'Shared session service must suppress redundant unchanged autosave writes');
+must(session.indexOf('data-rwg-resume-no>No</button>') < session.indexOf('data-rwg-resume-yes>Sì</button>'), 'Resume modal must keep No on the left and Sì on the right');
+must(sessionCss.includes('.rwg-resume-no') && sessionCss.includes('#c92f43'), 'Resume No button must remain red');
+must(sessionCss.includes('.rwg-resume-yes') && sessionCss.includes('#35cf79'), 'Resume Sì button must remain green');
+must(hud.includes('loadSession') && hud.includes("new URL('rwg-session.js', base)"), 'Shared HUD must bootstrap resumable sessions for future game adapters');
+
 if (failures.length) {
   console.error(`\nSolitaire validation FAILED (${failures.length})\n`);
   failures.forEach(failure => console.error(`  ✗ ${failure}`));
@@ -98,3 +124,4 @@ console.log('  ✓ 52-card victory condition');
 console.log('  ✓ touch drag/tap, undo, hint and pause lifecycle markers');
 console.log('  ✓ cached classic French-suited SVG faces, courts and card back');
 console.log('  ✓ live persistent classic/essential card-set switching');
+console.log('  ✓ shared crash/exit autosave and validated resume prompt contract');
