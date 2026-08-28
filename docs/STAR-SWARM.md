@@ -22,6 +22,26 @@ This document is the gameplay source of truth for Star Swarm. Keep it synchroniz
 
 `scripts/validate-contracts.mjs` executes the campaign and boss configuration in an isolated VM. It rejects duplicate signatures in levels 1–100, a changed 10-level boss cadence, fewer or more than ten base bosses, or duplicated boss name, shape, AI or attack identities.
 
+
+## Inter-wave continuity — CRITICAL
+
+Ordinary wave completion must be visually and mechanically continuous. The short `wave → transition → next wave/boss` interval is **not a pause** and must not freeze the simulation.
+
+During that transition:
+
+- stars/player/wingmen keep animating;
+- already-fired player projectiles keep travelling until they naturally leave the playfield or collide;
+- already-fired enemy projectiles keep travelling under their normal rules;
+- power-ups already falling keep descending and remain collectable;
+- existing particles may finish naturally;
+- no new automatic player volley is emitted until the next `wave` or `boss` phase starts.
+
+`startWave()` and `spawnBoss()` must therefore clear only stage-specific actors/hazards that cannot belong to the next stage. They must **not** wipe `bullets`, `enemyBullets` or `powerups` merely because the level number changes.
+
+Boss defeat may pause for the explicit boss-clear intermission, but bullets/power-ups must remain in memory and resume after the intermission rather than being discarded. Terminal Game Over is the separate boundary where the run ends.
+
+This is a regression-critical gameplay rule: a drop earned by killing the final enemy must never vanish because that kill also completed the wave.
+
 ## Bosses
 
 Ten base bosses:

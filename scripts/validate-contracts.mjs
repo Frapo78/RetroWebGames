@@ -139,6 +139,18 @@ must(star.includes("if(b.kind==='laser')continue;"), 'Star Swarm: laser must con
 must(/base\*\(WEAPONS\[player\.weapon\]\?\.damageCoeff\|\|1\)/.test(star), 'Star Swarm: Weapon damage coefficient must affect projectile damage');
 must(star.includes('W${player.weapon+1}/8') && star.includes('POWER ${player.power}/20'), 'Star Swarm HUD must expose Weapon 1/8 and POWER 1/20 semantics');
 
+
+// Inter-wave continuity: completing a wave must never freeze the simulation or wipe transients.
+must(/function finishWave\(\)\{[\s\S]{0,120}stagePhase='transition';running=true;/.test(star), 'Star Swarm: ordinary wave transition must keep the simulation running');
+must(!/function finishWave\(\)\{[\s\S]{0,120}stagePhase='transition';running=false;/.test(star), 'Star Swarm regression: wave completion must not freeze running=false');
+must(/function startWave\([\s\S]{0,220}bossHazards\.length=enemies\.length=0;/.test(star), 'Star Swarm: startWave must reset stage actors without wiping transient shots/drops');
+must(!/function startWave\([\s\S]{0,260}(?:bullets|enemyBullets|powerups)\.length/.test(star), 'Star Swarm regression: startWave must preserve bullets, enemy bullets and falling power-ups');
+must(/function spawnBoss\(\)\{[\s\S]{0,120}enemies\.length=bossHazards\.length=0;/.test(star), 'Star Swarm: boss entry must reset only stage-specific enemies/hazards');
+must(!/function spawnBoss\(\)\{[\s\S]{0,220}(?:bullets|enemyBullets|powerups)\.length/.test(star), 'Star Swarm regression: boss entry must preserve in-flight projectiles and falling power-ups');
+must(star.includes("if(stagePhase==='wave'||stagePhase==='boss'){fireClock-=dt;"), 'Star Swarm: transition must advance existing transients without spawning fresh automatic volleys');
+must(star.includes("else if(stagePhase==='transition'){running=true;"), 'Star Swarm: restored transition snapshots must resume as a live simulation');
+must(!/defeatBoss\(\)[\s\S]{0,420}(?:bullets|enemyBullets|powerups)\.length=0/.test(star), 'Star Swarm regression: boss clear must not discard surviving projectiles or drops');
+
 const gameOver = read('game-over.js');
 for (const marker of ['GAME OVER','Condividi il tuo risultato!','Continua con 1','Nuova partita','Scegli un altro gioco','rwg:continue-game','rwg:game-ended']) must(gameOver.includes(marker), `Shared game-over.js missing required marker: ${marker}`);
 must(gameOver.includes('ensureSession'), 'Shared Game Over must recover a session when terminal lifecycle arrives late');
