@@ -80,7 +80,7 @@
   function dropPowerup(brick,rect){const chance=brick.type==='prism'?.42:stage.dropChance;if(Math.random()>chance)return;const weights=level<8?['expand','multi','slow','catch','life']:['expand','multi','slow','laser','catch','life'];const type=weights[Math.floor(Math.random()*weights.length)];powerups.push({x:rect.x+rect.w/2,y:rect.y+rect.h/2,vy:105+level*.5,type,r:9,spin:0});}
 
   function destroyBrick(brick,rect,fromExplosion=false){
-    if(brick.hp<=0||brick.type==='steel')return;brick.hp=0;combo=clamp(combo+(fromExplosion?.15:.3),1,5);score+=Math.round((BRICK_POINTS[brick.type]||100)*combo);burst(rect.x+rect.w/2,rect.y+rect.h/2,BRICK_COLOR[brick.type],brick.type==='explosive'?20:10,brick.type==='explosive'?210:120);dropPowerup(brick,rect);tone(250+Math.min(520,combo*75),.035,'square',.018,420);
+    if(brick.type==='steel')return;brick.hp=0;combo=clamp(combo+(fromExplosion?.15:.3),1,5);score+=Math.round((BRICK_POINTS[brick.type]||100)*combo);burst(rect.x+rect.w/2,rect.y+rect.h/2,BRICK_COLOR[brick.type],brick.type==='explosive'?20:10,brick.type==='explosive'?210:120);dropPowerup(brick,rect);tone(250+Math.min(520,combo*75),.035,'square',.018,420);
     if(brick.type==='explosive'){
       const cx=rect.x+rect.w/2,cy=rect.y+rect.h/2,range=Math.max(rect.w,rect.h)*1.9;
       for(const other of bricks){if(other===brick||other.hp<=0||other.type==='steel')continue;const or=brickRect(other),ox=or.x+or.w/2,oy=or.y+or.h/2;if(Math.hypot(ox-cx,oy-cy)<range){other.hp=0;score+=Math.round((BRICK_POINTS[other.type]||100)*.7);burst(ox,oy,BRICK_COLOR[other.type],7,130);}}
@@ -175,8 +175,8 @@
     const blueprint=Levels.getLevel(s.level);if(s.stageSignature!==blueprint.signature)return false;if(!finite(s.paddle,['x','targetX'])||!s.effects||!['expand','laser','catch'].every(k=>Number.isFinite(s.effects[k])&&s.effects[k]>=0))return false;
     if(!Array.isArray(s.balls)||s.balls.length<1||s.balls.length>6||s.balls.some(b=>!finite(b,['x','y','vx','vy','r','offset','bossCooldown'])||typeof b.stuck!=='boolean'||b.r<3||b.r>12))return false;
     if(!Array.isArray(s.brickState)||s.brickState.length!==blueprint.cells.length||new Set(s.brickState.map(b=>b.id)).size!==s.brickState.length)return false;const ids=new Map(blueprint.cells.map(b=>[b.id,b]));for(const b of s.brickState){const base=ids.get(b.id);if(!base||!Number.isFinite(b.hp)||b.hp<0||b.hp>base.hp)return false;if(base.type==='steel'&&b.hp!==base.hp)return false;}
-    const remaining=s.brickState.some(b=>{const base=ids.get(b.id);return base.type!=='steel'&&b.hp>0;});if(s.phase==='clear'&&remaining)return false;
-    if(blueprint.boss){const cfg=Bosses.getBoss(s.level,s.cycle),identity=`${cfg.ordinal}:${cfg.name}:${cfg.shape}:${cfg.move}:${cfg.attack}`;if(!s.boss||s.boss.identity!==identity||!finite(s.boss,['hp','maxHp','x','y','t','fireClock'])||s.boss.maxHp!==cfg.maxHp||s.boss.hp<0||s.boss.hp>s.boss.maxHp)return false;}else if(s.boss!==null)return false;
+    const remaining=s.brickState.some(b=>{const base=ids.get(b.id);return base.type!=='steel'&&b.hp>0;});if(s.phase==='clear'&&!blueprint.boss&&remaining)return false;
+    if(blueprint.boss){const cfg=Bosses.getBoss(s.level,s.cycle),identity=`${cfg.ordinal}:${cfg.name}:${cfg.shape}:${cfg.move}:${cfg.attack}`;if(!s.boss||s.boss.identity!==identity||!finite(s.boss,['hp','maxHp','x','y','t','fireClock'])||s.boss.maxHp!==cfg.maxHp||s.boss.hp<0||s.boss.hp>s.boss.maxHp)return false;if(s.phase==='clear'&&s.boss.hp!==0)return false;}else if(s.boss!==null)return false;
     if(!Array.isArray(s.powerups)||s.powerups.some(p=>!finite(p,['x','y','vy','r','spin'])||!POWER_TYPES.includes(p.type)))return false;if(!Array.isArray(s.lasers)||s.lasers.some(l=>!finite(l,['x','y','vy','r'])))return false;if(!Array.isArray(s.enemyBullets)||s.enemyBullets.some(b=>!finite(b,['x','y','vx','vy','r','life'])))return false;
     return true;
   }
