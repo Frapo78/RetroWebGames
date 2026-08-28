@@ -39,6 +39,7 @@
   const STORAGE_KEY = 'rwg.solitaire.stats.v1';
   const CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1';
   const HISTORY_LIMIT = 100;
+  const RESUME_SCHEMA = 1;
 
   let variant = Variants.get(Variants.DEFAULT_ID);
   let stock = [];
@@ -102,6 +103,7 @@
   function rankLabel(rank) { return RANK_LABEL[rank] || String(rank); }
   function cardLabel(card) { return `${rankLabel(card.rank)}${SUIT_SYMBOL[card.suit]}`; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function markSessionDirty(reason = 'state') { window.RWGSession?.markDirty?.(reason); }
 
   function createDeck() {
     const deck = [];
@@ -131,6 +133,7 @@
   }
 
   function newGame() {
+    window.RWGSession?.clear?.();
     variant = Variants.get(variantSelect?.value || Variants.DEFAULT_ID);
     deal();
     selected = null;
@@ -151,6 +154,7 @@
     pauseBtn.setAttribute('aria-label', 'Pausa');
     variantNameEl.textContent = variant.name.toUpperCase();
     render();
+    markSessionDirty('new-game');
     showToast('NUOVA MANO • BUONA FORTUNA!');
   }
 
@@ -177,6 +181,7 @@
     score = state.score;
     selected = null;
     render();
+    markSessionDirty('undo');
     showToast('MOSSA ANNULLATA');
   }
 
@@ -199,6 +204,7 @@
       showToast('MAZZO RICARICATO');
     }
     render();
+    markSessionDirty('stock');
   }
 
   function sourceKey(source) {
@@ -298,6 +304,7 @@
     moves++;
     selected = null;
     render();
+    markSessionDirty('move');
     checkWin();
     return true;
   }
@@ -542,6 +549,7 @@
     won = true;
     running = false;
     paused = false;
+    window.RWGSession?.clear?.();
     score += Math.max(0, 1000 - Math.floor(elapsed) * 2);
     stats.wins++;
     stats.bestScore = Math.max(stats.bestScore, score);
@@ -585,7 +593,10 @@
     pauseBtn.setAttribute('aria-label', paused ? 'Riprendi' : 'Pausa');
     lastFrame = performance.now();
     render();
-    if (paused) showToast('PAUSA');
+    if (paused) {
+      window.RWGSession?.saveNow?.('pause');
+      showToast('PAUSA');
+    }
   }
 
   function createDragGhost(source, cards, width) {
@@ -604,6 +615,115 @@
     ghost.style.left = `${x - width / 2}px`;
     ghost.style.top = `${y - 18}px`;
   }
+
+  function validResumeCard(card) {
+    return Boolean(
+      card &&
+      SUITS.includes(card.suit) &&
+      Number.isInteger(card.rank) && card.rank >= 1 && card.rank <= 13 &&
+      card.id === `${card.suit}${card.rank}` &&
+      typeof card.faceUp === 'boolean'
+    );
+  }
+
+  function validateResumeState(state) {
+    if (!state || state.schema !== RESUME_SCHEMA || typeof state.variantId !== 'string') return false;
+    const resumeVariant = Variants.get(state.variantId);
+    if (!resumeVariant || resumeVariant.id !== state.variantId) return false;
+    if (!Array.isArray(state.stock) || !Array.isArray(state.waste) || !Array.isArray(state.tableau) || state.tableau.length !== resumeVariant.tableauColumns) return false;
+    if (!state.foundations || typeof state.foundations !== 'object' || SUITS.some(suit => !Array.isArray(state.foundations[suit]))) return false;
+    if (![state.moves, state.score, state.elapsed].every(value => Number.isFinite(Number(value)) && Number(value) >= 0)) return false;
+
+    const allCards = [
+      ...state.stock,
+      ...state.waste,
+      ...SUITS.flatMap(suit => state.foundations[suit]),
+      ...state.tableau.flat()
+    ];
+    if (allCards.length !== 52 || allCards.some(card => !validResumeCard(card))) return false;
+    if (new Set(allCards.map(card => card.id)).size !== 52) return false;
+    if (state.stock.some(card => card.faceUp) || state.waste.some(card => !card.faceUp)) return false;
+
+    for (const suit of SUITS) {
+      const pile = state.foundations[suit];
+      for (let i = 0; i < pile.length; i++) {
+        const card = pile[i];
+        if (!card.faceUp || card.suit !== suit || card.rank !== i + 1) return false;
+      }
+    }
+
+    for (const pile of state.tableau) {
+      let firstFaceUp = -1;
+      for (let i = 0; i < pile.length; i++) {
+        if (pile[i].faceUp && firstFaceUp < 0) firstFaceUp = i;
+        if (!pile[i].faceUp && firstFaceUp >= 0) return false;
+      }
+      if (firstFaceUp >= 0 && !isValidRun(pile.slice(firstFaceUp))) return false;
+    }
+    return true;
+  }
+
+  function serializeResumeState() {
+    return {
+      schema: RESUME_SCHEMA,
+      variantId: variant.id,
+      stock: clone(stock),
+      waste: clone(waste),
+      foundations: clone(foundations),
+      tableau: clone(tableau),
+      moves,
+      score,
+      elapsed: Math.round(elapsed * 1000) / 1000
+    };
+  }
+
+  function restoreResumeState(state) {
+    if (!validateResumeState(state)) return false;
+    variant = Variants.get(state.variantId);
+    variantSelect.value = variant.id;
+    stock = clone(state.stock);
+    waste = clone(state.waste);
+    foundations = clone(state.foundations);
+    tableau = clone(state.tableau);
+    moves = Math.floor(Number(state.moves));
+    score = Math.floor(Number(state.score));
+    elapsed = Number(state.elapsed);
+    selected = null;
+    history = [];
+    pointerDrag?.ghost?.remove();
+    pointerDrag = null;
+    running = true;
+    paused = false;
+    won = false;
+    lastFrame = performance.now();
+    lastTimerSecond = -1;
+    overlay.classList.remove('visible');
+    hideWin();
+    pauseBtn.textContent = 'Ⅱ';
+    pauseBtn.setAttribute('aria-label', 'Pausa');
+    variantNameEl.textContent = variant.name.toUpperCase();
+    render();
+    showToast('PARTITA PRECEDENTE RIPRESA');
+    return true;
+  }
+
+  function describeResumeState(state) {
+    const foundationCount = state?.foundations ? SUITS.reduce((sum, suit) => sum + (state.foundations[suit]?.length || 0), 0) : 0;
+    return `${Math.floor(Number(state?.moves) || 0)} mosse • ${formatTime(Number(state?.elapsed) || 0)} • ${foundationCount}/52 in fondazione`;
+  }
+
+  const resumeAdapter = Object.freeze({
+    id: 'solitaire',
+    version: 1,
+    isInProgress: () => running && !won,
+    serialize: serializeResumeState,
+    validate: validateResumeState,
+    restore: restoreResumeState,
+    startFresh: newGame,
+    describe: describeResumeState
+  });
+  window.RWGResumeAdapter = resumeAdapter;
+  window.RWGSession?.register?.(resumeAdapter);
 
   board.addEventListener('pointerdown', event => {
     if (!running || paused || won) return;
