@@ -1,0 +1,27 @@
+name: Temporary intro social validation
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check rwg-intro-share.js
+          node --check game-hud.js
+          node --check scripts/validate-social-sharing.mjs
+      - name: Social sharing contracts
+        run: node scripts/validate-social-sharing.mjs
+      - name: Repository contracts
+        run: node scripts/validate-contracts.mjs
