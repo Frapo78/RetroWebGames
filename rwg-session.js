@@ -8,6 +8,7 @@
   const DIRTY_DEBOUNCE_MS = 900;
   const HEARTBEAT_MS = 7000;
   const MAX_SNAPSHOT_BYTES = 256 * 1024;
+  const FORCE_WRITE_REASONS = new Set(['hidden', 'pagehide', 'beforeunload', 'freeze', 'navigation', 'resumed']);
 
   let adapter = null;
   let saveTimer = 0;
@@ -97,7 +98,7 @@
       return false;
     }
     if (encoded.length > MAX_SNAPSHOT_BYTES) return false;
-    if (payloadJson === lastPayloadJson && reason === 'dirty') {
+    if (payloadJson === lastPayloadJson && !FORCE_WRITE_REASONS.has(reason)) {
       dirty = false;
       return true;
     }
