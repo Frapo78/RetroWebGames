@@ -1,0 +1,91 @@
+.rwg-intro-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+  margin: clamp(10px, 1.7vh, 16px) auto 0;
+}
+
+.rwg-intro-share[hidden] {
+  display: none !important;
+}
+
+.rwg-intro-share-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 12px;
+  color: #f7fbff;
+  background: linear-gradient(145deg, rgba(17,31,58,.88), rgba(5,10,24,.94));
+  box-shadow: 0 7px 20px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.055);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.rwg-intro-share-btn svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+}
+
+.rwg-intro-share-btn[data-network="whatsapp"] {
+  color: #7cffb2;
+  border-color: rgba(124,255,178,.24);
+}
+.rwg-intro-share-btn[data-network="facebook"] {
+  color: #82adff;
+  border-color: rgba(130,173,255,.22);
+}
+.rwg-intro-share-btn[data-network="x"] {
+  color: #ffffff;
+  border-color: rgba(255,255,255,.19);
+}
+.rwg-intro-share-btn[data-network="telegram"] {
+  color: #65e7ff;
+  border-color: rgba(101,231,255,.23);
+}
+.rwg-intro-share-btn[data-network="linkedin"] {
+  color: #7db8ff;
+  border-color: rgba(125,184,255,.22);
+}
+
+.rwg-intro-share-btn:active {
+  transform: translateY(1px) scale(.92);
+  background: rgba(255,255,255,.1);
+}
+
+.rwg-intro-share-btn:focus-visible {
+  outline: 2px solid #65e7ff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 360px) {
+  .rwg-intro-share { gap: 6px; }
+  .rwg-intro-share-btn { width: 35px; height: 35px; border-radius: 11px; }
+  .rwg-intro-share-btn svg { width: 17px; height: 17px; }
+}
+
+@media (max-height: 700px) {
+  .rwg-intro-share { margin-top: 8px; gap: 6px; }
+  .rwg-intro-share-btn { width: 32px; height: 32px; border-radius: 10px; }
+  .rwg-intro-share-btn svg { width: 16px; height: 16px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rwg-intro-share-btn {
+    transition: transform .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
+  }
+  .rwg-intro-share-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 24px rgba(0,0,0,.3), 0 0 14px color-mix(in srgb, currentColor 16%, transparent);
+  }
+}
