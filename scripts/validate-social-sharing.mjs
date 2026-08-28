@@ -9,7 +9,8 @@ const defaultImage=origin+'/assets/social/retrowebgames-cover.jpg';
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message);};
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
-const pages=['index.html',...fs.readdirSync(path.join(root,'games'),{withFileTypes:true}).filter(e=>e.isDirectory()&&fs.existsSync(path.join(root,'games',e.name,'index.html'))).map(e=>'games/'+e.name+'/index.html').sort()];
+const gamePages=fs.readdirSync(path.join(root,'games'),{withFileTypes:true}).filter(e=>e.isDirectory()&&fs.existsSync(path.join(root,'games',e.name,'index.html'))).map(e=>'games/'+e.name+'/index.html').sort();
+const pages=['index.html',...gamePages];
 const attr=(html,key,type='property')=>html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']\\s+content=["\\\']([^"\\\']+)["\\\'][^>]*>','i'))?.[1]||'';
 const count=(html,key,type='property')=>(html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']','gi'))||[]).length;
 
@@ -39,8 +40,22 @@ for(const rel of pages){
 }
 must(attr(read('index.html'),'og:image')===defaultImage,'Home must retain the global RetroWebGames social cover');
 
+const hud=read('game-hud.js');
+const introShare=read('rwg-intro-share.js');
+const introShareCss=read('rwg-intro-share.css');
+for(const rel of gamePages) must(read(rel).includes('../../game-hud.js'),rel+': shared game-hud.js is required for automatic intro social controls');
+must(hud.includes('rwg-intro-share.js')&&hud.includes('rwg-intro-share.css')&&hud.includes('loadIntroShare();'),'game-hud.js must automatically bootstrap shared intro social controls');
+must(introShare.includes("['whatsapp', 'facebook', 'x', 'telegram', 'linkedin']"),'Intro sharing must expose exactly the intended five social networks');
+for(const network of ['WhatsApp','Facebook','X','Telegram','LinkedIn']) must(introShare.includes('Condividi su '+network),'Intro sharing missing accessible '+network+' action');
+must(introShare.includes("link[rel=\"canonical\"]")||introShare.includes("link[rel='canonical']"),'Intro sharing must share the page canonical URL');
+must(introShare.includes('hint.after(row)')&&introShare.includes('panel.appendChild(row)'),'Intro sharing must render at the bottom of the game intro panel');
+must(introShare.includes("startBtn.addEventListener('click', dismiss")&&introShare.includes("!overlay.classList.contains('visible')"),'Intro sharing must disappear permanently after gameplay starts/resumes');
+must(introShareCss.includes('.rwg-intro-share-btn')&&introShareCss.includes('.rwg-intro-share[hidden]'),'Shared intro social icon styling missing');
+must(!introShare.includes('<span'),'Intro social controls must remain icon-only with no visible text labels');
+
 if(failures.length){console.error('\nRetroWebGames social-sharing validation FAILED ('+failures.length+')\n');for(const failure of failures)console.error('  ✗ '+failure);console.error('');process.exit(1);}
 console.log('RetroWebGames social-sharing validation OK');
 console.log('  ✓ '+pages.length+' pages expose static Open Graph + Twitter large-image metadata');
 console.log('  ✓ every referenced social image exists under assets/social/');
+console.log('  ✓ '+gamePages.length+' game intros inherit icon-only WhatsApp/Facebook/X/Telegram/LinkedIn sharing');
 console.log('  ✓ home uses the global fallback; game pages may later use dedicated covers');
