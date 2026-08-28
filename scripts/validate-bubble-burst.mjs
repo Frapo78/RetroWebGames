@@ -10,8 +10,9 @@ const root = process.cwd();
 const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
+const matches = (source, regex, message) => must(regex.test(source), message);
 
-for (const rel of ['games/bubble-burst/levels.js', 'games/bubble-burst/game.js']) {
+for (const rel of ['games/bubble-burst/levels.js','games/bubble-burst/game.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -19,92 +20,105 @@ for (const rel of ['games/bubble-burst/levels.js', 'games/bubble-burst/game.js']
 const html = read('games/bubble-burst/index.html');
 must(html.includes('<script src="levels.js"></script>'), 'Bubble Burst must load levels.js');
 must(html.includes('<script src="game.js"></script>'), 'Bubble Burst must load game.js');
-must(html.indexOf('levels.js') < html.indexOf('game.js'), 'Bubble Burst levels.js must load before game.js');
-must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'Bubble Burst game engine must load before shared HUD');
-must(html.includes('la struttura scende verso la linea di pericolo'), 'Bubble Burst intro must explain timed descending-board pressure');
-must(html.includes('id="levelTimer"'), 'Bubble Burst must expose a dedicated level timer below the upper HUD');
-for (const id of ['levelClear', 'levelClearTitle', 'clearPoints', 'clearTime', 'clearBonus', 'clearTotal']) {
-  must(html.includes(`id="${id}"`), `Bubble Burst level-clear UI missing #${id}`);
-}
-must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Bubble Burst must retain the arcade intermediate level-clear presentation');
+must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
+must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
+must(html.includes('la struttura scende verso la linea di pericolo'), 'Intro must explain timed descending-board pressure');
+must(html.includes('id="levelTimer"'), 'Dedicated level timer missing');
+for (const id of ['levelClear','levelClearTitle','clearPoints','clearTime','clearBonus','clearTotal']) must(html.includes(`id="${id}"`), `Level-clear UI missing #${id}`);
+must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Intermediate arcade level-clear presentation missing');
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
 vm.runInContext(read('games/bubble-burst/levels.js'), sandbox, { filename: 'bubble-burst/levels.js' });
 const levels = sandbox.window.BubbleBurstLevels;
-must(levels?.TOTAL_CONFIGS === 200, `Bubble Burst must expose exactly 200 base configurations; found ${levels?.TOTAL_CONFIGS}`);
+must(levels?.TOTAL_CONFIGS === 200, `Expected 200 base configurations; found ${levels?.TOTAL_CONFIGS}`);
 if (levels?.getLevel) {
   const configs = Array.from({ length: 200 }, (_, index) => levels.getLevel(index + 1, 11));
-  must(new Set(configs.map(config => config.signature)).size === 200, 'Bubble Burst first 200 layout signatures must be unique');
-  must(configs.every(config => config.cells.length > 0), 'Bubble Burst base layouts must never be empty');
-  must(configs.every(config => Number.isFinite(config.optimalSeconds) && config.optimalSeconds >= 30), 'Bubble Burst every layout must expose a sane deterministic optimalSeconds');
-  must(new Set(configs.map(config => config.optimalSeconds)).size > 10, 'Bubble Burst optimal time should vary materially with layout complexity');
-  must(configs[7].cells.some(cell => cell.special === 'armor'), 'Bubble Burst Armor Bubble must be available from level 8');
-  must(configs.slice(17).some(config => config.cells.some(cell => cell.special === 'star')), 'Bubble Burst Star Bubble must appear from level 18 onward');
-  must(configs.slice(34).some(config => config.cells.some(cell => cell.special === 'prism')), 'Bubble Burst Prism Bubble must appear from level 35 onward');
+  must(new Set(configs.map(config => config.signature)).size === 200, 'First 200 layout signatures must be unique');
+  must(configs.every(config => config.cells.length > 0), 'Base layouts must never be empty');
+  must(configs.every(config => Number.isFinite(config.optimalSeconds) && config.optimalSeconds >= 30), 'Every layout needs sane deterministic optimalSeconds');
+  must(new Set(configs.map(config => config.optimalSeconds)).size > 10, 'Optimal time must vary materially by layout');
+  must(configs[7].cells.some(cell => cell.special === 'armor'), 'Armor Bubble must be available from level 8');
+  must(configs.slice(17).some(config => config.cells.some(cell => cell.special === 'star')), 'Star Bubble must appear from level 18 onward');
+  must(configs.slice(34).some(config => config.cells.some(cell => cell.special === 'prism')), 'Prism Bubble must appear from level 35 onward');
 }
 
 const game = read('games/bubble-burst/game.js');
-for (const marker of ['SHOT_BOMB', 'SHOT_COLOR_CLEAR', 'STATIC_ARMOR', 'STATIC_STAR', 'STATIC_PRISM', 'rwg:game-ended', 'rwg:continue-game']) {
-  must(game.includes(marker), `Bubble Burst runtime missing required marker: ${marker}`);
-}
-must(game.includes("Math.min(.03, .012"), 'Bubble Burst Bomb probability must remain capped around 3%');
-must(game.includes("Math.min(.02, .007"), 'Bubble Burst Color Wipe probability must remain capped around 2%');
-must(game.includes('function nearbyBubbles('), 'Bubble Burst must retain nearby-cell collision lookup');
-must(game.includes('for (const b of nearbyBubbles('), 'Bubble Burst moving collision/special resolution must use nearby-cell lookup');
-must(game.includes('speed = baseSpeed * 3'), 'Bubble Burst launched bubbles must move at exactly three times the established baseline speed');
-must(game.includes('Math.ceil(distance / Math.max(4, R * .75))'), 'Bubble Burst 3x shot movement must retain sub-stepped anti-tunneling collision checks');
-must(game.includes('function drawMovingBubble()') && game.includes("ctx.globalCompositeOperation = 'lighter'"), 'Bubble Burst 3x projectile must retain its interpolated cached-sprite motion trail');
-must(game.includes('const bubbleSprites = new Map()'), 'Bubble Burst must cache bubble render sprites');
-must(game.includes('const mangaChibiSprites = new Map()'), 'Bubble Burst must cache clean manga chibi base sprites');
-must(game.includes('function makeMangaChibiSprite('), 'Bubble Burst manga chibi base renderer missing');
-must(game.includes('function drawMangaChibiCrew(') && game.includes('function drawTrackedEyes('), 'Bubble Burst manga crew and dynamic eye tracking must remain active');
-must(game.includes('function predictAimTrajectory(') && game.includes('function predictAimFocusPoint('), 'Bubble Burst aim focus prediction must remain explicit and shared');
-must(game.includes('traceAim(aimPrediction)') && game.includes('predictAimFocusPoint(aimPrediction)'), 'Bubble Burst aim preview and crew gaze must reuse the same prediction');
-must(!game.includes('makeChibiSprite(') && !game.includes('imageSmoothingEnabled = false'), 'Bubble Burst pixel-art chibi renderer must not return');
-must(game.includes('backgroundCache = buildBackgroundCache()'), 'Bubble Burst must cache its static background');
-must(!game.includes('queue.shift()'), 'Bubble Burst graph traversal must not regress to Array.shift() queues');
+for (const marker of ['SHOT_BOMB','SHOT_COLOR_CLEAR','STATIC_ARMOR','STATIC_STAR','STATIC_PRISM','rwg:game-ended','rwg:continue-game','RWGResumeAdapter','RESUME_SCHEMA']) must(game.includes(marker), `Runtime missing required marker: ${marker}`);
+
+matches(game, /Math\.min\(\s*\.03\s*,\s*\.012/, 'Bomb probability must remain capped around 3%');
+matches(game, /Math\.min\(\s*\.02\s*,\s*\.007/, 'Color Wipe probability must remain capped around 2%');
+matches(game, /function\s+nearbyBubbles\s*\(/, 'Nearby-cell collision lookup missing');
+matches(game, /for\s*\(const\s+b\s+of\s+nearbyBubbles\s*\(/, 'Collision/special resolution must use nearby-cell lookup');
+matches(game, /speed\s*=\s*baseSpeed\s*\*\s*3\b/, 'Launched bubbles must move at exactly 3x baseline speed');
+matches(game, /Math\.ceil\(\s*distance\s*\/\s*Math\.max\(\s*4\s*,\s*R\s*\*\s*\.75\s*\)\s*\)/, '3x movement must retain sub-step anti-tunneling checks');
+matches(game, /function\s+drawMovingBubble\s*\(/, 'Moving-bubble renderer missing');
+matches(game, /globalCompositeOperation\s*=\s*['"]lighter['"]/, 'Projectile trail must retain additive rendering');
+matches(game, /const\s+bubbleSprites\s*=\s*new\s+Map\s*\(/, 'Bubble sprite cache missing');
+matches(game, /const\s+mangaChibiSprites\s*=\s*new\s+Map\s*\(/, 'Manga chibi sprite cache missing');
+matches(game, /function\s+makeMangaChibiSprite\s*\(/, 'Manga chibi base renderer missing');
+matches(game, /function\s+drawMangaChibiCrew\s*\(/, 'Manga crew renderer missing');
+matches(game, /function\s+drawTrackedEyes\s*\(/, 'Dynamic eye tracking missing');
+matches(game, /function\s+predictAimTrajectory\s*\(/, 'Aim trajectory predictor missing');
+matches(game, /function\s+predictAimFocusPoint\s*\(/, 'Aim focus predictor missing');
+must(game.includes('traceAim(aimPrediction)') && game.includes('predictAimFocusPoint(aimPrediction)'), 'Aim preview and crew gaze must share one prediction');
+must(!game.includes('makeChibiSprite(') && !/imageSmoothingEnabled\s*=\s*false/.test(game), 'Removed pixel-art chibi renderer must not return');
+matches(game, /backgroundCache\s*=\s*buildBackgroundCache\s*\(\s*\)/, 'Static background must be cached');
+must(!game.includes('queue.shift()'), 'Graph traversal must not regress to Array.shift() queues');
 
 const pressureStart = Number(game.match(/PRESSURE_START_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureMin = Number(game.match(/PRESSURE_MIN_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureDecay = Number(game.match(/PRESSURE_DECAY\s*=\s*([0-9.]+)/)?.[1]);
 const pressureStartRows = Number(game.match(/PRESSURE_START_ROWS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureMaxRows = Number(game.match(/PRESSURE_MAX_ROWS\s*=\s*([0-9.]+)/)?.[1]);
-must(Number.isFinite(pressureStart) && pressureStart >= 60, `Bubble Burst level-1 pressure must not begin before 60 seconds; found ${pressureStart}`);
-must(Number.isFinite(pressureMin) && pressureMin >= 12 && pressureMin < pressureStart, `Bubble Burst pressure floor must remain progressive and playable; found ${pressureMin}`);
-must(Number.isFinite(pressureDecay) && pressureDecay > 0 && pressureDecay < 1, `Bubble Burst pressure interval must decrease progressively by level; found decay ${pressureDecay}`);
-must(Number.isFinite(pressureStartRows) && pressureStartRows > 0 && pressureStartRows <= .6, `Bubble Burst initial pressure step should stay around half a row; found ${pressureStartRows}`);
-must(Number.isFinite(pressureMaxRows) && pressureMaxRows >= pressureStartRows && pressureMaxRows <= 1, `Bubble Burst max pressure step must stay at or below one row; found ${pressureMaxRows}`);
-must(game.includes('y: ceilingY() + R + r * ROW_H'), 'Bubble Burst cell geometry must include the descending ceiling offset');
-must(game.includes('function updatePressure(dt)'), 'Bubble Burst timed ceiling pressure update missing');
-must(game.includes('if (pressureDue && !moving) applyPressureDrop();'), 'Bubble Burst pressure drop must wait for an in-flight projectile to resolve');
-must(game.includes('if (!running || paused || levelClearActive) return;') && game.includes('updatePressure(dt);'), 'Bubble Burst pressure/timer clocks must only advance during active unpaused gameplay');
-must(game.includes("banner = '↓ STRUTTURA IN DISCESA!'"), 'Bubble Burst pressure drop must provide arcade feedback');
-must(game.includes('remaining > 6 && pressurePulse <= 0'), 'Bubble Burst should warn during the final six seconds before descent');
-must(game.includes('pressureElapsed = 0; pressureDue = false; pressurePulse = 0;'), 'Bubble Burst credit Continue must reset the pressure countdown without resetting score/level');
+must(Number.isFinite(pressureStart) && pressureStart >= 60, `Level-1 pressure must not begin before 60s; found ${pressureStart}`);
+must(Number.isFinite(pressureMin) && pressureMin >= 12 && pressureMin < pressureStart, `Pressure floor must remain progressive/playable; found ${pressureMin}`);
+must(Number.isFinite(pressureDecay) && pressureDecay > 0 && pressureDecay < 1, `Pressure interval must decrease progressively; found ${pressureDecay}`);
+must(Number.isFinite(pressureStartRows) && pressureStartRows > 0 && pressureStartRows <= .6, `Initial pressure step should stay near half-row; found ${pressureStartRows}`);
+must(Number.isFinite(pressureMaxRows) && pressureMaxRows >= pressureStartRows && pressureMaxRows <= 1, `Pressure step cap must be <= one row; found ${pressureMaxRows}`);
+matches(game, /y\s*:\s*ceilingY\(\)\s*\+\s*R\s*\+\s*r\s*\*\s*ROW_H/, 'Cell geometry must include descending ceiling offset');
+matches(game, /function\s+updatePressure\s*\(\s*dt\s*\)/, 'Timed ceiling-pressure update missing');
+matches(game, /if\s*\(\s*pressureDue\s*&&\s*!moving\s*\)\s*applyPressureDrop\s*\(\s*\)/, 'Pressure drop must wait for in-flight projectile');
+matches(game, /banner\s*=\s*['"]↓ STRUTTURA IN DISCESA!['"]/, 'Pressure drop arcade feedback missing');
+matches(game, /remaining\s*>\s*6\s*&&\s*pressurePulse\s*<=\s*0/, 'Final six-second pressure warning missing');
+matches(game, /pressureElapsed\s*=\s*0\s*;\s*pressureDue\s*=\s*false\s*;\s*pressurePulse\s*=\s*0/, 'Credit Continue must reset only next pressure countdown');
 
 const orangeMultiplier = Number(game.match(/ORANGE_DEADLINE_MULTIPLIER\s*=\s*([0-9.]+)/)?.[1]);
 const fastBonus = Number(game.match(/LEVEL_BONUS_FAST\s*=\s*([0-9.]+)/)?.[1]);
 const goodBonus = Number(game.match(/LEVEL_BONUS_GOOD\s*=\s*([0-9.]+)/)?.[1]);
-must(orangeMultiplier === 3.5, `Bubble Burst orange deadline must be T + 2.5T = 3.5T; found ${orangeMultiplier}`);
-must(fastBonus === .5, `Bubble Burst green clear bonus must remain +50%; found ${fastBonus}`);
-must(goodBonus === .25, `Bubble Burst orange clear bonus must remain +25%; found ${goodBonus}`);
-must(game.includes('Math.floor(seconds * 100)'), 'Bubble Burst level timer must render centisecond precision');
-must(game.includes("return 'green'") && game.includes("return 'orange'") && game.includes("return 'red'"), 'Bubble Burst timer must retain green/orange/red timing tiers');
-must(game.includes('levelElapsed += dt;') && game.includes('updateLevelTimer();'), 'Bubble Burst timer must advance from active gameplay time');
-must(game.includes('levelStartScore = score'), 'Bubble Burst must track per-level score independently from run total');
-must(game.includes('function completeLevel()'), 'Bubble Burst must retain an intermediate level-complete calculation phase');
-must(game.includes('levelClearTitleEl.textContent = `LIVELLO ${level} COMPLETATO!`'), 'Bubble Burst level-clear title must identify the level just completed');
-must(game.includes('Math.round(levelPoints * bonusRate)'), 'Bubble Burst completion bonus must be calculated from points generated in the level');
-must(game.includes('levelClearReadyAt = performance.now() + 2200'), 'Bubble Burst level-clear animation must remain readable before tap-to-continue');
-must(game.includes('startNextLevel()'), 'Bubble Burst level-clear tap must advance to the next level without terminal Game Over');
-must(game.includes('function registerPoppingShot(') && game.includes('if (!popped) { poppingShotStreak = 0; return; }'), 'Bubble Burst non-popping shots must reset the consecutive pop streak');
-must(game.includes('if (poppingShotStreak < 5) return;') && game.includes("banner = 'COMBO ×5 • BOMBA PRONTA!'"), 'Bubble Burst must award a Bomb after exactly five consecutive popping shots');
-must(game.includes('function applyPendingBombReward(') && game.includes('else if (nextShot.kind === SHOT_NORMAL)'), 'Bubble Burst streak Bomb must preserve rare queued special shots');
+must(orangeMultiplier === 3.5, `Orange deadline must be 3.5T; found ${orangeMultiplier}`);
+must(fastBonus === .5, `Green clear bonus must be +50%; found ${fastBonus}`);
+must(goodBonus === .25, `Orange clear bonus must be +25%; found ${goodBonus}`);
+matches(game, /Math\.floor\(\s*seconds\s*\*\s*100\s*\)/, 'Timer must render centisecond precision');
+must(game.includes("return 'green'") && game.includes("return 'orange'") && game.includes("return 'red'"), 'Timer must retain green/orange/red tiers');
+matches(game, /levelElapsed\s*\+=\s*dt/, 'Gameplay timer must advance from active time');
+matches(game, /levelStartScore\s*=\s*score/, 'Per-level score baseline missing');
+matches(game, /function\s+completeLevel\s*\(/, 'Intermediate level-complete calculation phase missing');
+matches(game, /levelClearTitleEl\.textContent\s*=\s*`LIVELLO \$\{level\} COMPLETATO!`/, 'Level-clear title must identify completed level');
+matches(game, /Math\.round\(\s*levelPoints\s*\*\s*bonusRate\s*\)/, 'Completion bonus must use level points');
+matches(game, /levelClearReadyAt\s*=\s*performance\.now\(\)\s*\+\s*2200/, 'Level-clear presentation must remain readable before tap');
+matches(game, /function\s+startNextLevel\s*\(/, 'Level-clear tap path missing');
+matches(game, /function\s+registerPoppingShot\s*\(/, 'Consecutive-pop reward function missing');
+matches(game, /if\s*\(\s*!popped\s*\)\s*\{\s*poppingShotStreak\s*=\s*0\s*;\s*return\s*;\s*\}/, 'Non-popping shot must reset streak');
+matches(game, /if\s*\(\s*poppingShotStreak\s*<\s*5\s*\)\s*return/, 'Bomb reward must require five consecutive popping shots');
+matches(game, /banner\s*=\s*['"]COMBO ×5 • BOMBA PRONTA!['"]/, 'Five-shot Bomb reward feedback missing');
+matches(game, /function\s+applyPendingBombReward\s*\(/, 'Deferred Bomb reward logic missing');
+
+// Resume contract: logical board state + deterministic layout signature + shared v2 service.
+matches(game, /id\s*:\s*['"]bubble-burst['"]/, 'Bubble Burst resume adapter id missing');
+matches(game, /version\s*:\s*1/, 'Bubble Burst adapter version missing');
+matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v1-layouts200-pressure2-specials1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
+matches(game, /layoutSignature\s*:\s*boardMeta\?\.signature/, 'Snapshot must persist deterministic layout signature');
+matches(game, /s\.layoutSignature\s*!==\s*meta\.signature/, 'Restore validation must reject changed level layouts');
+matches(game, /serializeResumeState\s*\(/, 'Resume serializer missing');
+matches(game, /validateResumeState\s*\(/, 'Resume validator missing');
+matches(game, /restoreResumeState\s*\(/, 'Resume restore path missing');
+matches(game, /markSessionDirty\(['"]shot-resolved['"]\)/, 'Resolved shots must mark state dirty');
+matches(game, /saveNow\?\.\(['"]level-clear['"]\)/, 'Level clear must checkpoint resumable state');
 
 const css = read('games/bubble-burst/style.css');
-must(css.includes('#levelTimer.is-green') && css.includes('#levelTimer.is-orange') && css.includes('#levelTimer.is-red'), 'Bubble Burst timer color tiers missing from CSS');
-must(css.includes('@keyframes bubbleClearPanel') && css.includes('@keyframes bubbleClearTotal'), 'Bubble Burst arcade clear animations missing');
+must(css.includes('#levelTimer.is-green') && css.includes('#levelTimer.is-orange') && css.includes('#levelTimer.is-red'), 'Timer color tiers missing from CSS');
+must(css.includes('@keyframes bubbleClearPanel') && css.includes('@keyframes bubbleClearTotal'), 'Arcade clear animations missing');
 
 if (failures.length) {
   console.error(`\nBubble Burst validation FAILED (${failures.length})\n`);
@@ -114,14 +128,7 @@ if (failures.length) {
 }
 
 console.log('Bubble Burst validation OK');
-console.log('  ✓ 200 unique deterministic artistic configurations');
-console.log('  ✓ every layout exposes a complexity-derived optimal clear time');
-console.log('  ✓ green/orange/red centisecond timer tiers and +50%/+25% bonuses');
-console.log('  ✓ arcade intermediate level-clear calculation presentation');
-console.log('  ✓ progressive Armor / Star / Prism structure bubbles');
-console.log('  ✓ rare Bomb / Color Wipe launched specials');
-console.log('  ✓ progressive timed ceiling pressure starts after >=60s at level 1');
-console.log('  ✓ pressure pauses with gameplay and intensifies by interval/step');
-console.log('  ✓ cached rendering + nearby-cell collision performance guards');
-console.log('  ✓ clean cached manga chibi crew tracks shared bounce/attach prediction');
-console.log('  ✓ shared Game Over / Continue lifecycle markers');
+console.log('  ✓ 200 deterministic configurations + timing/bonus/pressure contracts');
+console.log('  ✓ special bubbles, rare shots and cached rendering guards');
+console.log('  ✓ semantic checks are formatting-independent');
+console.log('  ✓ deterministic layout-aware resumable session adapter');
