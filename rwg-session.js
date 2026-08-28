@@ -3,12 +3,13 @@
 
   if (window.RWGSession) return;
 
-  const STORAGE_PREFIX = 'rwg.session.v1:';
-  const ENVELOPE_SCHEMA = 1;
-  const DIRTY_DEBOUNCE_MS = 900;
-  const HEARTBEAT_MS = 7000;
-  const MAX_SNAPSHOT_BYTES = 256 * 1024;
-  const FORCE_WRITE_REASONS = new Set(['hidden', 'pagehide', 'beforeunload', 'freeze', 'navigation', 'resumed']);
+  const STORAGE_PREFIX = 'rwg.session.v2:';
+  const LEGACY_PREFIXES = ['rwg.session.v1:'];
+  const ENVELOPE_SCHEMA = 2;
+  const DIRTY_DEBOUNCE_MS = 750;
+  const HEARTBEAT_MS = 5000;
+  const MAX_SNAPSHOT_BYTES = 384 * 1024;
+  const FORCE_WRITE_REASONS = new Set(['hidden', 'pagehide', 'beforeunload', 'freeze', 'navigation', 'resumed', 'pause']);
 
   let adapter = null;
   let saveTimer = 0;
@@ -37,6 +38,11 @@
     return adapter ? storageKeyFor(adapter.id) : '';
   }
 
+  function discardLegacy(gameId) {
+    const id = safeId(gameId);
+    for (const prefix of LEGACY_PREFIXES) storageRemove(`${prefix}${id}`);
+  }
+
   function readSaved() {
     if (!adapter) return null;
     const raw = storageGet(currentKey());
@@ -48,9 +54,14 @@
         envelope.schema !== ENVELOPE_SCHEMA ||
         envelope.gameId !== adapter.id ||
         envelope.adapterVersion !== adapter.version ||
+        envelope.compatibility !== adapter.compatibility ||
         !envelope.payload ||
         typeof envelope.payload !== 'object'
       ) {
+        storageRemove(currentKey());
+        return null;
+      }
+      if (adapter.validate(envelope.payload, envelope) === false) {
         storageRemove(currentKey());
         return null;
       }
@@ -70,10 +81,12 @@
     try {
       const payload = adapter.serialize();
       if (!payload || typeof payload !== 'object') return null;
+      if (adapter.validate(payload, null) === false) return null;
       return {
         schema: ENVELOPE_SCHEMA,
         gameId: adapter.id,
         adapterVersion: adapter.version,
+        compatibility: adapter.compatibility,
         savedAt: Date.now(),
         reason,
         payload
@@ -154,10 +167,7 @@
   }
 
   function startFresh() {
-    try {
-      if (typeof adapter?.startFresh === 'function') adapter.startFresh();
-      else document.getElementById('startBtn')?.click();
-    } catch (_) {}
+    try { adapter?.startFresh?.(); } catch (_) {}
   }
 
   function showPrompt(envelope) {
@@ -184,7 +194,7 @@
 
     yes.onclick = () => {
       let restored = false;
-      try { restored = adapter.restore(envelope.payload, envelope) !== false; } catch (_) { restored = false; }
+      try { restored = adapter.validate(envelope.payload, envelope) !== false && adapter.restore(envelope.payload, envelope) !== false; } catch (_) { restored = false; }
       if (!restored) {
         clearSaved();
         hidePrompt();
@@ -201,31 +211,32 @@
     requestAnimationFrame(() => yes.focus({ preventScroll: true }));
   }
 
+  function runHeartbeat() {
+    if (document.hidden || !isInProgress()) return;
+    const checkpoint = () => saveNow('heartbeat');
+    if ('requestIdleCallback' in window) window.requestIdleCallback(checkpoint, { timeout: 900 });
+    else setTimeout(checkpoint, 0);
+  }
+
   function register(nextAdapter) {
     if (!nextAdapter || typeof nextAdapter !== 'object') return false;
     const id = safeId(nextAdapter.id);
     const version = Number(nextAdapter.version);
-    if (!id || !Number.isInteger(version) || version < 1) return false;
-    if (typeof nextAdapter.serialize !== 'function' || typeof nextAdapter.restore !== 'function' || typeof nextAdapter.isInProgress !== 'function') return false;
+    const compatibility = String(nextAdapter.compatibility || '').trim();
+    if (!id || !Number.isInteger(version) || version < 1 || !compatibility || compatibility.length > 160) return false;
+    for (const method of ['serialize', 'restore', 'validate', 'isInProgress', 'startFresh']) {
+      if (typeof nextAdapter[method] !== 'function') return false;
+    }
 
-    adapter = { ...nextAdapter, id, version };
+    adapter = { ...nextAdapter, id, version, compatibility };
+    discardLegacy(id);
     clearInterval(heartbeatTimer);
-    heartbeatTimer = setInterval(() => {
-      if (!document.hidden && isInProgress()) saveNow('heartbeat');
-    }, HEARTBEAT_MS);
+    heartbeatTimer = setInterval(runHeartbeat, HEARTBEAT_MS);
 
     const saved = readSaved();
     if (saved) {
-      try {
-        if (typeof adapter.validate === 'function' && adapter.validate(saved.payload) === false) {
-          clearSaved();
-        } else {
-          requestAnimationFrame(() => showPrompt(saved));
-          return true;
-        }
-      } catch (_) {
-        clearSaved();
-      }
+      requestAnimationFrame(() => showPrompt(saved));
+      return true;
     }
 
     if (isInProgress()) scheduleSave('register');
@@ -250,15 +261,18 @@
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     forceLifecycleSave('navigation');
   }, true);
+  window.addEventListener('rwg:game-ended', clearSaved);
+  window.addEventListener('rwg:session-completed', clearSaved);
 
   window.RWGSession = Object.freeze({
     register,
     markDirty: scheduleSave,
+    checkpoint: saveNow,
     saveNow,
     clear: clearSaved,
     hasSaved: () => Boolean(readSaved()),
     storageKey: () => currentKey(),
-    config: Object.freeze({ dirtyDebounceMs: DIRTY_DEBOUNCE_MS, heartbeatMs: HEARTBEAT_MS, maxSnapshotBytes: MAX_SNAPSHOT_BYTES })
+    config: Object.freeze({ dirtyDebounceMs: DIRTY_DEBOUNCE_MS, heartbeatMs: HEARTBEAT_MS, maxSnapshotBytes: MAX_SNAPSHOT_BYTES, envelopeSchema: ENVELOPE_SCHEMA })
   });
 
   if (window.RWGResumeAdapter) register(window.RWGResumeAdapter);
