@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#070c25" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="canonical" href="https://www.retrowebgames.it/games/prism-breaker/" />
+  <link rel="icon" type="image/svg+xml" href="https://www.retrowebgames.it/favicon.svg" />
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <title>Prism Breaker — RetroWebGames</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../../orientation.css" />
+  <link rel="stylesheet" href="../../game-hud.css" />
+</head>
+<body data-rwg-game="true">
+  <main id="app">
+    <section id="hud" aria-live="polite">
+      <div><span>SCORE</span><strong id="score">0</strong></div>
+      <div><span>LEVEL</span><strong id="level">1</strong></div>
+      <div><span>VITE</span><strong id="lives">3</strong></div>
+    </section>
+    <div id="topbar">
+      <a class="icon-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
+      <button id="muteBtn" class="icon-btn" type="button" aria-label="Audio">🔊</button>
+      <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pausa">Ⅱ</button>
+    </div>
+    <section id="bossHud" hidden aria-live="polite">
+      <div class="boss-copy"><span id="bossName">BOSS</span><strong id="bossEnergyText">100%</strong></div>
+      <div class="boss-track"><i id="bossEnergy"></i></div>
+    </section>
+    <section id="gameWrap">
+      <canvas id="game" aria-label="Prism Breaker"></canvas>
+      <div id="statusPill" aria-live="polite">PRONTO</div>
+    </section>
+    <p class="gesture-hint">Trascina la barra • tap per lanciare • frecce / A-D su tastiera</p>
+    <section id="overlay" class="visible">
+      <div class="panel">
+        <p class="eyebrow">RETROWEBGAMES • BRICK BREAKER</p>
+        <h1>PRISM<br><span>BREAKER</span></h1>
+        <p id="overlayText">Distruggi strutture sempre diverse, raccogli power-up e affronta un boss ogni 10 livelli. 100 livelli originali, poi la campagna ricomincia più veloce.</p>
+        <div class="stats-line">BEST <strong id="best">0</strong></div>
+        <div class="rules"><span>100 LEVEL</span><span>10 BOSS</span><span>POWER-UP</span></div>
+        <button id="startBtn" class="primary-btn">GIOCA</button>
+        <a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
+        <p class="hint">Verticale • touch / mouse • autosalvataggio</p>
+      </div>
+    </section>
+  </main>
+  <script src="levels.js"></script>
+  <script src="bosses.js"></script>
+  <script src="engine.js"></script>
+  <script src="../../game-hud.js"></script>
+  <script src="../../orientation.js"></script>
+</body>
+</html>
