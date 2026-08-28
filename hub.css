@@ -277,6 +277,38 @@ h1 span { color: var(--pink); }
   line-height: 1.55;
   text-align: center;
 }
+
+.seo-discovery {
+  margin: 4px 0 22px;
+  padding: clamp(18px, 5vw, 26px);
+  border: 1px solid rgba(101, 231, 255, .2);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(11, 23, 48, .94), rgba(14, 11, 36, .9));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .04), 0 18px 44px rgba(0, 0, 0, .22);
+  color: #a8b7c9;
+  font-size: 11px;
+  line-height: 1.75;
+}
+.seo-discovery h2 {
+  margin: 3px 0 10px;
+  color: #f2f7ff;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-size: clamp(19px, 5vw, 25px);
+  line-height: 1.18;
+  letter-spacing: -.02em;
+}
+.seo-discovery p { margin: 0 0 12px; }
+.seo-discovery a { color: var(--cyan); text-underline-offset: 3px; }
+.seo-kicker { color: #72e7ff; font-size: 9px; letter-spacing: .2em; }
+.seo-discovery details { border-top: 1px solid rgba(255, 255, 255, .09); }
+.seo-discovery summary {
+  padding: 12px 24px 12px 0;
+  color: #dce8f7;
+  cursor: pointer;
+  font-weight: 700;
+}
+.seo-discovery details p { padding: 0 0 12px; color: #91a3b9; }
+
 footer {
   padding-top: 4px;
   color: #52657b;

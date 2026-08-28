@@ -185,6 +185,12 @@ This is a prototype persistence layer, not payment security. Future paid credits
 
 Every public page, including `/avatar/`, owns a complete static Open Graph and Twitter/X metadata set. Game intro share controls are injected once by the shared `game-hud.js` bootstrap through `rwg-intro-share.js`; games must not duplicate them. `scripts/validate-social-sharing.mjs` discovers the home page, standalone public pages and game pages so omissions fail repository validation.
 
+## SEO and generative discovery
+
+`scripts/seo-catalog.mjs` is the canonical inventory for search-facing game identity. `scripts/apply-seo.mjs` projects it into unique HTML metadata and static Schema.org graphs; runtime JavaScript is never required by a crawler. The home graph connects `Organization`, `WebSite`, `WebPage` and the complete game `ItemList`; each game graph adds its authoritative `VideoGame` and breadcrumb. Structured facts must remain visible, accurate and supported by the product.
+
+All game routes are indexable and permit large image/full snippet previews. `/avatar/` is a thin local editor and remains `noindex,follow`; `scripts/generate-sitemap.mjs` therefore excludes it and emits Git-derived `lastmod` dates for the ten canonical landing routes. Do not introduce hidden copy, keyword stuffing, doorway pages, fabricated ratings or `llms.txt` shortcuts. See `SEO-GEO.md` and run `node scripts/validate-seo-geo.mjs`.
+
 ## Future-game enforcement
 
 `scripts/validate-session.mjs` dynamically discovers every `games/*/index.html` with `data-rwg-game="true"`.
@@ -209,6 +215,7 @@ node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
 node scripts/validate-prism-breaker.mjs
 node scripts/validate-social-sharing.mjs
+node scripts/validate-seo-geo.mjs
 ```
 
 The validators cover architecture/invariants, not full gameplay correctness.

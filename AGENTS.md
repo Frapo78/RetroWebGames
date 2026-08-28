@@ -351,3 +351,14 @@ The home install UI is centralized in `pwa-install.js` and `pwa-install.css`. Ke
 ## Lazy-image contract — REQUIRED
 
 Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js` contract: `data-rwg-src`, explicit width/height, `loading="lazy"` and `decoding="async"`. Responsive sources use `data-rwg-srcset` and `data-rwg-sizes`. Reuse the same module in future sections instead of creating page-local observers. Dynamic markup is covered by its MutationObserver or `RWGLazyImages.observe(root)`. Run `node scripts/validate-lazy-images.mjs`.
+
+
+## SEO/GEO contract — REQUIRED
+
+- `scripts/seo-catalog.mjs` is the only search-facing game catalog. Add every future game there and regenerate with `node scripts/apply-seo.mjs`.
+- Public landing pages require unique people-first title/description, canonical HTTPS, preview-capable robots directives, `og:locale=it_IT` and truthful static JSON-LD.
+- Home owns `WebSite` identity and the complete nine-game `ItemList`; each game owns `VideoGame`, `WebPage` and `BreadcrumbList` nodes.
+- `/avatar/` remains `noindex,follow` and must not enter the sitemap unless it becomes a substantive public landing page.
+- Regenerate `sitemap.xml` with `node scripts/generate-sitemap.mjs`; keep only canonical indexable routes and truthful Git-derived `lastmod` dates. Do not add ignored `priority` or `changefreq` fields.
+- Never add hidden keyword copy, doorway pages, fabricated review/rating data, obsolete `meta keywords` or an unsupported `llms.txt` shortcut.
+- Run `node scripts/validate-seo-geo.mjs`; it is also mandatory through `validate-contracts.mjs`. See `docs/SEO-GEO.md`.

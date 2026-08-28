@@ -144,6 +144,10 @@ Il profilo anonimo persistente mantiene statistiche e saldo crediti nel browser.
 
 Home, editor avatar e pagine gioco espongono metadati statici Open Graph e Twitter/X. Le intro dei giochi ricevono dal bootstrap condiviso cinque azioni social icon-only, senza markup duplicato nei singoli giochi. Il contratto completo è in `docs/SOCIAL-SHARING.md`.
 
+## SEO e ricerca generativa
+
+Home e nove giochi hanno title/description unici, canonical HTTPS, direttive rich-preview e grafi JSON-LD Schema.org (`WebSite`, `WebPage`, `ItemList`, `VideoGame`, breadcrumb). `scripts/seo-catalog.mjs` è la sorgente centralizzata; `scripts/apply-seo.mjs` rigenera il markup in modo idempotente, `scripts/generate-sitemap.mjs` crea la sitemap con `lastmod` Git e `scripts/validate-seo-geo.mjs` impedisce regressioni. L’editor avatar è intenzionalmente `noindex,follow`. Strategia, fonti ufficiali e limiti sono in `docs/SEO-GEO.md`.
+
 ## Modalità verticale
 
 I giochi condividono un guard di orientamento per smartphone. In landscape la partita viene messa in pausa; tornando portrait viene mostrato il countdown `3 → 2 → 1 → GO!`.
@@ -160,6 +164,7 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `docs/SOLITAIRE.md` — source of truth Solitario;
 - `docs/PRISM-BREAKER.md` — source of truth Prism Breaker;
 - `docs/SOCIAL-SHARING.md` — metadati pubblici e condivisione dalle intro;
+- `docs/SEO-GEO.md` — strategia SEO/GEO, fonti e policy di indicizzazione;
 - `docs/WASM-EVALUATION.md` — criteri per eventuale WASM;
 - `scripts/validate-contracts.mjs` — validazione repository-wide;
 - `scripts/validate-session.mjs` — coverage automatica autosave presente/futuro;
@@ -167,6 +172,7 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `scripts/validate-solitaire.mjs` — invarianti Solitario;
 - `scripts/validate-prism-breaker.mjs` — invarianti campagna/boss/fisica Prism Breaker;
 - `scripts/validate-social-sharing.mjs` — copertura automatica metadati social.
+- `scripts/validate-seo-geo.mjs` — canonical, metadati unici e dati strutturati.
 
 Validazione completa:
 
@@ -184,6 +190,7 @@ node scripts/validate-prism-breaker.mjs
 node scripts/validate-social-sharing.mjs
 node scripts/validate-pwa-install.mjs
 node scripts/validate-lazy-images.mjs
+node scripts/validate-seo-geo.mjs
 ```
 
 ## Struttura essenziale
@@ -209,8 +216,12 @@ node scripts/validate-lazy-images.mjs
 │   ├── SOCIAL-SHARING.md
 │   ├── PWA-INSTALL.md
 │   ├── LAZY-IMAGES.md
+│   ├── SEO-GEO.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
+│   ├── seo-catalog.mjs
+│   ├── apply-seo.mjs
+│   ├── generate-sitemap.mjs
 │   ├── validate-contracts.mjs
 │   ├── validate-session.mjs
 │   ├── validate-bubble-burst.mjs
@@ -218,7 +229,8 @@ node scripts/validate-lazy-images.mjs
 │   ├── validate-prism-breaker.mjs
 │   ├── validate-social-sharing.mjs
 │   ├── validate-pwa-install.mjs
-│   └── validate-lazy-images.mjs
+│   ├── validate-lazy-images.mjs
+│   └── validate-seo-geo.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
