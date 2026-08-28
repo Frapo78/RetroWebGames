@@ -1,38 +1,33 @@
 # Solitario — variant architecture and Klondike contract
 
-Solitario is RetroWebGames' extensible card-game shell. The current playable variant is classic Klondike with a standard 52-card poker deck.
+Solitario is RetroWebGames' extensible card-game shell. The current playable variant is classic Klondike draw-one with a standard 52-card poker deck.
 
 ## Runtime files
 
 - `games/solitaire/index.html`
 - `games/solitaire/variants.js` — authoritative variant registry/configuration
 - `games/solitaire/card-art.js` — cached original classic French-suited SVG artwork
-- `games/solitaire/game.js` — current shared Solitaire runtime and resume-state adapter
+- `games/solitaire/input-guard.js` — browser gesture/zoom suppression for the game surface
+- `games/solitaire/game.js` — authoritative gameplay runtime and logical resume adapter
+- `games/solitaire/session-adapter.js` — persistence compatibility/version wrapper
 - `games/solitaire/style.css`
-- root `rwg-session.js` / `rwg-session.css` — shared autosave/resume infrastructure
+- root `rwg-session.js` / `rwg-session.css` — centralized autosave/resume infrastructure loaded by `game-hud.js`
 
-`variants.js` and `card-art.js` MUST load before `game.js`. For Solitario, the shared `rwg-session.js` is explicitly loaded immediately after the game runtime so a previous unfinished hand can be detected before ordinary shared HUD bootstrap completes. `game-hud.js` also owns a fallback session-service bootstrap for future resumable games.
+Load order is `variants.js` → `card-art.js` → `input-guard.js` → `game.js` → `session-adapter.js` → shared `game-hud.js` → `orientation.js`.
 
 ## Variant model
 
-Do not hard-code future variants into unrelated UI code. New variants should be registered in `variants.js` and either reuse the common engine rules or add a clearly isolated rules adapter.
+Do not hard-code future variants into unrelated UI code. New variants belong in `variants.js` and should reuse the common engine where possible or add a clearly isolated rules adapter.
 
 Current registry:
 
 - `klondike` — playable
 
-Reserved future directions currently documented by the registry:
-
-- Klondike draw-3
-- Spider
-- FreeCell
-- Pyramid
-
-These are roadmap entries, not claims of current playability.
+Reserved roadmap directions include Klondike draw-3, Spider, FreeCell and Pyramid. They are not claims of current playability.
 
 ## Current classic variant: Klondike draw-one
 
-Rules that MUST remain true unless the variant itself is intentionally changed:
+Rules that MUST remain true unless the variant is intentionally changed:
 
 - one 52-card deck;
 - four suits: spades, hearts, diamonds and clubs;
@@ -50,146 +45,163 @@ Rules that MUST remain true unless the variant itself is intentionally changed:
 
 ## Interaction
 
-The engine is mobile-first but also works with mouse/desktop input:
+The engine is mobile-first and also supports mouse/desktop input:
 
 - tap a movable card/sequence to select it, then tap a valid destination;
 - drag a card or valid tableau sequence directly to its destination;
 - double-tap a single eligible card to send it to its foundation;
-- `ANNULLA` restores card state, moves and score but deliberately does not rewind elapsed real play time;
+- `ANNULLA` restores card state, moves and score but does not rewind elapsed play time;
 - `AIUTO` highlights one legal immediate move without changing state;
 - `NUOVA` starts a fresh shuffled hand;
-- `pauseBtn` is mandatory because shared `orientation.js` uses it to pause/resume on smartphone rotation.
+- `pauseBtn` is mandatory because shared `orientation.js` uses it during smartphone rotation.
+
+### Draw pile ergonomics — CRITICAL
+
+Stock and waste are deliberately separated from the upper foundation row.
+
+- `#drawPileDock` is visually anchored in the **lower-right** portion of the game, immediately above the bottom controls.
+- The dock contains exactly two horizontal slots.
+- **Stock / draw pile is on the left.**
+- **Waste / currently turned card is on the right.**
+- The dock remains a DOM descendant of `#board` even though it is viewport-positioned. This preserves the existing delegated pointer/tap/drag/double-tap logic without adding duplicate card handlers.
+- The upper row retains two empty spacer columns, the live card-style selector and the four foundations so their established alignment does not shift unexpectedly.
+- The board reserves vertical space for the dock so the lower cards are not hidden behind it.
+
+Do not move stock/waste back to the upper row unless the interaction design is intentionally changed.
+
+### Browser zoom suppression — CRITICAL
+
+During Solitario gameplay, browser page zoom must not compete with card gestures, especially double tap.
+
+The page uses layered protection because no single browser mechanism is sufficient across mobile engines:
+
+1. viewport metadata fixes `initial-scale`, `minimum-scale` and `maximum-scale` to `1` and sets `user-scalable=no`;
+2. the game surface uses `touch-action:none` / `-ms-touch-action:none` and disables browser callout/selection behavior that interferes with gestures;
+3. `input-guard.js` prevents WebKit `gesturestart`, `gesturechange` and `gestureend`;
+4. native `dblclick` default behavior is prevented;
+5. multi-touch `touchstart`/`touchmove` pinch gestures are prevented;
+6. a same-area rapid `touchend` pair suppresses legacy double-tap zoom while leaving the game's Pointer Events double-tap logic intact;
+7. Ctrl/Meta + wheel zoom gestures are prevented while the game page is active.
+
+The game-level double tap is still handled by `game.js` and must continue to auto-send an eligible single card to its foundation. Browser zoom suppression MUST NOT replace or remove that game gesture.
 
 ## Resumable unfinished hand — CRITICAL
 
-An unfinished Solitario hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
+An unfinished hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
 
-Solitario exposes `window.RWGResumeAdapter` with a versioned state schema. The adapter serializes only the minimum authoritative hand state:
+Solitario exposes a logical `RWGResumeAdapter`; `session-adapter.js` wraps it with persistence version `2` and compatibility token `solitaire-klondike-state-v2-52cards-draw1`.
+
+Persisted authoritative state includes:
 
 - variant id;
-- stock and waste card order/visibility;
+- stock and waste order/visibility;
 - all four foundations;
 - all seven tableau columns and face-up state;
 - moves;
 - score;
 - elapsed play time.
 
-Undo history is intentionally not persisted. This keeps snapshots small and avoids multiplying the 52-card state dozens of times. After a restored hand, Undo begins accumulating again from the resumed state.
+Undo history is intentionally not persisted. After restore, Undo starts accumulating again from the resumed hand.
 
 ### Autosave cadence
 
-Storage orchestration is centralized in root `rwg-session.js`, not duplicated inside Solitario.
+Storage orchestration is centralized in root `rwg-session.js`.
 
-Current behavior:
+Current platform behavior:
 
-- discrete moves (`move`, stock draw/recycle, Undo, new deal) mark the session dirty;
-- dirty state is debounced by roughly **900 ms**, avoiding a localStorage write for every rapid interaction;
-- a lightweight checkpoint runs about every **7 seconds** while the game is active so elapsed time is also captured;
-- unchanged snapshots are not redundantly rewritten during ordinary autosave heartbeats;
-- a final synchronous checkpoint is forced on hidden/background, `pagehide`, `beforeunload`, Page Lifecycle `freeze`, and same-tab navigation such as returning to the menu;
-- no storage serialization/write occurs per animation frame.
+- meaningful card mutations call `RWGSession.markDirty()`;
+- dirty saves are debounced by **750 ms**;
+- an idle-friendly heartbeat checkpoints about every **5 seconds**;
+- unchanged logical snapshots are not redundantly rewritten during normal heartbeat saves;
+- synchronous checkpoints protect progress on hidden/background, `pagehide`, `beforeunload`, Page Lifecycle `freeze` and same-tab navigation;
+- no session write occurs per animation frame.
 
 ### Resume prompt
 
-When a compatible unfinished snapshot exists at the next Solitario launch, shared `rwg-session.js` shows a modal before normal play:
+When a compatible unfinished snapshot exists, shared `rwg-session.js` shows:
 
 **“Vuoi continuare la partita precedente?”**
 
-Buttons are side by side:
+- `No` — red, left: discards the snapshot and starts a new shuffled hand;
+- `Sì` — green, right: restores the hand without incrementing the deals counter.
 
-- `No` — red, on the left: permanently discards the old snapshot and immediately starts a new shuffled hand;
-- `Sì` — green, on the right: restores the saved hand exactly and resumes play without incrementing the deals counter.
-
-This resume is free and is completely unrelated to the one-credit Game Over Continue mechanism used by arcade games.
+This resume is free and unrelated to the one-credit arcade Game Over Continue mechanism.
 
 ### Snapshot validation
 
-A persisted hand is restored only if it passes structural validation. At minimum the runtime requires:
+Restore requires, at minimum:
 
-- exactly 52 card objects;
-- 52 unique canonical card ids;
+- platform/session compatibility checks;
+- matching Solitaire adapter version and compatibility token;
+- exactly 52 canonical card objects;
+- 52 unique ids;
 - valid suit/rank/id combinations;
 - stock cards face-down and waste cards face-up;
 - foundations ordered A→K in their own suit;
-- tableau has the correct number of columns;
-- no face-down card may appear below an exposed face-up sequence;
-- exposed tableau sequences remain valid descending alternating-color runs;
-- non-negative finite moves, score and elapsed time;
-- matching adapter/schema version.
+- seven valid tableau columns;
+- no face-down card below an exposed face-up sequence;
+- valid descending alternating-color exposed runs;
+- finite non-negative moves, score and elapsed time.
 
-Corrupt or incompatible snapshots are removed and a clean new deal is started rather than attempting a partial restore.
+Corrupt or incompatible snapshots are removed rather than partially repaired.
 
-The resumable snapshot is cleared on successful victory. Starting a deliberate new hand also replaces the previous snapshot with the fresh deal.
+The unfinished snapshot is cleared on victory. Starting a deliberate new hand also replaces the previous unfinished state with the new deal.
 
 ## Scoring and local statistics
 
-Klondike currently awards small positive values for reveals, foundation moves and useful tableau moves, while moving a foundation card back to tableau carries a penalty. Score is clamped to zero.
+Klondike awards small positive values for reveals, foundation moves and useful tableau moves, while moving a foundation card back to tableau carries a penalty. Score is clamped to zero.
 
-The client locally stores:
-
-- deals;
-- wins;
-- best completion time;
-- best score.
-
-This is local convenience data, not server-authoritative identity or competitive anti-cheat state.
+Local convenience statistics include deals, wins, best completion time and best score. They are not server-authoritative identity or anti-cheat state.
 
 ## Victory lifecycle
 
-Solitario currently has no forced terminal loss state: an unwinnable/undesired hand is abandoned by starting a new deal.
+Solitario has no forced terminal loss state: an unwinnable or unwanted hand is abandoned by starting a new deal.
 
-A completed Klondike hand uses a dedicated **victory** presentation rather than the shared `GAME OVER` component. Therefore victory MUST NOT emit `rwg:game-ended`, because that event semantically opens the terminal loss/Game Over flow.
-
-Victory also clears `RWGSession`'s unfinished-hand snapshot so a completed deal is never offered as resumable on the next launch.
-
-If RetroWebGames later gains a shared victory/results component, migrate this behavior intentionally rather than abusing `RWGGameOver`.
+A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:game-ended`, because that event opens the shared loss/Game Over flow. Victory clears the unfinished-hand snapshot.
 
 ## Performance
 
 The game intentionally uses DOM/CSS rather than Canvas:
 
 - at most 52 card nodes plus small UI elements are rendered;
-- whole-board rerender occurs only after discrete card-state changes, not every animation frame;
-- the animation frame loop updates only elapsed time;
-- event delegation is used for card interaction rather than attaching listeners to every card;
-- drag stacks use a temporary lightweight ghost;
+- the board rerenders only after discrete card-state changes;
+- the animation-frame loop updates elapsed time only;
+- card interaction uses event delegation rather than listeners on every card;
+- drag stacks use one temporary ghost;
 - resumable snapshots are small, throttled and centrally deduplicated;
-- no external dependency or card image asset is required.
+- no external card image dependency is required.
 
-## Classic card artwork
+## Card artwork
 
-The playable deck uses original inline SVG generated by `card-art.js`, with no external raster image or branded deck asset:
+`card-art.js` generates and caches original inline SVG artwork:
 
-- warm ivory card stock, fine border and restrained shadow;
+- warm ivory stock and traditional card proportions;
 - conventional black spades/clubs and red hearts/diamonds;
-- mirrored corner indices and standard pip counts/layouts for Ace through 10;
-- dedicated mirrored court portraits for Jack, Queen and King;
-- an enlarged ornamental Ace of Spades;
-- a symmetric red, blue and gold traditional card back.
+- mirrored corner indices and standard Ace–10 pip layouts;
+- mirrored Jack/Queen/King portraits;
+- ornamental Ace of Spades;
+- symmetric traditional card back.
 
-Face and back SVG strings are cached and reused by stock, waste, foundations, tableau and drag ghosts. Card geometry and interactive hitboxes remain owned by the existing DOM/CSS layout.
-
-### Selectable card sets
-
-The third upper-pile slot contains the live deck-style selector. It can be changed at any point during a hand without changing cards, move count, score, history or elapsed time, and the preference persists locally.
-Essential is the default for new users; an explicitly persisted Classic choice continues to be respected.
-
-- **Classic** retains standard pip layouts, ornamental Ace of Spades and mirrored J/Q/K portraits.
-- **Essential** retains the same French-suited symbols, serif typography, red/black palette, ivory stock and classic back, but intentionally has no pip field or court illustration. It shows only a large centered rank (`A, 2..10, J, Q, K`) and a large suit in the upper-left/lower-right corners.
-
-WASM is not useful for this game.
+The live card-style selector remains in the third upper slot. `Essential` is the default; an explicitly persisted `Classic` selection remains respected. Changing style does not restart or mutate the hand.
 
 ## Validation
 
-After Solitario/resume changes run:
+After Solitario changes run:
 
 ```bash
-node --check rwg-session.js
-node --check games/solitaire/variants.js
-node --check games/solitaire/card-art.js
+node --check games/solitaire/input-guard.js
 node --check games/solitaire/game.js
+node --check games/solitaire/session-adapter.js
 node scripts/validate-solitaire.mjs
 node scripts/validate-contracts.mjs
 ```
 
-Browser smoke tests must cover both decisions of the resume modal and at least one deliberate menu exit/reload path.
+Browser smoke tests should include:
+
+- rapid double taps on cards without page zoom;
+- pinch attempts without page zoom;
+- double tap on an eligible card still auto-foundations it;
+- stock tap/recycle in the lower-right dock;
+- drag/tap of the waste card from the lower-right dock;
+- dock placement on narrow and short portrait phones;
+- resume Yes/No after deliberate menu exit/reload.
