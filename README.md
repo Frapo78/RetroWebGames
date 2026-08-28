@@ -1,229 +1,197 @@
 # RetroWebGames
 
-**RetroWebGames** è una raccolta di piccoli giochi arcade mobile-first eseguiti direttamente nel browser. Il progetto nasce da Star Swarm ed è stato ampliato come raccolta di giochi pensata soprattutto per smartphone in verticale.
+**RetroWebGames** è una raccolta di giochi arcade mobile-first eseguiti direttamente nel browser.
 
 Sito ufficiale: `https://www.retrowebgames.it/`
 
 ## Giochi
 
 ### Star Swarm
-Space shooter originale ispirato al genere dei classici fixed shooter arcade.
-- controllo touch tramite trascinamento
-- fuoco automatico
-- campagna di almeno 100 livelli
-- nei primi 100 stage ogni livello usa una combinazione univoca formazione/ingresso, con seed, geometria, curve, ritardi e coreografie dedicate
-- ogni livello multiplo di 10 presenta prima una wave di scorta e poi un boss gigante
-- 10 boss differenti nei livelli 10, 20, …, 100, con forme, energia, movimento, IA e armi differenti
-- barra energia boss aggiornata in tempo reale, con stato critico e indicazione dello scudo quando previsto
-- pattern boss progressivi: raffiche mirate, ventagli, teletrasporto, anelli radiali, mine, homing, torrette, laser a corsia e a scansione, pattern combinati finali
-- dopo ogni boss appare una schermata arcade dedicata con riepilogo punti, vite, arma, POWER, wingmen e tempo boss, starfield in movimento e ripresa al tap
-- dopo il boss del livello 100 viene mostrato il completamento campagna e si sblocca la prosecuzione Overdrive
-- cinque fasce grafiche/resistenza dei nemici: Scout, Striker, Guardian, Armored e Dread, con HP crescenti lungo la campagna
-- vite, punteggio e high score locale
-- power-up giallo Rapid Fire temporaneo
-- power-up rosso Weapon Upgrade con 8 forme: Single Fire, Double Fire, Triple Diagonal Fire, 4 Fire Linear, Fireballs 3 Way, Laser, 3 Way Lasers e 5 Way Lasers
-- ogni avanzamento Weapon aggiunge anche un piccolo coefficiente di danno, da ×1,00 a ×1,21, indipendente dal livello POWER
-- POWER è la forza del singolo colpo ed è segmentato in 20 livelli, con 20 colori differenti; la curva resta circa nella precedente escursione di danno 1→10
-- il bonus POWER è più raro del precedente bilanciamento: base circa 1% per kill prima del moltiplicatore elite, massimo due drop POWER per stage
-- Weapon Upgrade resta raro ma non usa la rarità dimezzata per errore: base 0,86% sui commander/type-2 e 0,49% sugli altri, prima del moltiplicatore elite
-- Shield massimo uno per livello, capace di assorbire un colpo senza perdita vita/downgrade
-- alla perdita di una vita senza Shield: Weapon -2 forme e POWER -2 livelli
-- power-up verde Tractor Beam raro, al massimo uno ogni due livelli, per risucchiare fino a 2 navicelle nemiche
-- nemici catturati convertiti in wingmen che affiancano il player e sparano sempre in Single Fire base
-- wingmen vulnerabili a proiettili e collisioni nemiche
-- fireball e laser con comportamento e grafica propri
-- i laser attraversano ogni nemico colpito e continuano fino all'uscita dallo schermo; lo stesso laser colpisce ogni singolo bersaglio una sola volta
-- stato arma, POWER, Rapid Fire, Tractor Beam, Shield e numero di wingmen mostrati direttamente sul campo
-- terminal Game Over sempre delegato al componente condiviso con statistiche, achievement, share, Continue con 1 credito, Nuova partita e scelta altro gioco
-- particelle, vibrazione e Web Audio
+Space shooter originale con campagna di almeno 100 livelli, 10 boss, 8 forme Weapon, POWER 1..20, Shield, Tractor Beam, wingmen, boss-clear intermedi e Game Over condiviso.
 
 Percorso: `games/star-swarm/`
 
 ### Bubble Burst
-Bubble shooter originale con campagna procedurale deterministica e grafica arcade dedicata.
-- trascinamento per mirare e rilascio per sparare
-- traiettoria visualizzata e rimbalzi laterali
-- griglia esagonale a lookup locale
-- **200 configurazioni artistiche distinte**: 20 famiglie visive × 10 varianti, con difficoltà crescente
-- ogni layout calcola un proprio **tempo ottimale** in base a quantità di bolle, profondità, colori e special bubble
-- timer grande sotto l'HUD con centesimi: verde entro il tempo ottimale, arancione fino a 3,5× il tempo ottimale, rosso oltre
-- clear verde: bonus **+50%** sui punti del livello; clear arancione: **+25%**; clear rosso: nessun bonus tempo
-- a fine livello appare un riepilogo arcade intermedio con punti, tempo, bonus e totale, poi il gioco riprende al tap
-- combinazioni di almeno tre bolle dello stesso colore e caduta automatica dei gruppi non più collegati al soffitto
-- Armor Bubble dal livello 8: il primo match rompe la corazza
-- Star Bubble dal livello 18: quando eliminata genera un'esplosione locale
-- Prism Bubble dal livello 35: wildcard nei gruppi dello stesso colore
-- rara munizione **Bomba** dal livello 10, con esplosione locale e probabilità massima circa 3%
-- rara munizione **Color Wipe** dal livello 22, che cancella tutte le bolle del colore toccato e resta sotto circa il 2%
-- penalità con nuova riga dopo una serie di tiri senza combinazioni
-- la struttura scende periodicamente verso la danger line: dal livello 1 dopo almeno un minuto, poi sempre più rapidamente nei livelli avanzati
-- difficoltà crescente tramite geometrie, numero di colori, special bubble, limite errori, velocità di tiro e pressione temporale
-- due personaggi manga-chibi originali gestiscono il lanciatore e seguono con lo sguardo la traiettoria prevista
-- rendering ottimizzato con sprite Canvas cache, background cache e collisioni limitate alle celle vicine invece di scansioni complete della griglia
-- lifecycle Game Over/Continue delegato all'infrastruttura condivisa RetroWebGames
-- punteggio, livelli, high score locale, particelle, vibrazione e Web Audio
+Bubble shooter con 200 configurazioni deterministiche, timer/bonus per livello, pressione progressiva del soffitto, Armor/Star/Prism Bubble, Bomb, Color Wipe e level-clear arcade intermedi.
 
 Percorso: `games/bubble-burst/`
 
 ### Block Drop
-Falling-block puzzle originale ispirato ai classici giochi di incastro a blocchi.
-- campo 10×20
-- sette famiglie di pezzi distribuite con sistema 7-bag
-- spostamento, rotazione, soft drop e hard drop
-- piccoli wall-kick durante la rotazione
-- ghost piece
-- eliminazione da una a quattro linee contemporaneamente
-- punteggio moltiplicato per il livello
-- aumento di velocità ogni 10 linee
-- anteprima del prossimo pezzo
-- controlli touch e gesture
-- supporto tastiera su desktop
-- high score in `localStorage`
+Falling-block puzzle 10×20 con 7-bag, ghost piece, wall-kick, soft/hard drop, line clear, livelli progressivi e anteprima pezzo.
 
 Percorso: `games/block-drop/`
 
 ### Maze Munch
-Maze-chase originale ispirato ai grandi classici da sala giochi basati su labirinti e inseguimenti.
-- labirinto con punti e tunnel laterale
-- quattro inseguitori con strategie differenti
-- pathfinding sul labirinto
-- surge nodes e combo catture
-- bonus temporanei
-- vite, punteggio, livelli e high score
-- swipe, controlli touch e frecce/WASD
-- vibrazione e Web Audio
+Maze chase con quattro inseguitori, pathfinding, surge nodes, combo, bonus, vite e livelli.
 
 Percorso: `games/maze-munch/`
 
 ### Neon Rally
-Paddle duel originale ispirato ai classici giochi arcade a racchette e pallina.
-- campo verticale
-- racchetta touch
-- CPU adattiva
-- rimbalzi basati sul punto d'impatto
-- velocità crescente
-- primo a 7 punti
-- rally record
-- mouse e tastiera desktop
-- vibrazione e Web Audio
+Paddle duel verticale first-to-7 con CPU adattiva, rally record e velocità crescente.
 
 Percorso: `games/neon-rally/`
 
 ### Neon Snake
-Snake arcade originale con meccaniche aggiuntive.
-- griglia 20×28
-- swipe, pulsanti e frecce/WASD
-- combo fino a ×5
-- orb bonus e shield
-- ostacoli progressivi
-- accelerazione graduale
-- particelle, vibrazione e Web Audio
-- high score locale
+Snake arcade 20×28 con combo, bonus orb, Shield, ostacoli progressivi e accelerazione.
 
 Percorso: `games/neon-snake/`
 
 ### Neon Tilt
-Gravity maze originale progettato per sfruttare accelerometro e giroscopio dei telefoni moderni.
-- controllo principale tramite `DeviceOrientationEvent` in HTTPS
-- richiesta permesso sensori avviata dal tap dell'utente quando richiesta dal browser
-- calibrazione della posizione neutra e pulsante `CAL` per ricalibrare
-- filtro dell'input, dead-zone e limite di inclinazione
-- fallback completo tramite joystick touch sul canvas e frecce/WASD
-- 12 labirinti portrait 13×19 generati con seed deterministici e percorso garantito
-- cristalli obbligatori per aprire il portale
-- voragini, bumper, ghiaccio e boost direzionali
-- fisica con accelerazione, attrito, velocità massima, sub-step e collisioni circle/AABB
-- tre vite, punteggio, bonus tempo, livelli continui e high score
-- particelle, vibrazione e Web Audio
-- integrazione con portrait guard, HUD comune, profilo, crediti, continue e modal game-over
-- motore fisico separato in `physics.js`, pronto per un eventuale porting WebAssembly se il profiling reale lo renderà utile
+Gravity maze portrait con `DeviceOrientationEvent`, calibrazione, joystick touch/frecce di fallback, 12 labirinti deterministici, cristalli, pits, bumper, ghiaccio e boost.
 
 Percorso: `games/neon-tilt/`
 
 ### Solitario
-Gioco di carte progettato come contenitore multi-variante. La prima variante disponibile è il **Klondike classico pesca-1** con un mazzo standard da 52 carte.
-- sette colonne iniziali con carte coperte/scoperte secondo le regole Klondike
-- quattro fondazioni da costruire Asso → Re per seme
-- tableau decrescente con colori alternati
-- solo i Re possono entrare nelle colonne vuote
-- stock pesca-1 con riciclo degli scarti
-- spostamento di sequenze valide
-- tap, drag e doppio tap per inviare rapidamente le carte alle fondazioni
-- Undo con cronologia fino a 100 mosse
-- pulsante Aiuto che evidenzia una mossa legale senza modificare lo stato
-- timer, numero mosse, punteggio, miglior tempo e miglior punteggio locali
-- schermata vittoria dedicata con animazione di semi e statistiche
-- `variants.js` separa le regole dal runtime ed è già predisposto per future varianti come pesca-3, Spider, FreeCell e Piramide
+Klondike classico pesca-1 con 52 carte, sette colonne, quattro fondazioni, stock/scarti, drag/tap/doppio tap, Undo, hint, timer, punteggio e due stili di carte.
 
 Percorso: `games/solitaire/`
 
-## Condivisione
-La home include un dock di condivisione mobile-first con WhatsApp come azione principale e collegamenti rapidi a Facebook, X, Telegram e LinkedIn. Le pagine gioco dispongono inoltre dell'HUD condiviso e del riepilogo game-over con condivisione del risultato.
+## Autosalvataggio e ripresa — obbligatori su tutta la piattaforma
 
-## Modalità verticale
-Tutti i giochi condividono un guard di orientamento per smartphone. In landscape la partita viene messa in pausa e appare un avviso animato. Tornando portrait viene mostrato il countdown `3 → 2 → 1 → GO!` prima della ripresa.
+Ogni gioco attuale e futuro implementa la ripresa della partita non conclusa tramite il servizio centrale `RWGSession`.
+
+Il comportamento è uniforme:
+
+- autosalvataggio dopo mutazioni logiche importanti;
+- heartbeat centrale ogni 5 secondi per i giochi continui;
+- checkpoint su background, chiusura/reload, `pagehide`, `beforeunload`, `freeze` e normale navigazione interna;
+- alla riapertura del gioco compare **“Vuoi continuare la partita precedente?”**;
+- `No` rosso a sinistra elimina il vecchio snapshot e parte con una nuova partita;
+- `Sì` verde a destra ripristina gratuitamente lo stato salvato;
+- il sistema è indipendente dal Continue a 1 credito mostrato dopo Game Over.
+
+### Invalidazione automatica
+
+Lo storage usa il namespace:
+
+```text
+rwg.session.v2:<game-id>
+```
+
+Un salvataggio viene ripristinato solo se coincidono:
+
+1. schema dell'envelope centrale;
+2. game id;
+3. versione dell'adapter;
+4. compatibility token del gioco;
+5. validazione semantica dello snapshot.
+
+Qualsiasi incongruenza elimina automaticamente lo snapshot invece di tentare un ripristino rischioso.
+
+I giochi con contenuto deterministico effettuano controlli aggiuntivi: Bubble Burst verifica la signature del layout, Star Swarm la signature della campagna e l'identità del boss, Solitario verifica le 52 carte canoniche e la struttura Klondike.
+
+Il servizio condiviso evita scritture per frame: debounce attuale 750 ms, heartbeat 5 s tramite `requestIdleCallback` quando disponibile e limite snapshot 384 KiB.
+
+Vengono persistiti solo dati logici autorevoli; particelle, trail, cache Canvas, AudioContext, DOM e altri effetti ricostruibili restano esclusi.
+
+Source of truth: `docs/SESSION-PERSISTENCE.md`.
+
+## Futuri giochi: enforcement automatico
+
+`scripts/validate-session.mjs` scopre automaticamente ogni `games/*/index.html` con `data-rwg-game="true"`.
+
+Un nuovo gioco deve esporre prima di `game-hud.js` un `RWGResumeAdapter` completo con:
+
+```text
+id
+version
+compatibility
+isInProgress
+serialize
+validate
+restore
+startFresh
+```
+
+Il validator non usa una lista manuale: aggiungere un futuro gioco senza autosalvataggio fa fallire automaticamente la validazione del repository.
+
+## Servizi condivisi
+
+- `rwg-profile.js / .css` — profilo anonimo, statistiche e crediti prototipo;
+- `rwg-avatar.js / .css` — avatar;
+- `rwg-session.js / .css` — autosave/resume centralizzato;
+- `game-hud.js / .css` — bootstrap e HUD condivisi;
+- `game-over.js / .css` — Game Over, statistiche, achievement, share, Continue e replay;
+- `orientation.js / .css` — portrait guard e countdown di ripresa.
+
+I motori non devono duplicare questi servizi.
+
+## Game Over e Continue
+
+Quando una run termina davvero, il motore:
+
+- ferma la simulazione;
+- aggiorna i dati finali;
+- emette `rwg:game-ended`;
+- apre il Game Over condiviso.
+
+Il Game Over offre condivisione, statistiche, achievement, `Continua con 1`, nuova partita e ritorno alla raccolta.
+
+`RWGSession` free-resume e `rwg:continue-game` a credito sono due flussi distinti.
 
 ## Profilo, crediti e avatar
-Il client mantiene attualmente un profilo anonimo persistente nel browser con statistiche di gioco e saldo crediti. Ogni nuovo profilo riceve 10 crediti iniziali. Il sistema è già astratto per una futura autorità server-side e per l'integrazione acquisti. È disponibile anche un avatar personalizzabile e persistente nella pagina `avatar/`.
 
-## Identità visiva
-`favicon.svg` è l'icona vettoriale ufficiale. Il manifest include anche icone PNG 192×192, 512×512 e 512×512 maskable per l'installazione PWA. La moneta dei crediti usa una skin pixel-art originale con animazione continua in stile arcade.
+Il profilo anonimo persistente mantiene statistiche e saldo crediti nel browser. Ogni nuovo profilo riceve 10 crediti iniziali. Il wallet attuale è un prototipo client-side e non deve essere considerato autorità per futuri pagamenti reali.
+
+È disponibile anche un avatar personalizzabile nella pagina `avatar/`.
+
+## Modalità verticale
+
+I giochi condividono un guard di orientamento per smartphone. In landscape la partita viene messa in pausa; tornando portrait viene mostrato il countdown `3 → 2 → 1 → GO!`.
+
+Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non blocchi accelerometro/giroscopio.
 
 ## Guardrail e documentazione tecnica
 
-Il repository contiene contratti espliciti per evitare regressioni tra motori di gioco e servizi condivisi:
+- `AGENTS.md` — contratto machine-oriented obbligatorio;
+- `docs/ARCHITECTURE.md` — lifecycle e responsabilità condivise;
+- `docs/SESSION-PERSISTENCE.md` — source of truth autosave/resume e invalidazione;
+- `docs/STAR-SWARM.md` — source of truth Star Swarm;
+- `docs/BUBBLE-BURST.md` — source of truth Bubble Burst;
+- `docs/SOLITAIRE.md` — source of truth Solitario;
+- `docs/WASM-EVALUATION.md` — criteri per eventuale WASM;
+- `scripts/validate-contracts.mjs` — validazione repository-wide;
+- `scripts/validate-session.mjs` — coverage automatica autosave presente/futuro;
+- `scripts/validate-bubble-burst.mjs` — invarianti Bubble Burst;
+- `scripts/validate-solitaire.mjs` — invarianti Solitario.
 
-- `AGENTS.md` — istruzioni machine-oriented e invarianti obbligatorie per agenti/coding assistant
-- `docs/ARCHITECTURE.md` — lifecycle e responsabilità dei componenti condivisi
-- `docs/STAR-SWARM.md` — source of truth per campagna, boss, drop, Weapon/POWER/Shield/wingmen
-- `docs/BUBBLE-BURST.md` — source of truth per 200 layout, timing/bonus, special bubble, munizioni rare e performance
-- `docs/SOLITAIRE.md` — source of truth per architettura multi-variante e regole Klondike
-- `docs/WASM-EVALUATION.md` — decisione e soglie tecniche per un eventuale uso futuro di WebAssembly
-- `scripts/validate-contracts.mjs` — validatore statico anti-regressione repository-wide
-- `scripts/validate-bubble-burst.mjs` — guardrail specifici Bubble Burst
-- `scripts/validate-solitaire.mjs` — guardrail specifici Solitario
-
-Dopo modifiche architetturali o gameplay eseguire:
+Validazione completa:
 
 ```bash
 node scripts/validate-contracts.mjs
 ```
 
-Per modifiche Bubble Burst o Solitario eseguire inoltre il rispettivo validator:
+Validator specifici:
 
 ```bash
+node scripts/validate-session.mjs
 node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
 ```
 
-oltre a `node --check` sui JavaScript modificati.
-
-## Struttura
+## Struttura essenziale
 
 ```text
 /
 ├── AGENTS.md
 ├── README.md
 ├── index.html
-├── favicon.svg
-├── hub.css
-├── hub-games.css
-├── hub-share.css
-├── hub-share.js
 ├── rwg-profile.js / rwg-profile.css
 ├── rwg-avatar.js / rwg-avatar.css
+├── rwg-session.js / rwg-session.css
 ├── game-hud.js / game-hud.css
 ├── game-over.js / game-over.css
 ├── orientation.js / orientation.css
-├── manifest.webmanifest
 ├── docs/
 │   ├── ARCHITECTURE.md
+│   ├── SESSION-PERSISTENCE.md
 │   ├── STAR-SWARM.md
 │   ├── BUBBLE-BURST.md
 │   ├── SOLITAIRE.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
+│   ├── validate-session.mjs
 │   ├── validate-bubble-burst.mjs
 │   └── validate-solitaire.mjs
 ├── avatar/
@@ -236,23 +204,22 @@ oltre a `node --check` sui JavaScript modificati.
     ├── neon-snake/
     ├── neon-tilt/
     └── solitaire/
-        ├── index.html
-        ├── variants.js
-        ├── game.js
-        └── style.css
 ```
 
 ## Avvio locale
+
 Il progetto è statico e non ha dipendenze esterne:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Aprire poi `http://localhost:8080/`. I sensori di orientamento richiedono un secure context; per il test reale del tilt usare il dominio HTTPS o un ambiente locale considerato sicuro dal browser.
+Aprire `http://localhost:8080/`. Per il test reale dei sensori di Neon Tilt usare HTTPS o un ambiente considerato sicuro dal browser.
 
 ## Compatibilità
-L'interfaccia usa Canvas HTML5, DOM/CSS, Pointer Events, Web Audio API e, per Neon Tilt, Device Orientation Events. È ottimizzata per browser mobile moderni e mantiene fallback touch/tastiera quando necessario.
+
+Canvas HTML5, DOM/CSS, Pointer Events, Web Audio API e Device Orientation Events dove necessario. L'interfaccia è ottimizzata per browser mobile moderni con fallback touch/tastiera.
 
 ## Nota sui giochi originali
-RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non includono asset, marchi, personaggi o contenuti dei videogiochi commerciali a cui il gameplay può ricordare.
+
+RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non includono asset, marchi o personaggi dei videogiochi commerciali a cui il gameplay può ricordare.
