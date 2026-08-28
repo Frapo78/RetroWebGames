@@ -40,9 +40,18 @@
   <link rel="stylesheet" href="brand.css" />
   <link rel="stylesheet" href="hub-games.css" />
   <link rel="stylesheet" href="hub-share.css" />
+  <link rel="stylesheet" href="pwa-install.css" />
+  <script src="/pwa-install.js" defer></script>
   <script src="/rwg-analytics.js" defer></script>
 </head>
 <body>
+  <aside id="pwaInstallNotice" class="pwa-install-notice" hidden role="status" aria-live="polite" aria-label="Installa RetroWebGames">
+    <img class="pwa-install-icon" src="/icons/icon-192.png" width="40" height="40" alt="" />
+    <div class="pwa-install-copy"><strong>RWG sempre a portata di tap</strong><span>Aggiungilo alla Home e la sala giochi è subito lì.</span></div>
+    <button class="pwa-install-action" type="button" data-pwa-install>INSTALLA</button>
+    <button class="pwa-install-close" type="button" data-pwa-dismiss aria-label="Chiudi avviso installazione">×</button>
+    <p class="pwa-install-guidance" data-pwa-guidance hidden></p>
+  </aside>
   <main class="shell">
     <header class="hero">
       <p class="eyebrow">ARCADE MOBILE • ZERO INSTALLAZIONE</p>
@@ -88,6 +97,13 @@
         <div class="art prism-breaker-art" aria-hidden="true"><i class="pb-brick pbb1"></i><i class="pb-brick pbb2"></i><i class="pb-brick pbb3"></i><i class="pb-brick pbb4"></i><i class="pb-ball"></i><i class="pb-paddle"></i></div>
         <div class="card-copy"><small>BRICK BREAKER</small><h2>Prism Breaker</h2><p>100 strutture originali, power-up, brick speciali e un boss ogni dieci livelli.</p><div class="tags"><span class="tag">PADDLE</span><span class="tag">100 LEVEL</span><span class="tag">BOSS</span></div></div>
       </a>
+    </section>
+
+    <section id="pwaInstallCard" class="pwa-install-card" aria-labelledby="pwaInstallTitle">
+      <img class="pwa-install-icon" src="/icons/icon-192.png" width="52" height="52" alt="" loading="lazy" />
+      <div><h2 id="pwaInstallTitle">Porta la sala giochi in Home</h2><p>Un tap e sei dentro. Niente app pesanti: solo la scorciatoia e pochissimo spazio.</p></div>
+      <button class="pwa-install-action" type="button" data-pwa-install>INSTALLA LA WEB APP</button>
+      <p class="pwa-install-guidance" data-pwa-guidance hidden></p>
     </section>
 
     <p class="coming">RetroWebGames continua a crescere. L'architettura è pronta per aggiungere nuovi giochi senza cambiare l'esperienza di navigazione.</p>

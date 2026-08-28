@@ -341,3 +341,8 @@ The social validator inventory must cover home, every standalone public page (cu
 - Never send email, names, browser/profile fingerprints, payment identifiers, saved-game payloads or free-form user content to Analytics.
 - Any future game must remain measurable through shared lifecycle/HUD contracts; new marketing-relevant semantics should be exposed centrally rather than by duplicating GA code.
 - See `docs/ANALYTICS.md` and `scripts/validate-analytics.mjs`.
+
+
+## PWA install contract — REQUIRED
+
+The home install UI is centralized in `pwa-install.js` and `pwa-install.css`. Keep the 500 ms first-visit notice one-time via `rwg.pwa.install.notice.v1`, retain the persistent card after the game list, hide both in standalone mode, and never pretend iOS supports a programmable install prompt: its CTA must show Share → Add to Home Screen guidance. All Chromium install CTAs must consume the same deferred `beforeinstallprompt`; do not call it from duplicated handlers. Keep `sw.js` root-scoped and network-first so online deploys are not masked by stale cache. The home wordmark must remain complete on a transparent safety canvas and render with `object-fit: contain`, centered positioning, visible overflow and a page gutter. Run `node scripts/validate-pwa-install.mjs`.

@@ -25,6 +25,7 @@ Core navigation / acquisition:
 - `profile_open` — avatar/profile entry point.
 - `pwa_install_prompt` — installability prompt became available.
 - `pwa_install` — web app installed.
+- `pwa_install_cta` — install CTA outcome or platform-specific guidance shown.
 
 Gameplay funnel:
 

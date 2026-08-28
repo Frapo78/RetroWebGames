@@ -182,6 +182,7 @@ node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
 node scripts/validate-prism-breaker.mjs
 node scripts/validate-social-sharing.mjs
+node scripts/validate-pwa-install.mjs
 ```
 
 ## Struttura essenziale
@@ -205,6 +206,7 @@ node scripts/validate-social-sharing.mjs
 │   ├── SOLITAIRE.md
 │   ├── PRISM-BREAKER.md
 │   ├── SOCIAL-SHARING.md
+│   ├── PWA-INSTALL.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
@@ -212,7 +214,8 @@ node scripts/validate-social-sharing.mjs
 │   ├── validate-bubble-burst.mjs
 │   ├── validate-solitaire.mjs
 │   ├── validate-prism-breaker.mjs
-│   └── validate-social-sharing.mjs
+│   ├── validate-social-sharing.mjs
+│   └── validate-pwa-install.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
@@ -243,3 +246,7 @@ Canvas HTML5, DOM/CSS, Pointer Events, Web Audio API e Device Orientation Events
 ## Nota sui giochi originali
 
 RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica del progetto sono originali e non includono asset, marchi o personaggi dei videogiochi commerciali a cui il gameplay può ricordare.
+
+## Installazione PWA
+
+La home offre due superfici condivise e non invasive: un avviso slide-in dopo 500 ms, mostrato una sola volta per browser, e una card dopo la lista giochi. `pwa-install.js` conserva il prompt nativo Chromium, gestisce il completamento e fornisce la procedura obbligatoria Share → Aggiungi alla schermata Home su iOS. `sw.js` usa una cache network-first per mantenere freschi i deploy online e offrire un fallback offline. La wordmark home deriva dalla cover approvata e conserva margini trasparenti più un gutter CSS, così nessun glifo può essere tagliato. Contratti e limiti sono in `docs/PWA-INSTALL.md` e `scripts/validate-pwa-install.mjs`.

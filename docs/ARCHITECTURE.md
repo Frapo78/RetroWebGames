@@ -228,3 +228,7 @@ For resumable persistence test at least:
 7. intentionally stale/corrupt/version-mismatched storage, verifying safe discard rather than crash.
 
 Neon Tilt production responses must allow accelerometer/gyroscope through `Permissions-Policy`, and real sensor behavior still requires a physical-device test.
+
+## PWA installation flow
+
+The home owns the install-acquisition layer. `pwa-install.js` captures `beforeinstallprompt`, shows the first-visit notice after 500 ms only once, controls the persistent end-of-list card, hides both surfaces in standalone mode and provides an explicit iOS system-instruction fallback. `sw.js` is root-scoped and network-first, caching successful same-origin responses only for offline fallback. UI lives in `pwa-install.css`; games and shared Game Over must not duplicate install prompts. See `docs/PWA-INSTALL.md`.

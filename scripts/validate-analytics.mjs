@@ -12,6 +12,7 @@ const analytics = read('rwg-analytics.js');
 const hud = read('game-hud.js');
 const hub = read('index.html');
 const avatar = read('avatar/index.html');
+const pwaInstall = read('pwa-install.js');
 
 for (const marker of [
   "const MEASUREMENT_ID = 'G-ZSWLC4L8GW'",
@@ -46,6 +47,7 @@ must(hud.includes('rwg-analytics.js'), 'game-hud.js must bootstrap centralized a
 must(hud.includes('loadAnalytics();'), 'game-hud.js must initialize analytics as a platform contract');
 must(hub.includes('/rwg-analytics.js'), 'Hub must load centralized rwg-analytics.js');
 must(avatar.includes('/rwg-analytics.js'), 'Avatar page must load centralized rwg-analytics.js');
+must(pwaInstall.includes("'pwa_install_cta'"), 'PWA install CTAs must report their low-cardinality outcome');
 
 const gameDirs = fs.readdirSync(path.join(root, 'games'), { withFileTypes: true }).filter(e => e.isDirectory());
 for (const entry of gameDirs) {
