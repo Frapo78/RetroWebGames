@@ -86,6 +86,7 @@ Deterministic content should add stronger semantic checks when possible. Example
 - Bubble Burst stores and validates the current deterministic layout signature;
 - Star Swarm validates current campaign signature and boss identity;
 - Solitario validates exactly 52 unique canonical cards plus legal foundations/tableau visibility;
+- Prism Breaker validates its current deterministic stage signature, brick HP domain and boss identity/configuration;
 - fixed-grid games validate their dimensions, coordinates and object types.
 
 ## Mandatory adapter API
@@ -189,6 +190,7 @@ All current games are required to expose a resume adapter:
 - Neon Snake
 - Neon Tilt
 - Solitario
+- Prism Breaker
 
 `game-hud.js` boots the central service for every `data-rwg-game="true"` page.
 
