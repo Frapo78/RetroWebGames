@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Apply social metadata
-        run: node scripts/apply-social-cover.mjs
+        run: python3 scripts/apply-social-cover.py
       - name: Validate social metadata
         run: node scripts/validate-social-sharing.mjs
       - name: Validate repository contracts
