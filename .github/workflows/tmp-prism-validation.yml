@@ -1,0 +1,21 @@
+name: Temporary Prism Breaker validation
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Prism Breaker
+        run: node scripts/validate-prism-breaker.mjs
+      - name: Validate session coverage
+        run: node scripts/validate-session.mjs
+      - name: Validate repository contracts
+        run: node scripts/validate-contracts.mjs
