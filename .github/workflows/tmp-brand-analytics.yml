@@ -1,0 +1,151 @@
+name: One-shot brand icons and analytics
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install image tooling
+        run: python -m pip install --quiet pillow
+      - name: Generate icon family and wire shared analytics
+        shell: bash
+        run: |
+          python <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          import base64, io, json, re
+
+          root = Path('.')
+          cover = Image.open(root/'assets/social/retrowebgames-cover-1280.jpg').convert('RGB')
+          w,h = cover.size
+
+          # Exact RWG emblem area from the approved social cover, matching the user-provided crop.
+          box = (round(w*0.065), round(h*0.195), round(w*0.338), round(h*0.735))
+          badge = cover.crop(box)
+
+          def icon(size, scale=.94, bg=(5,8,22,255)):
+              canvas = Image.new('RGBA',(size,size),bg)
+              max_dim = int(size*scale)
+              ratio = min(max_dim/badge.width, max_dim/badge.height)
+              resized = badge.resize((max(1,round(badge.width*ratio)), max(1,round(badge.height*ratio))), Image.Resampling.LANCZOS)
+              x=(size-resized.width)//2; y=(size-resized.height)//2
+              canvas.paste(resized,(x,y))
+              return canvas
+
+          icons = root/'icons'; icons.mkdir(exist_ok=True)
+          for size in (16,32,48):
+              icon(size,.98).convert('RGB').save(icons/f'favicon-{size}.png',optimize=True)
+          icon(192,.94).convert('RGB').save(icons/'icon-192.png',optimize=True)
+          icon(512,.94).convert('RGB').save(icons/'icon-512.png',optimize=True)
+          icon(192,.72).convert('RGB').save(icons/'icon-maskable-192.png',optimize=True)
+          icon(512,.72).convert('RGB').save(icons/'icon-maskable-512.png',optimize=True)
+          icon(150,.78).convert('RGB').save(icons/'mstile-150x150.png',optimize=True)
+          icon(180,.84).convert('RGB').save(root/'apple-touch-icon.png',optimize=True)
+
+          ico = icon(256,.98)
+          ico.save(root/'favicon.ico',format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64)])
+
+          buf=io.BytesIO(); icon(256,.98).save(buf,format='PNG',optimize=True)
+          payload=base64.b64encode(buf.getvalue()).decode('ascii')
+          (root/'favicon.svg').write_text(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">\n'
+              f'  <image href="data:image/png;base64,{payload}" width="256" height="256"/>\n'
+              '</svg>\n', encoding='utf-8')
+
+          manifest=json.loads((root/'manifest.webmanifest').read_text())
+          manifest['icons']=[
+              {'src':'/icons/icon-192.png','sizes':'192x192','type':'image/png','purpose':'any'},
+              {'src':'/icons/icon-512.png','sizes':'512x512','type':'image/png','purpose':'any'},
+              {'src':'/icons/icon-maskable-192.png','sizes':'192x192','type':'image/png','purpose':'maskable'},
+              {'src':'/icons/icon-maskable-512.png','sizes':'512x512','type':'image/png','purpose':'maskable'},
+              {'src':'/favicon.svg','sizes':'any','type':'image/svg+xml','purpose':'any'}
+          ]
+          (root/'manifest.webmanifest').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+
+          icon_block='''  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+            <link rel="shortcut icon" href="/favicon.ico" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+            <meta name="msapplication-TileColor" content="#050816" />
+            <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />'''
+
+          pages=[root/'index.html',root/'avatar/index.html']+sorted((root/'games').glob('*/index.html'))
+          for page in pages:
+              text=page.read_text()
+              text=re.sub(r'^\s*<link rel="(?:icon|shortcut icon|apple-touch-icon)"[^>]*>\s*\n?', '', text, flags=re.M)
+              text=re.sub(r'^\s*<meta name="msapplication-(?:TileColor|TileImage)"[^>]*>\s*\n?', '', text, flags=re.M)
+              canonical=re.search(r'^(\s*<link rel="canonical"[^>]*>\s*)$',text,re.M)
+              if canonical:
+                  text=text[:canonical.end()]+"\n"+icon_block+text[canonical.end():]
+              else:
+                  text=text.replace('</head>',icon_block+'\n</head>',1)
+              page.write_text(text)
+
+          # Hub and avatar are not game-hud pages, so they load the same shared analytics module directly.
+          for page in (root/'index.html',root/'avatar/index.html'):
+              text=page.read_text()
+              if '/rwg-analytics.js' not in text:
+                  text=text.replace('</head>','  <script src="/rwg-analytics.js" defer></script>\n</head>',1)
+              page.write_text(text)
+
+          # Games inherit analytics automatically from their mandatory shared HUD bootstrap.
+          hud_path=root/'game-hud.js'; hud=hud_path.read_text()
+          if 'const loadAnalytics = () =>' not in hud:
+              needle="    const base = new URL('.', selfSrc);\n\n"
+              block="""    const loadAnalytics = () => {
+                if (window.RWGAnalytics || document.querySelector('script[data-rwg-analytics-script], script[src$=\"/rwg-analytics.js\"]')) return;
+                const script = document.createElement('script');
+                script.src = new URL('rwg-analytics.js', base).href;
+                script.dataset.rwgAnalyticsScript = 'true';
+                document.head.appendChild(script);
+              };
+
+          """
+              hud=hud.replace(needle,needle+block,1)
+              hud=hud.replace('    // Resumable sessions and intro sharing are platform-level contracts and bootstrap immediately.\n    loadSession();',
+                              '    // Analytics, resumable sessions and intro sharing are platform-level contracts and bootstrap immediately.\n    loadAnalytics();\n    loadSession();',1)
+              hud_path.write_text(hud)
+
+          contracts=root/'scripts/validate-contracts.mjs'; text=contracts.read_text()
+          old="['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs']"
+          new="['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs']"
+          if old in text: text=text.replace(old,new,1)
+          text=text.replace('Session, social sharing, Bubble Burst, Solitario and Prism Breaker specialized validators are green',
+                            'Session, social sharing, analytics, icons, Bubble Burst, Solitario and Prism Breaker specialized validators are green')
+          contracts.write_text(text)
+
+          agents=root/'AGENTS.md'; text=agents.read_text()
+          marker='## Analytics contract — CRITICAL'
+          if marker not in text:
+              text += '''\n\n## Analytics contract — CRITICAL\n\n- GA4 is centralized in `rwg-analytics.js` with measurement ID `G-ZSWLC4L8GW`.\n- Games inherit Analytics through mandatory `game-hud.js`; do not embed Google tag snippets in game engines/pages.\n- Hub/avatar load the same shared module directly.\n- Common funnel events (start, resume, Continue, level, end, engagement, exit, share, install) belong in the shared module.\n- Never send email, names, browser/profile fingerprints, payment identifiers, saved-game payloads or free-form user content to Analytics.\n- Any future game must remain measurable through shared lifecycle/HUD contracts; new marketing-relevant semantics should be exposed centrally rather than by duplicating GA code.\n- See `docs/ANALYTICS.md` and `scripts/validate-analytics.mjs`.\n'''
+              agents.write_text(text)
+          PY
+      - name: Validate analytics
+        run: node scripts/validate-analytics.mjs
+      - name: Validate icons
+        run: node scripts/validate-icons.mjs
+      - name: Validate repository
+        run: node scripts/validate-contracts.mjs
+      - name: Commit generated assets and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "Fra"
+          git config user.email "40823974+Frapo78@users.noreply.github.com"
+          git rm .github/workflows/tmp-brand-analytics.yml
+          git add -A
+          git commit -m "feat(platform): refresh app icons and add centralized GA4 analytics"
+          git push origin HEAD:main
