@@ -346,3 +346,8 @@ The social validator inventory must cover home, every standalone public page (cu
 ## PWA install contract — REQUIRED
 
 The home install UI is centralized in `pwa-install.js` and `pwa-install.css`. Keep the 2-second first-visit notice one-time via `rwg.pwa.install.notice.v1`, retain the persistent card after the game list, hide both in standalone mode, and never pretend iOS supports a programmable install prompt: detect iPhone/iPadOS, hide install buttons and show Share → Add to Home Screen guidance directly. All Chromium install CTAs must consume the same deferred `beforeinstallprompt`; do not call it from duplicated handlers. Keep `sw.js` root-scoped and network-first so online deploys are not masked by stale cache. The home wordmark must remain complete on a transparent safety canvas and render with `object-fit: contain`, centered positioning, visible overflow and a page gutter. Run `node scripts/validate-pwa-install.mjs`.
+
+
+## Lazy-image contract — REQUIRED
+
+Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js` contract: `data-rwg-src`, explicit width/height, `loading="lazy"` and `decoding="async"`. Responsive sources use `data-rwg-srcset` and `data-rwg-sizes`. Reuse the same module in future sections instead of creating page-local observers. Dynamic markup is covered by its MutationObserver or `RWGLazyImages.observe(root)`. Run `node scripts/validate-lazy-images.mjs`.

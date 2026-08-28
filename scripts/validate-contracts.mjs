@@ -198,7 +198,7 @@ must(agents.includes('exactly **8 firing forms**'), 'AGENTS.md must document Sta
 must(agents.includes('POWER range: **1..20**'), 'AGENTS.md must document Star Swarm 20-level POWER progression');
 must(agents.includes('Do not conflate these two systems'), 'AGENTS.md must retain Weapon vs POWER semantic guardrail');
 
-for (const rel of ['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs']) {
+for (const rel of ['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs','scripts/validate-lazy-images.mjs']) {
   const result = spawnSync(process.execPath, [path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: specialized validator failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -218,6 +218,6 @@ console.log(`  ✓ ${gamePages.length}/${gamePages.length} current games and fut
 console.log('  ✓ Star Swarm campaign/Weapon/POWER/drop/laser invariants are present');
 console.log('  ✓ shared bootstrap/profile/Game Over/session resilience invariants are intact');
 console.log('  ✓ Neon Tilt audited physics/compatibility guards are present');
-console.log('  ✓ Session, social sharing, analytics, icons, PWA install, Bubble Burst, Solitario and Prism Breaker specialized validators are green');
+console.log('  ✓ Session, social sharing, analytics, icons, PWA install, lazy images, Bubble Burst, Solitario and Prism Breaker specialized validators are green');
 console.log('  ✓ campaign uniqueness, boss roster and lifecycle pause guards are intact');
-console.log('  ✓ PWA install flow, icons and complete profile statistics are present');
+console.log('  ✓ PWA install flow, lazy images, icons and complete profile statistics are present');

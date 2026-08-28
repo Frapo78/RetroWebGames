@@ -49,7 +49,7 @@ must(attr(home,'og:image')===defaultImage,'Home must retain the global RetroWebG
 const brand=read('brand.css');
 const wordmarkRel='assets/brand/retrowebgames-wordmark.png';
 must(fs.existsSync(path.join(root,wordmarkRel)),'Transparent RetroWebGames wordmark asset missing');
-must(home.includes('<h1 class="hero-wordmark" aria-label="RetroWebGames"><img src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" decoding="async" /></h1>'),'Home must expose the accessible transparent RetroWebGames wordmark');
+must(home.includes('<h1 class="hero-wordmark" aria-label="RetroWebGames"><img data-rwg-src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" loading="lazy" decoding="async" /></h1>'),'Home must expose the accessible transparent RetroWebGames wordmark');
 must(home.includes('<link rel="stylesheet" href="brand.css" />'),'Home must load the dedicated brand wordmark stylesheet');
 must(!home.includes('<h1>RETRO<span>WEBGAMES</span></h1>'),'Legacy font-rendered home wordmark must not return');
 must(!brand.includes('background-image:'),'Home wordmark must never crop the social cover as a CSS background');

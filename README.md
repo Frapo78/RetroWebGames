@@ -183,6 +183,7 @@ node scripts/validate-solitaire.mjs
 node scripts/validate-prism-breaker.mjs
 node scripts/validate-social-sharing.mjs
 node scripts/validate-pwa-install.mjs
+node scripts/validate-lazy-images.mjs
 ```
 
 ## Struttura essenziale
@@ -207,6 +208,7 @@ node scripts/validate-pwa-install.mjs
 │   ├── PRISM-BREAKER.md
 │   ├── SOCIAL-SHARING.md
 │   ├── PWA-INSTALL.md
+│   ├── LAZY-IMAGES.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
@@ -215,7 +217,8 @@ node scripts/validate-pwa-install.mjs
 │   ├── validate-solitaire.mjs
 │   ├── validate-prism-breaker.mjs
 │   ├── validate-social-sharing.mjs
-│   └── validate-pwa-install.mjs
+│   ├── validate-pwa-install.mjs
+│   └── validate-lazy-images.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
@@ -250,3 +253,7 @@ RetroWebGames è un tributo ai generi arcade classici. Codice, nomi e grafica de
 ## Installazione PWA
 
 La home offre due superfici condivise e non invasive: un avviso slide-in dopo 2 secondi, mostrato una sola volta per browser, e una card dopo la lista giochi. `pwa-install.js` conserva il prompt nativo Chromium, gestisce il completamento e su iPhone/iPad nasconde i pulsanti non utilizzabili e mostra direttamente la procedura obbligatoria Condividi → Aggiungi alla schermata Home. `sw.js` usa una cache network-first per mantenere freschi i deploy online e offrire un fallback offline. La wordmark home deriva dalla cover approvata e conserva margini trasparenti più un gutter CSS, così nessun glifo può essere tagliato. Contratti e limiti sono in `docs/PWA-INSTALL.md` e `scripts/validate-pwa-install.mjs`.
+
+## Caricamento immagini condiviso
+
+La home usa `rwg-lazy-images.js` per caricare tutte le immagini soltanto quando si avvicinano al viewport. Il modulo supporta contenuti inseriti dinamicamente, fallback senza IntersectionObserver e un’API riutilizzabile nelle altre sezioni. Il markup conserva sempre dimensioni intrinseche, `loading="lazy"`, `decoding="async"` e la sorgente differita in `data-rwg-src`. Vedi `docs/LAZY-IMAGES.md` e `scripts/validate-lazy-images.mjs`.

@@ -41,12 +41,13 @@
   <link rel="stylesheet" href="hub-games.css" />
   <link rel="stylesheet" href="hub-share.css" />
   <link rel="stylesheet" href="pwa-install.css" />
+  <script src="/rwg-lazy-images.js" defer></script>
   <script src="/pwa-install.js" defer></script>
   <script src="/rwg-analytics.js" defer></script>
 </head>
 <body>
   <aside id="pwaInstallNotice" class="pwa-install-notice" hidden role="status" aria-live="polite" aria-label="Installa RetroWebGames">
-    <img class="pwa-install-icon" src="/icons/icon-192.png" width="40" height="40" alt="" />
+    <img class="pwa-install-icon" data-rwg-src="/icons/icon-192.png" width="40" height="40" alt="" loading="lazy" decoding="async" />
     <div class="pwa-install-copy"><strong>RWG sempre a portata di tap</strong><span>Aggiungilo alla Home e la sala giochi è subito lì.</span></div>
     <button class="pwa-install-action" type="button" data-pwa-install>INSTALLA</button>
     <button class="pwa-install-close" type="button" data-pwa-dismiss aria-label="Chiudi avviso installazione">×</button>
@@ -55,7 +56,7 @@
   <main class="shell">
     <header class="hero">
       <p class="eyebrow">ARCADE MOBILE • ZERO INSTALLAZIONE</p>
-      <h1 class="hero-wordmark" aria-label="RetroWebGames"><img src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" decoding="async" /></h1>
+      <h1 class="hero-wordmark" aria-label="RetroWebGames"><img data-rwg-src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" loading="lazy" decoding="async" /></h1>
       <p class="intro">Una piccola sala giochi nel browser, costruita per lo smartphone. Scegli un titolo e gioca subito: controlli touch, partite veloci e record salvati sul dispositivo.</p>
       <div class="counter">9 GIOCHI DISPONIBILI</div>
     </header>
@@ -100,7 +101,7 @@
     </section>
 
     <section id="pwaInstallCard" class="pwa-install-card" aria-labelledby="pwaInstallTitle">
-      <img class="pwa-install-icon" src="/icons/icon-192.png" width="52" height="52" alt="" loading="lazy" />
+      <img class="pwa-install-icon" data-rwg-src="/icons/icon-192.png" width="52" height="52" alt="" loading="lazy" decoding="async" />
       <div><h2 id="pwaInstallTitle">Porta la sala giochi in Home</h2><p>Un tap e sei dentro. Niente app pesanti: solo la scorciatoia e pochissimo spazio.</p></div>
       <button class="pwa-install-action" type="button" data-pwa-install>INSTALLA LA WEB APP</button>
       <p class="pwa-install-guidance" data-pwa-guidance hidden></p>

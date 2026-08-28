@@ -232,3 +232,7 @@ Neon Tilt production responses must allow accelerometer/gyroscope through `Permi
 ## PWA installation flow
 
 The home owns the install-acquisition layer. `pwa-install.js` captures `beforeinstallprompt`, shows the first-visit notice after 2 seconds only once, controls the persistent end-of-list card, hides both surfaces in standalone mode and detects iPhone and modern desktop-UA iPadOS, hides non-functional install buttons there and shows the system instructions directly. `sw.js` is root-scoped and network-first, caching successful same-origin responses only for offline fallback. UI lives in `pwa-install.css`; games and shared Game Over must not duplicate install prompts. See `docs/PWA-INSTALL.md`.
+
+## Shared lazy-image layer
+
+`rwg-lazy-images.js` is the reusable public-page image loader. Home images expose `data-rwg-src` rather than eager `src`, reserve width/height, and keep native lazy/async hints. A 280 px IntersectionObserver margin prefetches near-viewport images; the fallback loads immediately, while MutationObserver and `RWGLazyImages.observe(root)` cover dynamically inserted sections. See `docs/LAZY-IMAGES.md`.
