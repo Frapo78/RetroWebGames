@@ -1,0 +1,38 @@
+name: Temporary social cover migration
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply social metadata
+        run: node scripts/apply-social-cover.mjs
+      - name: Validate social metadata
+        run: node scripts/validate-social-sharing.mjs
+      - name: Validate repository contracts
+        run: node scripts/validate-contracts.mjs
+      - name: Commit generated metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html games/*/index.html docs/SOCIAL-SHARING.md AGENTS.md scripts/validate-social-sharing.mjs scripts/validate-contracts.mjs
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "feat(social): add global share cover metadata"
+            git push origin main
+          fi
