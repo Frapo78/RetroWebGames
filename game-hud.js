@@ -23,6 +23,22 @@
       }
     };
 
+    const loadIntroShare = () => {
+      if (!document.querySelector('link[data-rwg-intro-share-style]')) {
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = new URL('rwg-intro-share.css', base).href;
+        style.dataset.rwgIntroShareStyle = 'true';
+        document.head.appendChild(style);
+      }
+      if (!document.querySelector('script[data-rwg-intro-share-script]')) {
+        const script = document.createElement('script');
+        script.src = new URL('rwg-intro-share.js', base).href;
+        script.dataset.rwgIntroShareScript = 'true';
+        document.body.appendChild(script);
+      }
+    };
+
     const loadGameOver = () => {
       if (!document.querySelector('link[data-rwg-game-over-style]')) {
         const style = document.createElement('link');
@@ -76,8 +92,9 @@
       document.body.appendChild(profileScript);
     };
 
-    // Resumable sessions do not depend on profile/avatar/Game Over and must bootstrap immediately.
+    // Resumable sessions and intro sharing are platform-level contracts and bootstrap immediately.
     loadSession();
+    loadIntroShare();
     ensureProfileThenExtras();
   }
 
