@@ -5,6 +5,8 @@
   if (!Variants?.get) throw new Error('Solitaire variants module missing');
   const CardArt = window.RWGSolitaireCardArt;
   if (!CardArt?.getCardFaceSvg || !CardArt?.getCardBackSvg) throw new Error('Solitaire card-art module missing');
+  const AutoMove = window.RWGSolitaireAutoMove;
+  if (!AutoMove?.chooseNext) throw new Error('Solitaire auto-move module missing');
 
   const $ = id => document.getElementById(id);
   const board = $('board');
@@ -40,6 +42,7 @@
   const CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1';
   const HISTORY_LIMIT = 100;
   const RESUME_SCHEMA = 1;
+  const AUTO_MOVE_DURATION_MS = 210;
 
   let variant = Variants.get(Variants.DEFAULT_ID);
   let stock = [];
@@ -60,6 +63,8 @@
   let hintTimer = 0;
   let pointerDrag = null;
   let lastTap = { key: '', at: 0 };
+  let autoMoveCursor = null;
+  let autoMoveLocked = false;
   let stats = loadStats();
   let cardStyle = loadCardStyle();
 
@@ -132,6 +137,13 @@
     foundations = { s: [], h: [], d: [], c: [] };
   }
 
+  function resetAutoMoveCycle() {
+    autoMoveCursor = null;
+    autoMoveLocked = false;
+    lastTap = { key: '', at: 0 };
+    board.classList.remove('auto-move-active');
+  }
+
   function newGame() {
     window.RWGSession?.clear?.();
     variant = Variants.get(variantSelect?.value || Variants.DEFAULT_ID);
@@ -144,6 +156,7 @@
     running = true;
     paused = false;
     won = false;
+    resetAutoMoveCycle();
     lastFrame = performance.now();
     lastTimerSecond = -1;
     stats.deals++;
@@ -180,6 +193,7 @@
     moves = state.moves;
     score = state.score;
     selected = null;
+    resetAutoMoveCycle();
     render();
     markSessionDirty('undo');
     showToast('MOSSA ANNULLATA');
@@ -190,6 +204,7 @@
     if (!stock.length && !waste.length) return;
     pushHistory();
     selected = null;
+    resetAutoMoveCycle();
     if (stock.length) {
       for (let i = 0; i < variant.drawCount && stock.length; i++) {
         const card = stock.pop();
@@ -281,7 +296,7 @@
     return 0;
   }
 
-  function performMove(source, target, { silentInvalid = false } = {}) {
+  function performMove(source, target, { silentInvalid = false, preserveAutoCycle = false } = {}) {
     const cards = getSourceCards(source);
     if (!cards?.length || !target) return false;
     const valid = target.type === 'tableau'
@@ -293,6 +308,8 @@
       if (!silentInvalid) showToast('MOSSA NON VALIDA');
       return false;
     }
+
+    if (!preserveAutoCycle) resetAutoMoveCycle();
 
     pushHistory();
     const movedCards = removeSource(source, cards.length);
@@ -309,10 +326,72 @@
     return true;
   }
 
-  function autoFoundation(source) {
+  function cardElementById(cardId) {
+    return board.querySelector(`.playing-card[data-card-id="${cardId}"]`);
+  }
+
+  function captureCardRects(cards) {
+    return new Map(cards.map(card => [card.id, cardElementById(card.id)?.getBoundingClientRect()]).filter(([, rect]) => rect));
+  }
+
+  function finishAutoMoveAnimation(elements) {
+    for (const element of elements) element.classList.remove('auto-moving-card');
+    autoMoveLocked = false;
+    board.classList.remove('auto-move-active');
+  }
+
+  function animateAutoMove(cards, fromRects) {
+    const elements = cards.map(card => cardElementById(card.id)).filter(Boolean);
+    if (!elements.length || typeof elements[0].animate !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishAutoMoveAnimation(elements);
+      return;
+    }
+
+    const animations = [];
+    for (const element of elements) {
+      const from = fromRects.get(element.dataset.cardId);
+      const to = element.getBoundingClientRect();
+      if (!from || (!Math.abs(from.left - to.left) && !Math.abs(from.top - to.top))) continue;
+      element.classList.add('auto-moving-card');
+      const animation = element.animate([
+        { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(.985)`, filter: 'brightness(1.14)' },
+        { transform: 'translate(0, 0) scale(1)', filter: 'brightness(1)' }
+      ], { duration: AUTO_MOVE_DURATION_MS, easing: 'cubic-bezier(.2,.82,.25,1)', fill: 'none' });
+      animations.push(animation.finished.catch(() => {}));
+    }
+
+    if (!animations.length) return finishAutoMoveAnimation(elements);
+    Promise.all(animations).finally(() => finishAutoMoveAnimation(elements));
+  }
+
+  function autoMoveCard(source) {
+    if (autoMoveLocked) return false;
     const cards = getSourceCards(source);
-    if (!cards || cards.length !== 1) return false;
-    return performMove(source, { type: 'foundation', suit: cards[0].suit }, { silentInvalid: true });
+    if (!cards?.length) return false;
+    const leadCard = cards[0];
+    const choice = AutoMove.chooseNext({
+      card: leadCard,
+      tableauColumns: tableau.length,
+      cursor: autoMoveCursor,
+      isLegal: target => target.type === 'foundation'
+        ? canMoveToFoundation(cards, target.suit)
+        : !(source.type === 'tableau' && source.col === target.col) && canMoveToTableau(cards, target.col)
+    });
+    if (!choice) {
+      autoMoveCursor = null;
+      return false;
+    }
+
+    const fromRects = captureCardRects(cards);
+    autoMoveLocked = true;
+    board.classList.add('auto-move-active');
+    if (!performMove(source, choice.target, { silentInvalid: true, preserveAutoCycle: true })) {
+      finishAutoMoveAnimation([]);
+      return false;
+    }
+    autoMoveCursor = choice.cursor;
+    animateAutoMove(cards, fromRects);
+    return true;
   }
 
   function sourceFromElement(el) {
@@ -342,7 +421,11 @@
 
     if (source && key && lastTap.key === key && now - lastTap.at < 340) {
       lastTap = { key: '', at: 0 };
-      if (autoFoundation(source)) return;
+      if (!autoMoveCard(source)) {
+        selected = null;
+        render();
+      }
+      return;
     }
     lastTap = { key, at: now };
 
@@ -366,8 +449,8 @@
   }
 
   function cardMarkup(card, attrs = '', extraClass = '', top = 0, z = 1) {
-    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="Carta coperta">${CardArt.getCardBackSvg()}</div>`;
-    return `<div class="playing-card face-up ${cardColor(card)} ${extraClass}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="${cardLabel(card)}">${cardInner(card)}</div>`;
+    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" data-card-id="${card.id}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="Carta coperta">${CardArt.getCardBackSvg()}</div>`;
+    return `<div class="playing-card face-up ${cardColor(card)} ${extraClass}" data-card-id="${card.id}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="${cardLabel(card)}">${cardInner(card)}</div>`;
   }
 
   function selectedClass(source) {
@@ -589,6 +672,7 @@
     if (!running || won) return;
     paused = !paused;
     selected = null;
+    resetAutoMoveCycle();
     pauseBtn.textContent = paused ? '▶' : 'Ⅱ';
     pauseBtn.setAttribute('aria-label', paused ? 'Riprendi' : 'Pausa');
     lastFrame = performance.now();
@@ -689,6 +773,7 @@
     score = Math.floor(Number(state.score));
     elapsed = Number(state.elapsed);
     selected = null;
+    resetAutoMoveCycle();
     history = [];
     pointerDrag?.ghost?.remove();
     pointerDrag = null;
@@ -726,7 +811,7 @@
   window.RWGSession?.register?.(resumeAdapter);
 
   board.addEventListener('pointerdown', event => {
-    if (!running || paused || won) return;
+    if (!running || paused || won || autoMoveLocked) return;
     const source = sourceFromElement(event.target);
     const cards = getSourceCards(source);
     if (!source || !cards?.length) return;

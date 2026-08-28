@@ -10,7 +10,7 @@ const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
 
-for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
+for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/auto-move.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -18,7 +18,7 @@ for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitai
 const html = read('games/solitaire/index.html');
 must(html.includes('data-rwg-game="true"'), 'Solitaire page must use shared RWG game contract');
 must(html.includes('minimum-scale=1') && html.includes('maximum-scale=1') && html.includes('user-scalable=no'), 'Solitaire viewport must explicitly disable browser scaling');
-must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/game load order is invalid');
+must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('auto-move.js') && html.indexOf('auto-move.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/auto-move/game load order is invalid');
 must(html.indexOf('game.js') < html.indexOf('session-adapter.js') && html.indexOf('session-adapter.js') < html.indexOf('../../game-hud.js'), 'Solitaire versioning adapter must load after game.js and before shared HUD');
 must(!html.includes('../../rwg-session.js') && !html.includes('../../rwg-session.css'), 'Solitaire must rely on centralized game-hud session bootstrap, not page-local shared-service preload');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared lifecycle');
@@ -26,6 +26,7 @@ must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose Klondi
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain return-to-menu action');
 must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets');
 must(html.includes('value="essential" selected'), 'Essential card set must remain markup default');
+must(html.includes('doppio tap per mossa automatica'), 'Solitaire intro must explain the expanded automatic double-tap gesture');
 
 const boardStart = html.indexOf('<section id="board"');
 const boardEnd = html.indexOf('</section>', boardStart);
@@ -66,6 +67,20 @@ must(classic?.emptyTableau === 'king-only', 'Only Kings may enter empty tableau 
 must(classic?.foundationBuild === 'same-suit-ascending', 'Foundation rule changed');
 must(Array.isArray(registry?.FUTURE) && registry.FUTURE.length >= 3, 'Variant registry must remain extensible');
 
+const autoSandbox = { window: {} };
+vm.createContext(autoSandbox);
+vm.runInContext(read('games/solitaire/auto-move.js'), autoSandbox, { filename: 'solitaire/auto-move.js' });
+const autoMove = autoSandbox.window.RWGSolitaireAutoMove;
+must(typeof autoMove?.chooseNext === 'function', 'Solitaire auto-move resolver missing');
+const redThree = { id: 'h3', suit: 'h', rank: 3 };
+const firstChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: target => target.type === 'tableau' && (target.col === 0 || target.col === 2) });
+const secondChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: firstChoice?.cursor, isLegal: target => target.type === 'tableau' && (target.col === 0 || target.col === 2) });
+const wrappedChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: secondChoice?.cursor, isLegal: target => target.type === 'tableau' && (target.col === 0 || target.col === 2) });
+must(firstChoice?.target?.col === 0 && secondChoice?.target?.col === 2 && wrappedChoice?.target?.col === 0, 'Repeated double taps must cycle through multiple legal tableau destinations');
+const foundationChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: target => target.type === 'foundation' || target.col === 0 });
+must(foundationChoice?.target?.type === 'foundation', 'Automatic move must retain foundation-first ordering when legal');
+must(autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: () => false }) === null, 'Automatic move must be a no-op when no legal destination exists');
+
 const artSandbox = { window: {} };
 vm.createContext(artSandbox);
 vm.runInContext(read('games/solitaire/card-art.js'), artSandbox, { filename: 'solitaire/card-art.js' });
@@ -86,7 +101,7 @@ for (const rank of [1,6,10,11,12,13]) {
 }
 
 const game = read('games/solitaire/game.js');
-for (const marker of ['createDeck()','canMoveToTableau','canMoveToFoundation','drawStock','autoFoundation','pushHistory','undo()','findHint()','pointerdown','visibilitychange','checkWin()']) must(game.includes(marker), `Solitaire runtime missing: ${marker}`);
+for (const marker of ['createDeck()','canMoveToTableau','canMoveToFoundation','drawStock','autoMoveCard','animateAutoMove','captureCardRects','pushHistory','undo()','findHint()','pointerdown','visibilitychange','checkWin()']) must(game.includes(marker), `Solitaire runtime missing: ${marker}`);
 must(game.includes('return first.rank === 13'), 'Empty-tableau rule must remain King-only');
 must(game.includes('top.rank === first.rank + 1') && game.includes('cardColor(top) !== cardColor(first)'), 'Tableau rule changed');
 must(game.includes('card.rank === foundations[suit].length + 1'), 'Foundation rule changed');
@@ -97,6 +112,9 @@ must(game.includes('CardArt.getCardFaceSvg(card, cardStyle)') && game.includes('
 must(game.includes("CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1'"), 'Card style persistence key changed');
 must(game.includes("localStorage.getItem(CARD_STYLE_KEY) === 'classic' ? 'classic' : 'essential'"), 'Essential card set must remain runtime default');
 must(game.includes("board.addEventListener('pointerdown'"), 'Card pointer delegation must remain rooted at #board so the fixed draw dock stays interactive');
+must(game.includes('AutoMove.chooseNext') && game.includes('preserveAutoCycle: true'), 'Double tap must resolve and preserve cyclic legal destinations through the shared move transaction');
+must(game.includes('data-card-id=') && game.includes('AUTO_MOVE_DURATION_MS = 210'), 'Automatic moves must retain stable card identity and fast FLIP animation timing');
+must(game.includes("matchMedia('(prefers-reduced-motion: reduce)').matches"), 'Automatic card movement must respect reduced-motion preference');
 
 for (const marker of ['RESUME_SCHEMA = 1','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
 must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Resume validation must require exactly 52 unique cards');
@@ -131,6 +149,7 @@ console.log('Solitaire validation OK');
 console.log('  ✓ classic Klondike rules and card artwork');
 console.log('  ✓ browser zoom gestures blocked by viewport + CSS + JS guard');
 console.log('  ✓ stock/waste docked bottom-right as left/right pair');
+console.log('  ✓ cyclic double-tap auto-move with reduced-motion-safe FLIP animation');
 console.log('  ✓ validated 52-card logical snapshot');
 console.log('  ✓ centralized RWGSession v2 bootstrap and compatibility token');
 console.log('  ✓ dirty moves + 5s heartbeat + safe restore semantics');

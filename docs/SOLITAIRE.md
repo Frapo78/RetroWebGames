@@ -8,12 +8,13 @@ Solitario is RetroWebGames' extensible card-game shell. The current playable var
 - `games/solitaire/variants.js` — authoritative variant registry/configuration
 - `games/solitaire/card-art.js` — cached original classic French-suited SVG artwork
 - `games/solitaire/input-guard.js` — browser gesture/zoom suppression for the game surface
+- `games/solitaire/auto-move.js` — pure cyclic destination resolver for double-tap moves
 - `games/solitaire/game.js` — authoritative gameplay runtime and logical resume adapter
 - `games/solitaire/session-adapter.js` — persistence compatibility/version wrapper
 - `games/solitaire/style.css`
 - root `rwg-session.js` / `rwg-session.css` — centralized autosave/resume infrastructure loaded by `game-hud.js`
 
-Load order is `variants.js` → `card-art.js` → `input-guard.js` → `game.js` → `session-adapter.js` → shared `game-hud.js` → `orientation.js`.
+Load order is `variants.js` → `card-art.js` → `input-guard.js` → `auto-move.js` → `game.js` → `session-adapter.js` → shared `game-hud.js` → `orientation.js`.
 
 ## Variant model
 
@@ -49,7 +50,8 @@ The engine is mobile-first and also supports mouse/desktop input:
 
 - tap a movable card/sequence to select it, then tap a valid destination;
 - drag a card or valid tableau sequence directly to its destination;
-- double-tap a single eligible card to send it to its foundation;
+- double-tap an eligible card or exposed valid sequence to move it automatically: foundation is considered first, followed by legal tableau columns from left to right;
+- repeated double taps on the same card continue from the next destination and wrap cyclically, so ambiguous legal placements remain under player control;
 - `ANNULLA` restores card state, moves and score but does not rewind elapsed play time;
 - `AIUTO` highlights one legal immediate move without changing state;
 - `NUOVA` starts a fresh shuffled hand;
@@ -83,7 +85,13 @@ The page uses layered protection because no single browser mechanism is sufficie
 6. a same-area rapid `touchend` pair suppresses legacy double-tap zoom while leaving the game's Pointer Events double-tap logic intact;
 7. Ctrl/Meta + wheel zoom gestures are prevented while the game page is active.
 
-The game-level double tap is still handled by `game.js` and must continue to auto-send an eligible single card to its foundation. Browser zoom suppression MUST NOT replace or remove that game gesture.
+The game-level double tap is still handled by `game.js` and must continue to resolve all legal automatic destinations. Browser zoom suppression MUST NOT replace or remove that game gesture.
+
+### Automatic-move transaction and animation
+
+`auto-move.js` owns only deterministic destination ordering/cycling. `game.js` remains authoritative for legality and always commits the selected action through `performMove()`, preserving Undo, scoring, reveal, win detection and session dirty marking.
+
+The leading card ID owns the cycle cursor. A different card or a manual state mutation resets it. Automatic placement uses a 210 ms FLIP/Web Animations transition from the old card rectangles to the freshly rendered legal destination; the logical move is atomic and immediate. Valid tableau sequences animate as a stack. Reduced-motion preference skips the transition without changing behavior.
 
 ## Resumable unfinished hand — CRITICAL
 
@@ -190,6 +198,7 @@ After Solitario changes run:
 
 ```bash
 node --check games/solitaire/input-guard.js
+node --check games/solitaire/auto-move.js
 node --check games/solitaire/game.js
 node --check games/solitaire/session-adapter.js
 node scripts/validate-solitaire.mjs
@@ -200,7 +209,9 @@ Browser smoke tests should include:
 
 - rapid double taps on cards without page zoom;
 - pinch attempts without page zoom;
-- double tap on an eligible card still auto-foundations it;
+- double tap on waste/tableau/foundation cards chooses a legal destination;
+- repeated double taps on one ambiguous card cycle through at least two legal tableau destinations and wrap;
+- the 210 ms move animation is smooth and the reduced-motion path remains instantaneous;
 - stock tap/recycle in the lower-right dock;
 - drag/tap of the waste card from the lower-right dock;
 - dock placement on narrow and short portrait phones;

@@ -42,6 +42,7 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 .playing-card.card-back{overflow:hidden;border:1px solid rgba(45,39,32,.3);background:#faf7ef}
 .card-art,.card-back-art{display:block;width:100%;height:100%;border-radius:inherit;pointer-events:none;shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
 .playing-card.selected{box-shadow:0 0 0 3px #ffe66d,0 0 18px rgba(255,230,109,.85);z-index:80!important}
+.auto-move-active{pointer-events:none}.playing-card.auto-moving-card{z-index:900!important;pointer-events:none;will-change:transform,filter;filter:drop-shadow(0 9px 8px rgba(0,0,0,.36))}
 .playing-card.hint-source{animation:hintPulse .75s ease-in-out 3}.pile-slot.hint-target,.tableau-col.hint-target{box-shadow:inset 0 0 0 3px #7cffb2,0 0 18px rgba(124,255,178,.5)}
 @keyframes hintPulse{50%{filter:brightness(1.5);box-shadow:0 0 0 3px #7cffb2,0 0 18px #7cffb2}}
 .drag-ghost{position:fixed;z-index:1000;pointer-events:none;width:var(--ghost-w);filter:drop-shadow(0 10px 10px rgba(0,0,0,.35))}.drag-ghost .playing-card{position:absolute;left:0;width:100%}
@@ -63,4 +64,4 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 @keyframes winSpin{to{transform:rotate(360deg)}}@keyframes winPop{0%{opacity:0;transform:scale(1.4) rotate(-4deg)}100%{opacity:1;transform:none}}
 @media(max-height:650px){:root{--draw-slot-w:clamp(46px,12vw,56px)}#variantBadge{display:none}#board{top:calc(env(safe-area-inset-top) + 62px);bottom:calc(env(safe-area-inset-bottom) + 134px)}#drawPileDock{bottom:calc(env(safe-area-inset-bottom) + 58px);padding:5px;gap:5px}#toast{bottom:calc(env(safe-area-inset-bottom) + 134px)}#solitaireHud{top:calc(env(safe-area-inset-top) + 5px)}.intro-copy{font-size:9px}.variant-picker{margin-bottom:8px}.rules-mini{margin-bottom:8px}.hint{display:none}}
 @media(max-width:350px){:root{--draw-slot-w:46px}#board{left:5px;right:5px;--card-gap:3px}.tool-btn{padding:0 8px}.tool-btn span{display:none}#solitaireHud strong{font-size:12px}#drawPileDock{right:6px}}
-@media(prefers-reduced-motion:reduce){.playing-card,.win-panel{transition:none;animation:none}.win-rays{animation:none}}
+@media(prefers-reduced-motion:reduce){.playing-card,.win-panel{transition:none;animation:none}.playing-card.auto-moving-card{will-change:auto}.win-rays{animation:none}}
