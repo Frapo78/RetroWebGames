@@ -19,6 +19,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Fix temporary migration regex
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/apply-social-cover.py')
+          s=p.read_text()
+          s=s.replace("r'^\\s*<meta\\s+", "r'^[ \\t]*<meta\\s+")
+          s=s.replace("[^>]*>\\s*\\n?'", "[^>]*>[ \\t]*\\r?\\n?'")
+          p.write_text(s)
+          PY
       - name: Apply social metadata
         run: python3 scripts/apply-social-cover.py
       - name: Validate social metadata
