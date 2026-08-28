@@ -2,14 +2,16 @@
 
 ## Goal
 
-RetroWebGames is a static, mobile-first arcade platform. Individual games own gameplay simulation and rendering; platform-level identity, credits, game-over, sharing and orientation are shared.
+RetroWebGames is a static, mobile-first arcade platform. Individual games own gameplay simulation and rendering; platform-level identity, credits, resumable sessions, game-over, sharing and orientation are shared.
 
 ## Dependency flow
 
 ```text
 Game page
   ├─ game-specific engine
+  ├─ rwg-session.js / rwg-session.css (when explicitly preloaded by a resumable game)
   ├─ game-hud.js
+  │    ├─ rwg-session.js / rwg-session.css (shared fallback/bootstrap)
   │    ├─ rwg-profile.js
   │    │    └─ rwg-profile.css
   │    ├─ rwg-avatar.js
@@ -20,7 +22,7 @@ Game page
        └─ orientation.css
 ```
 
-A game engine must never copy these shared systems locally.
+A game engine must never copy these shared systems locally. A resumable game owns only its small state adapter (`serialize`, `validate`, `restore`, `isInProgress`); storage cadence, lifecycle flush and resume UI belong to `rwg-session.js`.
 
 ## Game lifecycle contract
 
@@ -28,19 +30,50 @@ A game engine must never copy these shared systems locally.
 
 The page exposes a game-specific `#startBtn`. The shared Game Over component observes start/replay and begins a session when the label is `GIOCA` or `RIGIOCA`.
 
+A resumable game may additionally register `window.RWGResumeAdapter`. If a compatible unfinished snapshot already exists, the shared resume service blocks normal startup with the prompt **“Vuoi continuare la partita precedente?”**. `No` discards that snapshot and starts a fresh game; `Sì` restores it.
+
 ### Running
 
 The game owns simulation state. Shared components may read stable DOM metrics such as score, level, best, lines, player/cpu score.
 
+Games that opt into resumable persistence call `RWGSession.markDirty()` only after meaningful discrete state changes. `rwg-session.js` throttles those writes and also performs a low-frequency heartbeat so timer/progress state is not lost even when no discrete move occurs.
+
+### Resumable interruption / exit
+
+Resumable-session persistence is distinct from credit Continue.
+
+Shared `rwg-session.js` responsibilities:
+
+- versioned per-game local envelope under `rwg.session.v1:<game-id>`;
+- debounced save after discrete state changes;
+- lightweight periodic checkpoint;
+- forced synchronous checkpoint on `visibilitychange` hidden, `pagehide`, `beforeunload`, Page Lifecycle `freeze`, and same-tab navigation;
+- corruption/incompatibility rejection before restore;
+- shared resume modal with `No` red on the left and `Sì` green on the right;
+- no storage writes per animation frame;
+- no dependency on profile, avatar, Game Over or credits.
+
+Game adapter responsibilities:
+
+- report whether a run is genuinely in progress;
+- serialize only the minimum authoritative state needed to resume;
+- validate restored state strongly enough to reject impossible/corrupt snapshots;
+- restore the exact run without counting it as a new game/deal;
+- clear the resumable snapshot when the run is successfully completed or otherwise becomes terminal;
+- start a clean run when the user declines resume.
+
+Resume after browser close/menu exit is **free**. It must never debit a credit and must never dispatch `rwg:continue-game`.
+
 ### Pause/orientation
 
-Local pause overlays are allowed. Orientation guard may pause/resume around landscape mode. These are not terminal run states.
+Local pause overlays are allowed. Orientation guard may pause/resume around landscape mode. These are not terminal run states. A paused resumable game is still considered an unfinished run and remains eligible for autosave/resume.
 
 ### Intermediate clear screens
 
 Allowed examples:
 
 - Star Swarm boss clear;
+- Bubble Burst level clear;
 - future stage/mission clear;
 - tutorial/intermission screens.
 
@@ -68,11 +101,11 @@ Shared responsibilities:
 - replay;
 - main menu.
 
-### Continue
+### Credit Continue
 
 `game-over.js` asks `RWGContinueProvider` for a one-credit continue. On success it dispatches `rwg:continue-game` with the preserved score and metadata.
 
-The engine must restore the interrupted run, not reset it.
+The engine must restore the interrupted run, not reset it. This mechanism is unrelated to `RWGSession` browser/menu resume.
 
 ### Replay
 
@@ -111,10 +144,12 @@ Run:
 node scripts/validate-contracts.mjs
 ```
 
-The validator intentionally checks architecture contracts rather than gameplay correctness. Device/browser playtests remain necessary for touch, timing, layout and sensor behavior.
+The validator intentionally checks architecture contracts rather than gameplay correctness. Device/browser playtests remain necessary for touch, timing, layout, lifecycle persistence and sensor behavior.
 
 ## Browser and production validation
 
-The supported smoke matrix includes `/`, `/avatar/` and all seven game routes at 390×844, 375×667, 320×568 and desktop width. Tests must collect JavaScript console errors, page errors and failed/4xx/5xx requests, and exercise the shared Game Over, one-credit Continue and insufficient-credit path.
+The supported smoke matrix includes `/`, `/avatar/` and all eight game routes at 390×844, 375×667, 320×568 and desktop width. Tests must collect JavaScript console errors, page errors and failed/4xx/5xx requests, and exercise the shared Game Over, one-credit Continue and insufficient-credit path where applicable.
+
+For resumable games, smoke tests must also cover: start → make progress → return to menu/reload → resume prompt → `Sì` exact-state restore; and repeat with `No` to verify a clean new run.
 
 Neon Tilt production responses must send `accelerometer=(self)` and `gyroscope=(self)` in `Permissions-Policy`. HTTPS alone does not make device orientation usable when the response header disables the sensors. Real accelerometer behavior still requires a physical-device test.
