@@ -5,7 +5,7 @@ import process from 'node:process';
 
 const root=process.cwd();
 const origin='https://www.retrowebgames.it';
-const defaultImage=origin+'/assets/social/retrowebgames-cover.jpg';
+const defaultImage=origin+'/assets/social/retrowebgames-cover-1280.jpg';
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message);};
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
@@ -24,7 +24,7 @@ for(const rel of pages){
   const requirements=[
     ['og:type','property'],['og:site_name','property'],['og:title','property'],['og:description','property'],['og:url','property'],
     ['og:image','property'],['og:image:secure_url','property'],['og:image:type','property'],['og:image:width','property'],['og:image:height','property'],['og:image:alt','property'],
-    ['twitter:card','name'],['twitter:title','name'],['twitter:description','name'],['twitter:image','name'],['twitter:image:alt','name']
+    ['twitter:card','name'],['twitter:title','name'],['twitter:description','name'],['twitter:image','name'],['twitter:image:width','name'],['twitter:image:height','name'],['twitter:image:alt','name']
   ];
   for(const [key,type] of requirements){must(count(html,key,type)===1,rel+': expected exactly one '+key);must(Boolean(attr(html,key,type)),rel+': empty '+key);}
   must(attr(html,'og:url')===canonical,rel+': og:url must match canonical');
@@ -32,7 +32,8 @@ for(const rel of pages){
   must(attr(html,'twitter:card','name')==='summary_large_image',rel+': twitter card must be summary_large_image');
   must(attr(html,'og:image:type')==='image/jpeg',rel+': social cover must be JPEG');
   const width=Number(attr(html,'og:image:width')),height=Number(attr(html,'og:image:height'));
-  must(width>=600&&height>=315,rel+': social cover dimensions must be at least 600x315');
+  must(Number(attr(html,'twitter:image:width','name'))===width&&Number(attr(html,'twitter:image:height','name'))===height,rel+': Twitter image dimensions must match Open Graph');
+  must(width>=1200&&height>=627,rel+': social cover dimensions must be at least 1200x627');
   const ogImage=attr(html,'og:image'),secure=attr(html,'og:image:secure_url'),twitterImage=attr(html,'twitter:image','name');
   must(ogImage===secure&&ogImage===twitterImage,rel+': OG and Twitter images must match');
   must(ogImage.startsWith(origin+'/assets/social/'),rel+': social image must use production assets/social URL');

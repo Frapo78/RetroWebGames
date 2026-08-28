@@ -6,13 +6,13 @@ Every public RetroWebGames page exposes static Open Graph and Twitter/X metadata
 
 The current global fallback cover is:
 
-`assets/social/retrowebgames-cover.jpg`
+`assets/social/retrowebgames-cover-1280.jpg`
 
 Production URL:
 
-`https://www.retrowebgames.it/assets/social/retrowebgames-cover.jpg`
+`https://www.retrowebgames.it/assets/social/retrowebgames-cover-1280.jpg`
 
-For now home, the public avatar editor and every game page use this image. The current committed cover is a 600×315 JPEG (the minimum large-preview 1.91:1 format). New dedicated covers should preferably be 1200×630 JPEGs.
+For now home, the public avatar editor and every game page use this image. The current committed cover is a 1280×672 JPEG in the cross-platform 1.91:1 format. New dedicated covers should preferably be 1200×630 JPEGs.
 
 ## Game intro sharing controls
 
