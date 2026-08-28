@@ -23,15 +23,18 @@ Every game page MUST:
 2. load its own engine first;
 3. load `../../game-hud.js`;
 4. load `../../orientation.js`;
-5. use the shared profile/wallet/game-over infrastructure bootstrapped by `game-hud.js`.
+5. use the shared profile/wallet/game-over/session infrastructure rather than local copies.
 
 The following root components are shared infrastructure and MUST NOT be reimplemented inside a game:
 
 - `rwg-profile.js` / `rwg-profile.css`: anonymous profile, local prototype wallet, credits, statistics;
 - `rwg-avatar.js` / `rwg-avatar.css`: avatar identity;
+- `rwg-session.js` / `rwg-session.css`: versioned unfinished-run autosave, lifecycle flush and resume prompt;
 - `game-hud.js` / `game-hud.css`: common HUD/navigation/bootstrap;
 - `game-over.js` / `game-over.css`: terminal GAME OVER presentation, statistics, achievements, sharing, continue/new game/main menu;
 - `orientation.js` / `orientation.css`: portrait guard and resume countdown.
+
+A resumable game may explicitly preload `rwg-session.js` after its engine so its adapter is registered before normal HUD bootstrap, but it MUST NOT copy the storage/modal implementation locally.
 
 A game may have intermediate overlays such as pause, level clear, tutorial, or Star Swarm boss-clear. These MUST NOT replace the terminal shared Game Over modal.
 
@@ -75,6 +78,29 @@ Current wallet/profile state is a client-side prototype in `localStorage`.
 - Future paid credits MUST move wallet authority, grant, debit, transaction ledger, PayPal verification and idempotency server-side.
 
 Never scatter wallet mutations through game engines. Use `RWGContinueProvider` / `RWGProfile` abstractions.
+
+### Unfinished-run resume is NOT credit Continue
+
+`RWGSession` persists an unfinished run across browser/app closure, reload or deliberate navigation away. This resume path is free and MUST NOT debit credits or dispatch `rwg:continue-game`.
+
+Shared `rwg-session.js` owns:
+
+- versioned per-game storage key `rwg.session.v1:<game-id>`;
+- debounced dirty saves;
+- low-frequency heartbeat checkpoints;
+- synchronous lifecycle/navigation checkpoints;
+- compatibility/corruption rejection;
+- the shared modal **“Vuoi continuare la partita precedente?”**;
+- `No` red on the left and `Sì` green on the right.
+
+Game engines opting in own only a small adapter with `isInProgress`, `serialize`, `validate`, `restore`, `startFresh` and optional `describe`.
+
+Performance rules:
+
+- never serialize/save resumable state per animation frame;
+- call `markDirty()` only on meaningful discrete state mutations;
+- keep the snapshot minimal; do not persist large Undo/history rings unless explicitly justified;
+- forced lifecycle saves (`pagehide`, hidden, navigation, etc.) may be synchronous because they are rare and protect user progress.
 
 ## 5. Star Swarm source of truth
 
@@ -241,7 +267,20 @@ Run `node scripts/validate-bubble-burst.mjs` after Bubble Burst gameplay/layout 
 - Do not replace the classic deck with arcade/cartoon styling, external branded assets or per-render uncached SVG generation.
 - Artwork changes MUST preserve the existing card aspect ratio, DOM hitboxes and multi-card drag behavior.
 
-Current architecture intentionally uses JavaScript + Canvas 2D.
+### Solitaire resumable-hand invariants — CRITICAL
+
+- `games/solitaire/game.js` exposes `window.RWGResumeAdapter` with adapter version 1.
+- Persisted state includes variant, stock, waste, four foundations, seven tableau piles, moves, score and elapsed time.
+- Undo history MUST NOT be copied into the persistent snapshot without an explicit storage/performance review.
+- Restore validation requires exactly 52 unique canonical cards and rejects impossible suit/rank/visibility/foundation/tableau states.
+- Winning clears the unfinished-hand snapshot.
+- Resuming a saved hand MUST NOT increment the deals counter.
+- `No` on the shared resume modal discards the old snapshot then starts a fresh shuffled hand.
+- `Sì` restores the saved hand without a credit cost.
+- Every move, stock draw/recycle and Undo marks the session dirty; elapsed time is captured by the shared heartbeat.
+- Solitario explicitly loads shared `rwg-session.js` after its engine and before `game-hud.js` to minimize startup races.
+
+Current architecture intentionally uses JavaScript + Canvas 2D for arcade games and DOM/CSS where appropriate for Solitario.
 
 Do NOT port whole games to WebAssembly without measured evidence.
 
@@ -260,12 +299,14 @@ Before publishing a gameplay change:
 1. run `node --check` on every modified `.js` file;
 2. run `node scripts/validate-contracts.mjs`;
 3. when Bubble Burst is touched, also run `node scripts/validate-bubble-burst.mjs`;
-4. verify the affected game HTML still loads shared HUD/orientation;
-5. verify terminal death opens shared Game Over;
-6. verify Continue with credit resumes rather than starts a new run;
-7. verify New Game resets state;
-8. verify intermediate screens (boss clear, level clear) do not trigger terminal Game Over;
-9. verify mobile portrait layout has no essential action below an unreachable viewport.
+4. when Solitario/session persistence is touched, also run `node scripts/validate-solitaire.mjs`;
+5. verify the affected game HTML still loads shared HUD/orientation;
+6. verify terminal death opens shared Game Over where applicable;
+7. verify Continue with credit resumes rather than starts a new run where applicable;
+8. verify New Game resets state;
+9. verify intermediate screens (boss clear, level clear, victory) do not trigger terminal Game Over incorrectly;
+10. verify mobile portrait layout has no essential action below an unreachable viewport;
+11. for resumable games, test both `Sì` and `No` after reload/menu exit.
 
 If a real browser/device test cannot be run, state that limitation explicitly. Static validation is not a substitute for a playtest.
 
@@ -276,8 +317,9 @@ If a real browser/device test cannot be run, state that limitation explicitly. S
 - Do not duplicate shared UI markup in game engines.
 - Do not silently change canonical domain or game slugs.
 - Do not remove `data-rwg-game`.
-- Do not replace `game-hud.js` bootstrap with direct copies of profile/game-over code.
+- Do not replace `game-hud.js` bootstrap with direct copies of profile/game-over/session code.
 - Do not make localStorage authoritative for future paid wallet data.
+- Do not confuse crash/menu resume with paid Game Over Continue.
 - Do not introduce external libraries for a small feature when the repository is currently dependency-free unless benefits justify the new dependency.
 - Preserve mobile-first portrait behavior and touch controls.
 
@@ -285,9 +327,10 @@ If a real browser/device test cannot be run, state that limitation explicitly. S
 
 Any material gameplay/architecture change MUST update the relevant document in the same task:
 
-- global architecture → `docs/ARCHITECTURE.md`;
+- global architecture/session lifecycle → `docs/ARCHITECTURE.md`;
 - Star Swarm balance/progression → `docs/STAR-SWARM.md`;
 - Bubble Burst layout/special/performance contract → `docs/BUBBLE-BURST.md`;
+- Solitario variants/cards/resume → `docs/SOLITAIRE.md`;
 - performance/WASM decision → `docs/WASM-EVALUATION.md`;
 - new invariant/regression → this `AGENTS.md` and/or validator.
 
@@ -299,7 +342,7 @@ Documentation is part of the implementation, not optional cleanup.
   `gyroscope=()`: Neon Tilt needs both capabilities from the canonical same
   origin. Keep unrelated capabilities disabled and allow only `(self)` for
   these motion sensors.
-- Shared HUD additions (credits, avatar, navigation, sharing) must be tested
+- Shared HUD additions (credits, avatar, navigation, sharing, resume) must be tested
   after bootstrap at `320×568`. Static markup may fit before injected controls
   and overflow only after shared components mount.
 - When the VPS adaptation moves assets under `public/`, an upstream deletion
@@ -307,5 +350,5 @@ Documentation is part of the implementation, not optional cleanup.
   rename/delete conflict.
 - Do not confuse Star Swarm Weapon Upgrade with POWER strength. Weapon has 8 firing forms and a small damage coefficient per advancement; POWER has 20 damage-strength levels and is the pickup whose drop probability was halved.
 - Do not regress Bubble Burst to fully random rectangular boards, full-grid collision scans, per-frame gradient construction, frequent Bomb/Color Wipe ammunition, or a level-clear overlay that accidentally invokes terminal Game Over.
-- Static validation does not replace browser checks for console errors, failed
-  requests, narrow viewports and credit debit flows.
+- Do not save resumable state on every animation frame, persist oversized Undo history by default, or charge a credit to resume after browser/menu interruption.
+- Static validation does not replace browser checks for console errors, failed requests, narrow viewports, persistence reload paths and credit debit flows.
