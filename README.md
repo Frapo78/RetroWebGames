@@ -140,6 +140,10 @@ Il profilo anonimo persistente mantiene statistiche e saldo crediti nel browser.
 
 È disponibile anche un avatar personalizzabile nella pagina `avatar/`.
 
+## Condivisione social
+
+Home, editor avatar e pagine gioco espongono metadati statici Open Graph e Twitter/X. Le intro dei giochi ricevono dal bootstrap condiviso cinque azioni social icon-only, senza markup duplicato nei singoli giochi. Il contratto completo è in `docs/SOCIAL-SHARING.md`.
+
 ## Modalità verticale
 
 I giochi condividono un guard di orientamento per smartphone. In landscape la partita viene messa in pausa; tornando portrait viene mostrato il countdown `3 → 2 → 1 → GO!`.
@@ -155,12 +159,14 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `docs/BUBBLE-BURST.md` — source of truth Bubble Burst;
 - `docs/SOLITAIRE.md` — source of truth Solitario;
 - `docs/PRISM-BREAKER.md` — source of truth Prism Breaker;
+- `docs/SOCIAL-SHARING.md` — metadati pubblici e condivisione dalle intro;
 - `docs/WASM-EVALUATION.md` — criteri per eventuale WASM;
 - `scripts/validate-contracts.mjs` — validazione repository-wide;
 - `scripts/validate-session.mjs` — coverage automatica autosave presente/futuro;
 - `scripts/validate-bubble-burst.mjs` — invarianti Bubble Burst;
 - `scripts/validate-solitaire.mjs` — invarianti Solitario;
-- `scripts/validate-prism-breaker.mjs` — invarianti campagna/boss/fisica Prism Breaker.
+- `scripts/validate-prism-breaker.mjs` — invarianti campagna/boss/fisica Prism Breaker;
+- `scripts/validate-social-sharing.mjs` — copertura automatica metadati social.
 
 Validazione completa:
 
@@ -175,6 +181,7 @@ node scripts/validate-session.mjs
 node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
 node scripts/validate-prism-breaker.mjs
+node scripts/validate-social-sharing.mjs
 ```
 
 ## Struttura essenziale
@@ -197,13 +204,15 @@ node scripts/validate-prism-breaker.mjs
 │   ├── BUBBLE-BURST.md
 │   ├── SOLITAIRE.md
 │   ├── PRISM-BREAKER.md
+│   ├── SOCIAL-SHARING.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
 │   ├── validate-session.mjs
 │   ├── validate-bubble-burst.mjs
 │   ├── validate-solitaire.mjs
-│   └── validate-prism-breaker.mjs
+│   ├── validate-prism-breaker.mjs
+│   └── validate-social-sharing.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/

@@ -12,7 +12,7 @@ Production URL:
 
 `https://www.retrowebgames.it/assets/social/retrowebgames-cover.jpg`
 
-For now home and every game page use this image. The current committed cover is a 600×315 JPEG (the minimum large-preview 1.91:1 format). New dedicated covers should preferably be 1200×630 JPEGs.
+For now home, the public avatar editor and every game page use this image. The current committed cover is a 600×315 JPEG (the minimum large-preview 1.91:1 format). New dedicated covers should preferably be 1200×630 JPEGs.
 
 ## Game intro sharing controls
 
@@ -48,7 +48,7 @@ The intro share buttons automatically use the same game's canonical link, so no 
 
 ## Validation
 
-Every page must have exactly one static Open Graph and Twitter/X `summary_large_image` metadata set.
+Every public page must have exactly one static Open Graph and Twitter/X `summary_large_image` metadata set. Current coverage is 11 pages: home, the avatar editor and nine games.
 
 The social validator also checks that `game-hud.js` automatically loads the shared intro-sharing component and that all game intros inherit the five icon-only social actions.
 

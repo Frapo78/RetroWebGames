@@ -328,3 +328,5 @@ The autosave/resume requirement is permanent platform infrastructure, not a per-
 ## Social sharing contract — REQUIRED
 
 Every current and future public page must expose static Open Graph + Twitter/X metadata; social crawlers must not rely on JavaScript. The global fallback is `assets/social/retrowebgames-cover.jpg`. Future game-specific covers belong under `assets/social/games/<slug>.jpg` and may override only that game's image metadata. Keep absolute production HTTPS URLs and `twitter:card=summary_large_image`. See `docs/SOCIAL-SHARING.md` and run `node scripts/validate-social-sharing.mjs`.
+
+The social validator inventory must cover home, every standalone public page (currently `/avatar/`) and every game page. Adding a public HTML route without validator discovery is a regression.

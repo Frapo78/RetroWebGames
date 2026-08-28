@@ -16,6 +16,7 @@ Game page
   │    ├─ rwg-session.js / rwg-session.css
   │    ├─ rwg-profile.js / rwg-profile.css
   │    ├─ rwg-avatar.js / rwg-avatar.css
+  │    ├─ rwg-intro-share.js / rwg-intro-share.css
   │    └─ game-over.js / game-over.css
   └─ orientation.js / orientation.css
 ```
@@ -117,7 +118,8 @@ Current adapters add game-specific validation beyond the shared envelope:
 - **Neon Rally** validates first-to-7 match bounds and ball/paddle state;
 - **Neon Snake** validates grid bounds, unique snake cells, obstacles and pickups;
 - **Neon Tilt** validates level identity, physics state and collected shard indices;
-- **Solitario** validates exactly 52 unique canonical cards and legal Klondike structure.
+- **Solitario** validates exactly 52 unique canonical cards and legal Klondike structure;
+- **Prism Breaker** validates campaign, boss and deterministic physics contracts.
 
 ## Pause/orientation
 
@@ -179,6 +181,10 @@ This is a prototype persistence layer, not payment security. Future paid credits
 
 `rwg-avatar.js` renders the shared avatar identity and `/avatar/` is the editor. Games consume shared identity instead of maintaining copies.
 
+## Social metadata and intro sharing
+
+Every public page, including `/avatar/`, owns a complete static Open Graph and Twitter/X metadata set. Game intro share controls are injected once by the shared `game-hud.js` bootstrap through `rwg-intro-share.js`; games must not duplicate them. `scripts/validate-social-sharing.mjs` discovers the home page, standalone public pages and game pages so omissions fail repository validation.
+
 ## Future-game enforcement
 
 `scripts/validate-session.mjs` dynamically discovers every `games/*/index.html` with `data-rwg-game="true"`.
@@ -201,6 +207,8 @@ Direct specialized checks:
 node scripts/validate-session.mjs
 node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
+node scripts/validate-prism-breaker.mjs
+node scripts/validate-social-sharing.mjs
 ```
 
 The validators cover architecture/invariants, not full gameplay correctness.

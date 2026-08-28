@@ -10,7 +10,10 @@ const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message);};
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
 const gamePages=fs.readdirSync(path.join(root,'games'),{withFileTypes:true}).filter(e=>e.isDirectory()&&fs.existsSync(path.join(root,'games',e.name,'index.html'))).map(e=>'games/'+e.name+'/index.html').sort();
-const pages=['index.html',...gamePages];
+const standalonePages=fs.readdirSync(root,{withFileTypes:true})
+  .filter(e=>e.isDirectory()&&e.name!=='games'&&fs.existsSync(path.join(root,e.name,'index.html')))
+  .map(e=>e.name+'/index.html').sort();
+const pages=['index.html',...standalonePages,...gamePages];
 const attr=(html,key,type='property')=>html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']\\s+content=["\\\']([^"\\\']+)["\\\'][^>]*>','i'))?.[1]||'';
 const count=(html,key,type='property')=>(html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']','gi'))||[]).length;
 
