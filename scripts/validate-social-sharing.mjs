@@ -45,15 +45,18 @@ for(const rel of pages){
 const home=read('index.html');
 must(attr(home,'og:image')===defaultImage,'Home must retain the global RetroWebGames social cover');
 
-// Brand wordmark contract: the visible home logo is a crop of the same approved cover,
-// never a font approximation. This keeps lettering, bevels and cyan/pink/gold colors identical.
+// Brand wordmark contract: dedicated transparent cover-derived image, never a CSS crop.
 const brand=read('brand.css');
-must(home.includes('<h1 class="hero-wordmark" aria-label="RetroWebGames">RetroWebGames</h1>'),'Home must expose the accessible cover-derived RetroWebGames wordmark');
+const wordmarkRel='assets/brand/retrowebgames-wordmark.png';
+must(fs.existsSync(path.join(root,wordmarkRel)),'Transparent RetroWebGames wordmark asset missing');
+must(home.includes('<h1 class="hero-wordmark" aria-label="RetroWebGames"><img src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" decoding="async" /></h1>'),'Home must expose the accessible transparent RetroWebGames wordmark');
 must(home.includes('<link rel="stylesheet" href="brand.css" />'),'Home must load the dedicated brand wordmark stylesheet');
 must(!home.includes('<h1>RETRO<span>WEBGAMES</span></h1>'),'Legacy font-rendered home wordmark must not return');
-must(brand.includes("background-image: url('/assets/social/retrowebgames-cover-1280.jpg')"),'Home wordmark must use the approved social cover as its exact visual source');
-must(brand.includes('background-size: 194.43% auto')&&brand.includes('background-position: 68.36% 47.31%'),'Home wordmark crop coordinates changed unexpectedly');
-must(brand.includes('aspect-ratio: 790 / 120'),'Home wordmark must retain the approved cover crop aspect ratio');
+must(!brand.includes('background-image:'),'Home wordmark must never crop the social cover as a CSS background');
+must(!brand.includes('background-position:')&&!brand.includes('background-size:'),'Home wordmark must not use crop coordinates or cover sizing');
+must(brand.includes('object-fit: contain'),'Home wordmark image must use object-fit: contain');
+must(brand.includes('height: auto'),'Home wordmark must preserve its intrinsic aspect ratio');
+must(brand.includes('overflow: visible'),'Home wordmark container must not clip the transparent image');
 
 const hud=read('game-hud.js');
 const introShare=read('rwg-intro-share.js');
@@ -72,6 +75,6 @@ if(failures.length){console.error('\nRetroWebGames social-sharing validation FAI
 console.log('RetroWebGames social-sharing validation OK');
 console.log('  ✓ '+pages.length+' pages expose static Open Graph + Twitter large-image metadata');
 console.log('  ✓ every referenced social image exists under assets/social/');
-console.log('  ✓ home wordmark is cropped directly from the approved social cover');
+console.log('  ✓ home wordmark uses a transparent cover-derived asset with contain rendering');
 console.log('  ✓ '+gamePages.length+' game intros inherit icon-only WhatsApp/Facebook/X/Telegram/LinkedIn sharing');
 console.log('  ✓ home uses the global fallback; game pages may later use dedicated covers');
