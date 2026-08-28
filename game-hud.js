@@ -7,6 +7,22 @@
   if (selfSrc) {
     const base = new URL('.', selfSrc);
 
+    const loadSession = () => {
+      if (!document.querySelector('link[data-rwg-session-style]')) {
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = new URL('rwg-session.css', base).href;
+        style.dataset.rwgSessionStyle = 'true';
+        document.head.appendChild(style);
+      }
+      if (!window.RWGSession && !document.querySelector('script[data-rwg-session-script]')) {
+        const script = document.createElement('script');
+        script.src = new URL('rwg-session.js', base).href;
+        script.dataset.rwgSessionScript = 'true';
+        document.body.appendChild(script);
+      }
+    };
+
     const loadGameOver = () => {
       if (!document.querySelector('link[data-rwg-game-over-style]')) {
         const style = document.createElement('link');
@@ -60,6 +76,8 @@
       document.body.appendChild(profileScript);
     };
 
+    // Resumable sessions do not depend on profile/avatar/Game Over and must bootstrap immediately.
+    loadSession();
     ensureProfileThenExtras();
   }
 
