@@ -1,0 +1,34 @@
+name: One-shot Star Swarm transition fix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-star-transition-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply transition continuity patch
+        run: python scripts/tmp-fix-star-transition.py
+      - name: Syntax check Star Swarm
+        run: node --check games/star-swarm/engine.js
+      - name: Validate repository contracts
+        run: node scripts/validate-contracts.mjs
+      - name: Commit fix and remove one-shot helpers
+        run: |
+          git config user.name 'Fra'
+          git config user.email '40823974+Frapo78@users.noreply.github.com'
+          git rm scripts/tmp-fix-star-transition.py .github/workflows/tmp-star-transition-fix.yml
+          git add games/star-swarm/engine.js docs/STAR-SWARM.md scripts/validate-contracts.mjs
+          git commit -m 'fix(star-swarm): preserve transients across level transitions'
+          git push origin main
