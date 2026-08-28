@@ -323,3 +323,8 @@ A new game is incomplete until it:
 10. is added to human-facing README/home navigation as appropriate.
 
 The autosave/resume requirement is permanent platform infrastructure, not a per-game feature flag.
+
+
+## Social sharing contract — REQUIRED
+
+Every current and future public page must expose static Open Graph + Twitter/X metadata; social crawlers must not rely on JavaScript. The global fallback is `assets/social/retrowebgames-cover.jpg`. Future game-specific covers belong under `assets/social/games/<slug>.jpg` and may override only that game's image metadata. Keep absolute production HTTPS URLs and `twitter:card=summary_large_image`. See `docs/SOCIAL-SHARING.md` and run `node scripts/validate-social-sharing.mjs`.
