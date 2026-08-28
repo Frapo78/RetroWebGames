@@ -46,6 +46,11 @@ Klondike classico pesca-1 con 52 carte, sette colonne, quattro fondazioni, stock
 
 Percorso: `games/solitaire/`
 
+### Prism Breaker
+Brick-breaker verticale originale con 100 livelli deterministici e distinti, strutture distribuite anche nel centro/basso dell'area di gioco, otto classi di brick, sei power-up, fisica fixed-step a 120 Hz e 10 boss ai livelli 10, 20, …, 100. Dopo il livello 100 riparte dal livello 1 in un nuovo ciclo con velocità e boss progressivamente più difficili, mantenendo punteggio e vite.
+
+Percorso: `games/prism-breaker/`
+
 ## Autosalvataggio e ripresa — obbligatori su tutta la piattaforma
 
 Ogni gioco attuale e futuro implementa la ripresa della partita non conclusa tramite il servizio centrale `RWGSession`.
@@ -78,7 +83,7 @@ Un salvataggio viene ripristinato solo se coincidono:
 
 Qualsiasi incongruenza elimina automaticamente lo snapshot invece di tentare un ripristino rischioso.
 
-I giochi con contenuto deterministico effettuano controlli aggiuntivi: Bubble Burst verifica la signature del layout, Star Swarm la signature della campagna e l'identità del boss, Solitario verifica le 52 carte canoniche e la struttura Klondike.
+I giochi con contenuto deterministico effettuano controlli aggiuntivi: Bubble Burst verifica la signature del layout, Star Swarm la signature della campagna e l'identità del boss, Solitario verifica le 52 carte canoniche e la struttura Klondike, Prism Breaker verifica la signature del livello e l'identità/configurazione del boss.
 
 Il servizio condiviso evita scritture per frame: debounce attuale 750 ms, heartbeat 5 s tramite `requestIdleCallback` quando disponibile e limite snapshot 384 KiB.
 
@@ -149,11 +154,13 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `docs/STAR-SWARM.md` — source of truth Star Swarm;
 - `docs/BUBBLE-BURST.md` — source of truth Bubble Burst;
 - `docs/SOLITAIRE.md` — source of truth Solitario;
+- `docs/PRISM-BREAKER.md` — source of truth Prism Breaker;
 - `docs/WASM-EVALUATION.md` — criteri per eventuale WASM;
 - `scripts/validate-contracts.mjs` — validazione repository-wide;
 - `scripts/validate-session.mjs` — coverage automatica autosave presente/futuro;
 - `scripts/validate-bubble-burst.mjs` — invarianti Bubble Burst;
-- `scripts/validate-solitaire.mjs` — invarianti Solitario.
+- `scripts/validate-solitaire.mjs` — invarianti Solitario;
+- `scripts/validate-prism-breaker.mjs` — invarianti campagna/boss/fisica Prism Breaker.
 
 Validazione completa:
 
@@ -167,6 +174,7 @@ Validator specifici:
 node scripts/validate-session.mjs
 node scripts/validate-bubble-burst.mjs
 node scripts/validate-solitaire.mjs
+node scripts/validate-prism-breaker.mjs
 ```
 
 ## Struttura essenziale
@@ -188,12 +196,14 @@ node scripts/validate-solitaire.mjs
 │   ├── STAR-SWARM.md
 │   ├── BUBBLE-BURST.md
 │   ├── SOLITAIRE.md
+│   ├── PRISM-BREAKER.md
 │   └── WASM-EVALUATION.md
 ├── scripts/
 │   ├── validate-contracts.mjs
 │   ├── validate-session.mjs
 │   ├── validate-bubble-burst.mjs
-│   └── validate-solitaire.mjs
+│   ├── validate-solitaire.mjs
+│   └── validate-prism-breaker.mjs
 ├── avatar/
 └── games/
     ├── star-swarm/
@@ -203,7 +213,8 @@ node scripts/validate-solitaire.mjs
     ├── neon-rally/
     ├── neon-snake/
     ├── neon-tilt/
-    └── solitaire/
+    ├── solitaire/
+    └── prism-breaker/
 ```
 
 ## Avvio locale
