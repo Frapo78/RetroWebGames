@@ -7,6 +7,14 @@
   if (selfSrc) {
     const base = new URL('.', selfSrc);
 
+    const loadAnalytics = () => {
+      if (window.RWGAnalytics || document.querySelector('script[data-rwg-analytics-script], script[src$="/rwg-analytics.js"]')) return;
+      const script = document.createElement('script');
+      script.src = new URL('rwg-analytics.js', base).href;
+      script.dataset.rwgAnalyticsScript = 'true';
+      document.head.appendChild(script);
+    };
+
     const loadSession = () => {
       if (!document.querySelector('link[data-rwg-session-style]')) {
         const style = document.createElement('link');
@@ -92,7 +100,8 @@
       document.body.appendChild(profileScript);
     };
 
-    // Resumable sessions and intro sharing are platform-level contracts and bootstrap immediately.
+    // Analytics, resumable sessions and intro sharing are platform-level contracts and bootstrap immediately.
+    loadAnalytics();
     loadSession();
     loadIntroShare();
     ensureProfileThenExtras();

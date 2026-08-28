@@ -330,3 +330,14 @@ The autosave/resume requirement is permanent platform infrastructure, not a per-
 Every current and future public page must expose static Open Graph + Twitter/X metadata; social crawlers must not rely on JavaScript. The global fallback is `assets/social/retrowebgames-cover-1280.jpg`. Future game-specific covers belong under `assets/social/games/<slug>.jpg` and may override only that game's image metadata. Keep absolute production HTTPS URLs and `twitter:card=summary_large_image`. See `docs/SOCIAL-SHARING.md` and run `node scripts/validate-social-sharing.mjs`.
 
 The social validator inventory must cover home, every standalone public page (currently `/avatar/`) and every game page. Adding a public HTML route without validator discovery is a regression.
+
+
+## Analytics contract — CRITICAL
+
+- GA4 is centralized in `rwg-analytics.js` with measurement ID `G-ZSWLC4L8GW`.
+- Games inherit Analytics through mandatory `game-hud.js`; do not embed Google tag snippets in game engines/pages.
+- Hub/avatar load the same shared module directly.
+- Common funnel events (start, resume, Continue, level, end, engagement, exit, share, install) belong in the shared module.
+- Never send email, names, browser/profile fingerprints, payment identifiers, saved-game payloads or free-form user content to Analytics.
+- Any future game must remain measurable through shared lifecycle/HUD contracts; new marketing-relevant semantics should be exposed centrally rather than by duplicating GA code.
+- See `docs/ANALYTICS.md` and `scripts/validate-analytics.mjs`.
