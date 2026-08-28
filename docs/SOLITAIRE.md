@@ -7,10 +7,11 @@ Solitario is RetroWebGames' extensible card-game shell. The current playable var
 - `games/solitaire/index.html`
 - `games/solitaire/variants.js` — authoritative variant registry/configuration
 - `games/solitaire/card-art.js` — cached original classic French-suited SVG artwork
-- `games/solitaire/game.js` — current shared Solitaire runtime
+- `games/solitaire/game.js` — current shared Solitaire runtime and resume-state adapter
 - `games/solitaire/style.css`
+- root `rwg-session.js` / `rwg-session.css` — shared autosave/resume infrastructure
 
-`variants.js` MUST load before `game.js`. `game-hud.js` and `orientation.js` remain shared platform infrastructure.
+`variants.js` and `card-art.js` MUST load before `game.js`. For Solitario, the shared `rwg-session.js` is explicitly loaded immediately after the game runtime so a previous unfinished hand can be detected before ordinary shared HUD bootstrap completes. `game-hud.js` also owns a fallback session-service bootstrap for future resumable games.
 
 ## Variant model
 
@@ -59,6 +60,67 @@ The engine is mobile-first but also works with mouse/desktop input:
 - `NUOVA` starts a fresh shuffled hand;
 - `pauseBtn` is mandatory because shared `orientation.js` uses it to pause/resume on smartphone rotation.
 
+## Resumable unfinished hand — CRITICAL
+
+An unfinished Solitario hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
+
+Solitario exposes `window.RWGResumeAdapter` with a versioned state schema. The adapter serializes only the minimum authoritative hand state:
+
+- variant id;
+- stock and waste card order/visibility;
+- all four foundations;
+- all seven tableau columns and face-up state;
+- moves;
+- score;
+- elapsed play time.
+
+Undo history is intentionally not persisted. This keeps snapshots small and avoids multiplying the 52-card state dozens of times. After a restored hand, Undo begins accumulating again from the resumed state.
+
+### Autosave cadence
+
+Storage orchestration is centralized in root `rwg-session.js`, not duplicated inside Solitario.
+
+Current behavior:
+
+- discrete moves (`move`, stock draw/recycle, Undo, new deal) mark the session dirty;
+- dirty state is debounced by roughly **900 ms**, avoiding a localStorage write for every rapid interaction;
+- a lightweight checkpoint runs about every **7 seconds** while the game is active so elapsed time is also captured;
+- unchanged snapshots are not redundantly rewritten during ordinary autosave heartbeats;
+- a final synchronous checkpoint is forced on hidden/background, `pagehide`, `beforeunload`, Page Lifecycle `freeze`, and same-tab navigation such as returning to the menu;
+- no storage serialization/write occurs per animation frame.
+
+### Resume prompt
+
+When a compatible unfinished snapshot exists at the next Solitario launch, shared `rwg-session.js` shows a modal before normal play:
+
+**“Vuoi continuare la partita precedente?”**
+
+Buttons are side by side:
+
+- `No` — red, on the left: permanently discards the old snapshot and immediately starts a new shuffled hand;
+- `Sì` — green, on the right: restores the saved hand exactly and resumes play without incrementing the deals counter.
+
+This resume is free and is completely unrelated to the one-credit Game Over Continue mechanism used by arcade games.
+
+### Snapshot validation
+
+A persisted hand is restored only if it passes structural validation. At minimum the runtime requires:
+
+- exactly 52 card objects;
+- 52 unique canonical card ids;
+- valid suit/rank/id combinations;
+- stock cards face-down and waste cards face-up;
+- foundations ordered A→K in their own suit;
+- tableau has the correct number of columns;
+- no face-down card may appear below an exposed face-up sequence;
+- exposed tableau sequences remain valid descending alternating-color runs;
+- non-negative finite moves, score and elapsed time;
+- matching adapter/schema version.
+
+Corrupt or incompatible snapshots are removed and a clean new deal is started rather than attempting a partial restore.
+
+The resumable snapshot is cleared on successful victory. Starting a deliberate new hand also replaces the previous snapshot with the fresh deal.
+
 ## Scoring and local statistics
 
 Klondike currently awards small positive values for reveals, foundation moves and useful tableau moves, while moving a foundation card back to tableau carries a penalty. Score is clamped to zero.
@@ -78,6 +140,8 @@ Solitario currently has no forced terminal loss state: an unwinnable/undesired h
 
 A completed Klondike hand uses a dedicated **victory** presentation rather than the shared `GAME OVER` component. Therefore victory MUST NOT emit `rwg:game-ended`, because that event semantically opens the terminal loss/Game Over flow.
 
+Victory also clears `RWGSession`'s unfinished-hand snapshot so a completed deal is never offered as resumable on the next launch.
+
 If RetroWebGames later gains a shared victory/results component, migrate this behavior intentionally rather than abusing `RWGGameOver`.
 
 ## Performance
@@ -89,6 +153,7 @@ The game intentionally uses DOM/CSS rather than Canvas:
 - the animation frame loop updates only elapsed time;
 - event delegation is used for card interaction rather than attaching listeners to every card;
 - drag stacks use a temporary lightweight ghost;
+- resumable snapshots are small, throttled and centrally deduplicated;
 - no external dependency or card image asset is required.
 
 ## Classic card artwork
@@ -116,12 +181,15 @@ WASM is not useful for this game.
 
 ## Validation
 
-After Solitario changes run:
+After Solitario/resume changes run:
 
 ```bash
+node --check rwg-session.js
 node --check games/solitaire/variants.js
 node --check games/solitaire/card-art.js
 node --check games/solitaire/game.js
 node scripts/validate-solitaire.mjs
 node scripts/validate-contracts.mjs
 ```
+
+Browser smoke tests must cover both decisions of the resume modal and at least one deliberate menu exit/reload path.
