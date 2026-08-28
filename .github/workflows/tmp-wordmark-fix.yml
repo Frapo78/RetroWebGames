@@ -1,0 +1,43 @@
+name: One-shot transparent wordmark build
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install --quiet pillow numpy
+      - name: Build transparent wordmark
+        run: python scripts/generate-brand-wordmark.py
+      - name: Use image in home hero
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='<h1 class="hero-wordmark" aria-label="RetroWebGames">RetroWebGames</h1>'
+          new='<h1 class="hero-wordmark" aria-label="RetroWebGames"><img src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" decoding="async" /></h1>'
+          if old not in s and new not in s: raise SystemExit('wordmark markup not found')
+          p.write_text(s.replace(old,new))
+          PY
+      - name: Validate
+        run: |
+          node scripts/validate-social-sharing.mjs
+          node scripts/validate-contracts.mjs
+      - name: Commit and remove temporary workflow
+        run: |
+          rm -f .github/workflows/tmp-wordmark-fix.yml
+          git config user.name Fra
+          git config user.email 40823974+Frapo78@users.noreply.github.com
+          git add index.html assets/brand/retrowebgames-wordmark.png .github/workflows/tmp-wordmark-fix.yml
+          git commit -m "fix(brand): use transparent contained RetroWebGames wordmark"
+          git push origin main
