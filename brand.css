@@ -1,28 +1,26 @@
 /* RetroWebGames brand wordmark
-   The home wordmark is intentionally cropped from the approved global social cover,
-   so the on-site lettering is pixel-identical to the cover artwork. */
+   The visible logo is a dedicated transparent asset derived from the approved cover.
+   It must always render in full: no background crop, cover sizing or overflow clipping. */
 
 .hero-wordmark {
-  position: relative;
   display: block;
-  width: min(100%, 690px);
-  max-width: none;
-  aspect-ratio: 790 / 120;
+  width: min(100%, 790px);
+  max-width: 100%;
   margin: 4px 0 0;
-  overflow: hidden;
-  color: transparent;
-  background-color: #050816;
-  background-image: url('/assets/social/retrowebgames-cover-1280.jpg');
-  background-repeat: no-repeat;
-  /* Crop corresponds to x=510..1300 / y=325..445 in the approved 1536×807 cover. */
-  background-size: 194.43% auto;
-  background-position: 68.36% 47.31%;
+  padding: 0;
   font-size: 0;
   line-height: 0;
-  letter-spacing: 0;
-  text-indent: -9999px;
-  white-space: nowrap;
-  filter: drop-shadow(0 0 18px rgba(101,231,255,.1));
+  overflow: visible;
+}
+
+.hero-wordmark img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 0 18px rgba(101,231,255,.10));
 }
 
 @media (max-width: 420px) {
