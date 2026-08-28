@@ -10,14 +10,15 @@ const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
 
-for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
+for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
 
 const html = read('games/solitaire/index.html');
 must(html.includes('data-rwg-game="true"'), 'Solitaire page must use shared RWG game contract');
-must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/game load order is invalid');
+must(html.includes('minimum-scale=1') && html.includes('maximum-scale=1') && html.includes('user-scalable=no'), 'Solitaire viewport must explicitly disable browser scaling');
+must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/game load order is invalid');
 must(html.indexOf('game.js') < html.indexOf('session-adapter.js') && html.indexOf('session-adapter.js') < html.indexOf('../../game-hud.js'), 'Solitaire versioning adapter must load after game.js and before shared HUD');
 must(!html.includes('../../rwg-session.js') && !html.includes('../../rwg-session.css'), 'Solitaire must rely on centralized game-hud session bootstrap, not page-local shared-service preload');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared lifecycle');
@@ -25,6 +26,31 @@ must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose Klondi
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain return-to-menu action');
 must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets');
 must(html.includes('value="essential" selected'), 'Essential card set must remain markup default');
+
+const boardStart = html.indexOf('<section id="board"');
+const boardEnd = html.indexOf('</section>', boardStart);
+const upperStart = html.indexOf('<div id="upperPiles"', boardStart);
+const upperEnd = html.indexOf('</div>', upperStart);
+const dockIndex = html.indexOf('id="drawPileDock"');
+const stockIndex = html.indexOf('id="stock"');
+const wasteIndex = html.indexOf('id="waste"');
+must(boardStart >= 0 && boardEnd > boardStart && dockIndex > boardStart && dockIndex < boardEnd, 'Draw pile dock must remain inside #board so delegated card interaction still works');
+must(upperStart >= 0 && upperEnd > upperStart && !(stockIndex > upperStart && stockIndex < upperEnd) && !(wasteIndex > upperStart && wasteIndex < upperEnd), 'Stock/waste must not return to the upper piles');
+must(dockIndex >= 0 && stockIndex > dockIndex && wasteIndex > stockIndex, 'Bottom-right draw dock must order stock on the left and waste on the right');
+must(/id="drawPileDock"[^>]*style="[^"]*position:fixed[^"]*right:/i.test(html), 'Draw pile dock must remain viewport-anchored at the lower-right edge');
+
+const style = read('games/solitaire/style.css');
+must(style.includes('touch-action:none!important') && style.includes('-ms-touch-action:none!important'), 'Solitaire CSS must keep touch zoom/pan disabled on the game surface');
+must(style.includes('#drawPileDock') && style.includes('grid-template-columns:repeat(2,var(--draw-slot-w))'), 'Draw pile dock must remain a two-slot horizontal layout');
+must(style.includes('bottom:calc(env(safe-area-inset-bottom) + 62px)'), 'Draw pile dock must remain immediately above the lower game controls');
+must(style.includes('#drawPileDock #waste .playing-card'), 'Waste card must retain dock-local card sizing');
+
+const inputGuard = read('games/solitaire/input-guard.js');
+for (const marker of ['gesturestart','gesturechange','gestureend','dblclick','touchstart','touchmove','touchend','wheel','preventDefault','passive: false','document.documentElement.style.touchAction']) {
+  must(inputGuard.includes(marker), `Solitaire no-zoom input guard missing: ${marker}`);
+}
+must(inputGuard.includes('event.touches?.length > 1'), 'Solitaire input guard must explicitly suppress multi-touch pinch gestures');
+must(inputGuard.includes('closeInTime') && inputGuard.includes('closeInSpace'), 'Solitaire input guard must suppress same-area rapid double taps without blocking unrelated taps');
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
@@ -70,6 +96,7 @@ must(!game.includes('rwg:game-ended'), 'Solitaire victory must not open terminal
 must(game.includes('CardArt.getCardFaceSvg(card, cardStyle)') && game.includes('CardArt.getCardBackSvg()'), 'Selected card art must drive runtime rendering');
 must(game.includes("CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1'"), 'Card style persistence key changed');
 must(game.includes("localStorage.getItem(CARD_STYLE_KEY) === 'classic' ? 'classic' : 'essential'"), 'Essential card set must remain runtime default');
+must(game.includes("board.addEventListener('pointerdown'"), 'Card pointer delegation must remain rooted at #board so the fixed draw dock stays interactive');
 
 for (const marker of ['RESUME_SCHEMA = 1','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
 must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Resume validation must require exactly 52 unique cards');
@@ -102,6 +129,8 @@ if (failures.length) {
 }
 console.log('Solitaire validation OK');
 console.log('  ✓ classic Klondike rules and card artwork');
+console.log('  ✓ browser zoom gestures blocked by viewport + CSS + JS guard');
+console.log('  ✓ stock/waste docked bottom-right as left/right pair');
 console.log('  ✓ validated 52-card logical snapshot');
 console.log('  ✓ centralized RWGSession v2 bootstrap and compatibility token');
 console.log('  ✓ dirty moves + 5s heartbeat + safe restore semantics');
