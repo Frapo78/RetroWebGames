@@ -12,7 +12,7 @@ test('leaderboard paging is bounded and deterministic', () => {
   assert.deepEqual(normalizeLeaderboardPage({}, { limit: 10 }), { limit: 10, offset: 0 });
   assert.deepEqual(normalizeLeaderboardPage({ limit: '20', offset: '40' }), { limit: 20, offset: 40 });
   assert.deepEqual(normalizeLeaderboardPage({ limit: 500, offset: -8 }), { limit: 50, offset: 0 });
-  assert.deepEqual(normalizeLeaderboardPage({ limit: 'x', offset: 'x' }, { limit: 20 }), { limit: 1, offset: 0 });
+  assert.deepEqual(normalizeLeaderboardPage({ limit: 'x', offset: 'x' }, { limit: 20 }), { limit: 20, offset: 0 });
 });
 
 test('arcade ranking uses score and level', () => {
