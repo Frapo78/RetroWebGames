@@ -17,6 +17,8 @@ The nickname is 3–12 Unicode letters/numbers plus spaces, `_` or `-`. It is st
 
 Registration is required before the Game Over actions. A network failure queues the complete result locally and unlocks the actions, so an API outage cannot trap gameplay. The server's unique run id makes retries safe.
 
+Analytics measures this funnel through the shared RWG layer. A successful live or queued delivery emits GA4 recommended `post_score`; views, retry, prompt, validation, offline queue and aggregate flush outcomes use dedicated low-cardinality events. Nickname, player/device identifiers, run id and free-form messages never enter Analytics. See `docs/ANALYTICS.md`.
+
 ## API
 
 Nginx proxies `/api/leaderboards/v1/` to the loopback-only `rwg-leaderboard.service`.

@@ -375,6 +375,8 @@ A new game owns one run id. Credit Continue updates that same run and records `c
 
 The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
 
+Leaderboard Analytics uses GA4 recommended `post_score` only after server acceptance. Funnel events may contain low-cardinality status flags and numeric aggregate/result fields, but MUST NOT contain nickname, device/profile ID, run ID, free-form server messages or other user-entered content.
+
 Leaderboard systemd hardening MUST NOT set `MemoryDenyWriteExecute=true`: Node/V8 needs executable JIT pages and otherwise terminates with `SIGTRAP` before binding the API port. Preserve the remaining unit hardening and the loopback-only listener.
 
 RWG operational installers MUST NOT use `/dev/stdin` as the source argument to `install`. It can be unavailable/non-installable in the VPS privileged execution context and abort after partial provisioning. Keep configuration in versioned real files or create private state atomically with a temporary file plus rename; validate the real service, port and HTTP response after installation.

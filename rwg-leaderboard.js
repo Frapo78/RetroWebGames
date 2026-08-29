@@ -14,6 +14,13 @@
   let introBoard = null;
   let latestBoard = null;
   let submitting = false;
+  let retryingQueue = false;
+
+  function track(name, params = {}) {
+    const send = () => window.RWGAnalytics?.track?.(name, params);
+    if (window.RWGAnalytics?.track) send();
+    else window.addEventListener('rwg:analytics-ready', send, { once: true });
+  }
 
   const storage = {
     get(key, fallback = '') { try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; } },
@@ -38,7 +45,10 @@
       <div class="rwg-lb-heading"><span>🏆 TOP 10 GLOBALE</span><button type="button" data-rwg-lb-retry aria-label="Aggiorna classifica">↻</button></div>
       <ol class="rwg-lb-list"><li class="rwg-lb-loading">CONNESSIONE AL CABINATO…</li></ol>
       <p class="rwg-lb-status" aria-live="polite"></p>`;
-    section.querySelector('[data-rwg-lb-retry]').addEventListener('click', loadBoard);
+    section.querySelector('[data-rwg-lb-retry]').addEventListener('click', () => {
+      track('leaderboard_retry');
+      loadBoard();
+    });
     return section;
   }
 
@@ -97,10 +107,20 @@
       const data = await response.json();
       storage.set(CACHE_KEY, JSON.stringify(data));
       renderBoard(data, false);
+      track('leaderboard_view', {
+        delivery: 'network', row_count: Number(data.top?.length || 0),
+        has_personal_rank: Number(Boolean(data.current)),
+        personal_in_top_10: Number(Boolean(data.current && data.top?.some(row => row.runId === data.current.runId)))
+      });
     } catch (_) {
       const cached = readJson(CACHE_KEY, null);
-      if (cached) renderBoard(cached, true);
-      else introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
+      if (cached) {
+        renderBoard(cached, true);
+        track('leaderboard_view', { delivery: 'cache', row_count: Number(cached.top?.length || 0) });
+      } else {
+        introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
+        track('leaderboard_load_error', { error_type: 'unavailable' });
+      }
     } finally { introBoard.classList.remove('is-loading'); }
   }
 
@@ -131,6 +151,7 @@
     const next = queue.filter(item => item.runId !== payload.runId);
     next.push(payload);
     storage.set(QUEUE_KEY, JSON.stringify(next.slice(-30)));
+    return next.slice(-30).length;
   }
 
   async function postResult(payload) {
@@ -144,13 +165,30 @@
   }
 
   async function retryQueue() {
+    if (retryingQueue) return;
     const queue = readJson(QUEUE_KEY, []);
     if (!queue.length) return;
+    retryingQueue = true;
     const remaining = [];
-    for (const payload of queue) {
-      try { await postResult(payload); } catch (error) { if (!error.validation) remaining.push(payload); }
-    }
-    storage.set(QUEUE_KEY, JSON.stringify(remaining));
+    let delivered = 0;
+    let discarded = 0;
+    try {
+      for (const payload of queue) {
+        try {
+          const data = await postResult(payload);
+          delivered += 1;
+          track('post_score', {
+            score: Number(payload.score || 0), level: Number(payload.level || 0),
+            leaderboard_position: Number(data.current?.position || 0), continues: Number(payload.continueCount || 0), delivery: 'queue_retry'
+          });
+        } catch (error) {
+          if (error.validation) discarded += 1;
+          else remaining.push(payload);
+        }
+      }
+      storage.set(QUEUE_KEY, JSON.stringify(remaining));
+      track('leaderboard_queue_flush', { delivered_count: delivered, remaining_count: remaining.length, discarded_count: discarded });
+    } finally { retryingQueue = false; }
   }
 
   function showRegistration(detail, solitaire = false) {
@@ -174,6 +212,7 @@
     const input = section.querySelector('input');
     const status = section.querySelector('.rwg-lb-entry-status');
     input.value = storage.get(NAME_KEY);
+    track('leaderboard_entry_view', { outcome: payload.outcome, name_prefilled: Number(Boolean(input.value)), solitaire: Number(Boolean(solitaire)) });
     setGameOverLocked(true);
     setTimeout(() => input.focus({ preventScroll: true }), solitaire ? 150 : 2300);
 
@@ -182,7 +221,9 @@
       if (submitting) return;
       const nickname = input.value.normalize('NFC').trim().replace(/\s+/g, ' ');
       if (!/^[\p{L}\p{N}_ -]{3,12}$/u.test(nickname)) {
-        status.textContent = 'USA 3–12 LETTERE, NUMERI, SPAZI, - O _'; input.focus(); return;
+        status.textContent = 'USA 3–12 LETTERE, NUMERI, SPAZI, - O _';
+        track('leaderboard_submit_error', { error_type: 'nickname_format' });
+        input.focus(); return;
       }
       submitting = true; input.disabled = true; section.querySelector('button').disabled = true; status.textContent = 'REGISTRAZIONE…';
       payload.nickname = nickname; storage.set(NAME_KEY, nickname);
@@ -190,11 +231,19 @@
         const data = await postResult(payload);
         status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
         if (data.leaderboard) { storage.set(CACHE_KEY, JSON.stringify(data.leaderboard)); renderBoard(data.leaderboard); }
+        track('post_score', {
+          score: Number(payload.score || 0), level: Number(payload.level || 0),
+          leaderboard_position: Number(data.current?.position || 0), continues: Number(payload.continueCount || 0), delivery: 'live'
+        });
       } catch (error) {
         if (error.validation) {
-          status.textContent = error.message || 'DATI NON VALIDI'; input.disabled = false; section.querySelector('button').disabled = false; submitting = false; return;
+          status.textContent = error.message || 'DATI NON VALIDI';
+          track('leaderboard_submit_error', { error_type: 'server_validation' });
+          input.disabled = false; section.querySelector('button').disabled = false; submitting = false; return;
         }
-        queueResult(payload); status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
+        const queueSize = queueResult(payload);
+        track('leaderboard_submit_queued', { queue_size: queueSize, outcome: payload.outcome });
+        status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
       }
       section.classList.add('is-registered'); setGameOverLocked(false); submitting = false;
       window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug } }));

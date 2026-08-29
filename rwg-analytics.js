@@ -255,6 +255,7 @@
   }, { capture: true });
 
   window.RWGAnalytics = Object.freeze({ track, measurementId: MEASUREMENT_ID, pageKind, gameId, activeSeconds });
+  window.dispatchEvent(new CustomEvent('rwg:analytics-ready'));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady, { once: true });
   else onReady();

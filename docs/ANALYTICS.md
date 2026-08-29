@@ -48,6 +48,19 @@ Gameplay funnel:
 
 Useful controls are grouped under `game_control` (Undo, Hint, New Deal, calibration, mute, card style) and `game_variant_select`.
 
+Leaderboard funnel:
+
+- `leaderboard_view` — intro Top 10 loaded from network or cache, with row count and anonymous personal-rank flags;
+- `leaderboard_retry` — manual refresh requested;
+- `leaderboard_load_error` — neither network nor cached ranking was available;
+- `leaderboard_entry_view` — coin-op name prompt shown, including only whether a saved name prefilled the field;
+- `leaderboard_submit_error` — local nickname-format or server-validation rejection, never the entered value;
+- `leaderboard_submit_queued` — result stored for a later retry;
+- `leaderboard_queue_flush` — aggregate delivered/remaining counts after a retry pass;
+- `post_score` — GA4 recommended gaming event, emitted only after the leaderboard server accepts the result, with numeric `score`, optional `level`, ranking position, Continue count and `delivery=live|queue_retry`.
+
+The name typed by the player, device/profile identifiers, run IDs and raw server messages are deliberately excluded from every Analytics event. Custom parameters such as `delivery`, `row_count`, `leaderboard_position`, `error_type`, `delivered_count` and `remaining_count` require matching GA4 custom dimensions/metrics before they appear in standard reports or Explorations.
+
 ## Event parameter rules
 
 Use low-cardinality dimensions where possible: `game_id`, `game_name`, `page_kind`, `method`, `result`, `phase`, `control`, `variant`. Score, level, time and counters stay numeric.

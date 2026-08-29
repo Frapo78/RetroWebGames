@@ -48,6 +48,14 @@ must(hud.includes('loadAnalytics();'), 'game-hud.js must initialize analytics as
 must(hub.includes('/rwg-analytics.js'), 'Hub must load centralized rwg-analytics.js');
 must(avatar.includes('/rwg-analytics.js'), 'Avatar page must load centralized rwg-analytics.js');
 must(pwaInstall.includes("'pwa_install_cta'"), 'PWA install CTAs must report their low-cardinality outcome');
+const leaderboard = read('rwg-leaderboard.js');
+for (const marker of ["track('leaderboard_view'", "track('leaderboard_retry'", "track('leaderboard_entry_view'", "track('leaderboard_submit_error'", "track('leaderboard_submit_queued'", "track('leaderboard_queue_flush'", "track('post_score'"]) {
+  must(leaderboard.includes(marker), `Leaderboard analytics missing required marker: ${marker}`);
+}
+must(leaderboard.includes("window.addEventListener('rwg:analytics-ready'"), 'Leaderboard events must survive late Analytics bootstrap');
+for (const call of leaderboard.matchAll(/\btrack\('(?:leaderboard_[a-z_]+|post_score)'[\s\S]*?\);/g)) {
+  must(!/\bnickname\s*:/.test(call[0]), 'Leaderboard nickname must never enter Analytics parameters');
+}
 
 const gameDirs = fs.readdirSync(path.join(root, 'games'), { withFileTypes: true }).filter(e => e.isDirectory());
 for (const entry of gameDirs) {
