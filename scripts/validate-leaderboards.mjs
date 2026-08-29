@@ -26,17 +26,21 @@ must(client.includes("classList.contains('rwg-resume-open')") && client.includes
 must(client.includes('SEI NELLA TOP TEN!') && client.includes("rank <= 10") && css.includes('.rwg-leaderboard-rank-card.is-top-ten'), 'Game Over must highlight authoritative Top Ten positions in gold');
 must(client.includes('POSIZIONE IN AGGIORNAMENTO') && client.includes('pending: true'), 'offline Game Over rank must remain explicitly pending');
 
-for (const marker of ['const PAGE_SIZE = 20', '?limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', "addEventListener('scroll'", 'leaderboard_infinite_page', 'CLASSIFICA GLOBALE', 'SCORRI PER ALTRI RECORD']) {
-  must(infinite.includes(marker), `endless intro leaderboard missing ${marker}`);
+for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', '?limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', '🏆 HIGH SCORES', 'SCORRI PER ALTRI HIGH SCORES']) {
+  must(infinite.includes(marker), `endless intro High Scores missing ${marker}`);
 }
-must(infinite.includes('remaining <= 72') && infinite.includes('fetchPage(pagination.nextOffset || rows.length)'), 'endless leaderboard must request the next page near the internal scroll edge');
-must(infinite.includes("board.dataset.rwgInfinite = 'true'"), 'endless leaderboard must mark ownership of the shared intro board');
+must(infinite.includes('remaining <= EDGE_THRESHOLD_PX') && infinite.includes('fetchPage(pagination.nextOffset || rows.length)'), 'endless High Scores must request the next ten-row page at the internal scroll edge');
+must(infinite.includes("board.dataset.rwgInfinite = 'true'"), 'endless High Scores must mark ownership of the shared intro board');
 must(infinite.includes('MutationObserver') && infinite.includes('renderGuard'), 'endless enhancement must remain resilient to the legacy shared client refreshing the same board');
+must(infinite.includes('pageRows.length === PAGE_SIZE') && infinite.includes('backendHasMore && pageIsFull && advances && beforeKnownEnd'), 'endless High Scores must defensively stop on a short/final/non-advancing page');
+must(infinite.includes('function disableEndless()') && infinite.includes("removeEventListener('scroll', onScroll)") && infinite.includes("removeEventListener('wheel', onWheel)") && infinite.includes("removeEventListener('touchend', onTouchEnd)"), 'final High Scores page must detach endless-scroll listeners');
+must(infinite.includes("data-rwg-infinite-complete") && infinite.includes('function enableEndless()'), 'High Scores reset must be able to re-enable endless scrolling after completion');
+must(infinite.includes('Carica 10 posizioni alla volta'), 'High Scores accessibility copy must expose ten-row pagination');
 
-must(css.includes('height:clamp(104px,14dvh,132px)') && css.includes('grid-template-rows:auto minmax(0,1fr) auto') && css.includes('overflow:hidden'), 'intro leaderboard must have a bounded responsive height instead of expanding the intro');
-must(css.includes('overflow-y:auto') && css.includes('touch-action:pan-y!important') && css.includes('-webkit-overflow-scrolling:touch'), 'leaderboard rows must scroll internally on touch/mobile browsers');
-must(css.includes('height:92px') && css.includes('@media(max-width:360px), (max-height:620px)'), 'short-phone intro leaderboard must reserve even less vertical space');
-must(css.includes('.rwg-lb-more'), 'endless leaderboard load-more/status row styling missing');
+must(css.includes('height:clamp(72px,10dvh,96px)') && css.includes('max-height:96px') && css.includes('grid-template-rows:auto minmax(0,1fr) auto') && css.includes('contain:layout paint'), 'intro High Scores must use the compact responsive 72–96px budget without expanding the intro');
+must(css.includes('overflow-y:auto') && css.includes('touch-action:pan-y!important') && css.includes('-webkit-overflow-scrolling:touch'), 'High Scores rows must scroll internally on touch/mobile browsers');
+must(css.includes('height:64px') && css.includes('@media(max-width:360px), (max-height:700px)') && css.includes('.rwg-lb-status{display:none}'), 'short-phone High Scores must shrink to 64px and remove the status row');
+must(css.includes('.rwg-lb-more') && css.includes('[data-rwg-infinite-complete="true"]'), 'High Scores endless/final-state styling missing');
 
 const gameOver = read('game-over.js');
 must(gameOver.includes('document.body.dataset.rwgGameName') && !gameOver.includes("document.title.split"), 'Game Over title must use the short game identity, never the SEO title');
@@ -57,15 +61,15 @@ must(installer.includes('wait_for_health') && installer.includes('Health pubblic
 for (const marker of ['leaderboard_view','leaderboard_entry_view','leaderboard_submit_queued','leaderboard_queue_flush','post_score']) must(client.includes(marker), `leaderboard analytics missing ${marker}`);
 for (const marker of ['rwg_players','rwg_runs','continue_count','achievements','metrics','rank_primary']) must(schema.includes(marker), `schema missing ${marker}`);
 for (const marker of ["app.get('/games/:slug'","app.post('/runs'",'ROW_NUMBER() OVER','COUNT(*) OVER () total_count','ON DUPLICATE KEY UPDATE','pagination:','hasMore:','nextOffset:']) must(server.includes(marker), `API pagination/ranking missing ${marker}`);
-must(server.includes("normalizeLeaderboardPage(request.query || {}, { limit: 10 })"), 'GET leaderboard endpoint must retain bounded backward-compatible query paging');
-must(server.includes("{ limit: 20, offset: 0 }"), 'post-result leaderboard response must return the first 20-row page');
+must(server.includes("normalizeLeaderboardPage(request.query || {}, { limit: 10 })"), 'GET leaderboard endpoint must retain bounded ten-row default paging');
 must(ranking.includes('normalizeLeaderboardPage') && ranking.includes('Math.min(max') && ranking.includes('defaultLimit'), 'leaderboard paging input must be normalized and bounded');
 const tests = spawnSync(process.execPath, ['--test', path.join(root, 'server/leaderboards/test.mjs')], { encoding: 'utf8' });
 must(tests.status === 0, `leaderboard tests failed: ${tests.stderr || tests.stdout}`);
 if (failures.length) { console.error(`Leaderboard validation FAILED (${failures.length})`); failures.forEach(item => console.error(`  ✗ ${item}`)); process.exit(1); }
 console.log('Leaderboard validation OK');
-console.log('  ✓ bounded internally scrollable intro leaderboard');
-console.log('  ✓ 20-row API paging with endless-scroll continuation');
+console.log('  ✓ compact internally scrollable HIGH SCORES intro component');
+console.log('  ✓ 10-row API paging with defensive endless-scroll completion');
+console.log('  ✓ final page detaches endless-load listeners and retry can re-enable them');
 console.log('  ✓ shared Top 3 pause/home and Top Ten result treatment');
 console.log('  ✓ idempotent run/Continue server contract');
 console.log('  ✓ MariaDB schema and per-game ranking tests');
