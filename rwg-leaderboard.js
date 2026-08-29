@@ -119,9 +119,9 @@
   function makeBoard() {
     const section = document.createElement('section');
     section.className = 'rwg-leaderboard-board';
-    section.setAttribute('aria-label', `Classifica globale ${gameLabel()}`);
+    section.setAttribute('aria-label', `High Scores ${gameLabel()}`);
     section.innerHTML = `
-      <div class="rwg-lb-heading"><span>🏆 TOP 10 GLOBALE</span><button type="button" data-rwg-lb-retry aria-label="Aggiorna classifica">↻</button></div>
+      <div class="rwg-lb-heading"><span>🏆 HIGH SCORES</span><button type="button" data-rwg-lb-retry aria-label="Aggiorna classifica">↻</button></div>
       <ol class="rwg-lb-list"><li class="rwg-lb-loading">CONNESSIONE AL CABINATO…</li></ol>
       <p class="rwg-lb-status" aria-live="polite"></p>`;
     section.querySelector('[data-rwg-lb-retry]').addEventListener('click', () => {
