@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050816" />
-    <meta name="robots" content="noindex,follow,max-image-preview:large" />
-    <meta property="og:locale" content="it_IT" />
+  <meta name="robots" content="noindex,follow,max-image-preview:large" />
+  <meta property="og:locale" content="it_IT" />
   <meta name="description" content="Personalizza l’avatar locale usato nei videogame di RetroWebGames e ritrovalo accanto ai crediti durante le partite." />
   <link rel="canonical" href="https://www.retrowebgames.it/avatar/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -33,7 +33,7 @@
   <meta name="twitter:image:width" content="1280" />
   <meta name="twitter:image:height" content="672" />
   <meta name="twitter:image:alt" content="RetroWebGames — arcade classics, reimagined for the web" />
-<title>Crea il tuo avatar | RetroWebGames</title>
+  <title>Crea il tuo avatar | RetroWebGames</title>
   <link rel="stylesheet" href="../rwg-avatar.css" />
   <link rel="stylesheet" href="avatar-editor.css" />
   <script src="/rwg-analytics.js" defer></script>
@@ -63,9 +63,7 @@
       "url": "https://www.retrowebgames.it/avatar/",
       "name": "Crea il tuo avatar | RetroWebGames",
       "description": "Personalizza l’avatar locale usato nei videogame di RetroWebGames e ritrovalo accanto ai crediti durante le partite.",
-      "isPartOf": {
-        "@id": "https://www.retrowebgames.it/#website"
-      },
+      "isPartOf": { "@id": "https://www.retrowebgames.it/#website" },
       "inLanguage": "it-IT"
     }
   ]
@@ -74,51 +72,107 @@
 </head>
 <body class="avatar-page">
   <main class="avatar-shell">
-    <div class="avatar-top">
-      <a class="avatar-back" href="https://www.retrowebgames.it/">← Tutti i giochi</a>
-      <span class="avatar-credit-slot" aria-hidden="true"></span>
-    </div>
+    <nav class="avatar-top" aria-label="Navigazione avatar">
+      <a class="avatar-back" href="https://www.retrowebgames.it/"><span aria-hidden="true">←</span> SALA GIOCHI</a>
+      <div class="avatar-top-status"><span class="status-dot"></span><span>PLAYER LOADOUT</span></div>
+    </nav>
 
     <header class="avatar-heading">
-      <small>RETROWEBGAMES • PLAYER ID</small>
-      <h1>IL MIO AVATAR</h1>
-      <p>Il tuo omino viene generato casualmente alla prima visita e resta associato al profilo anonimo di questo browser. Personalizzalo come vuoi.</p>
+      <small>RETROWEBGAMES • PLAYER IDENTITY</small>
+      <h1>CREA IL TUO <span>PLAYER</span></h1>
+      <p>Costruisci il tuo personaggio partendo da uno stickman arcade, poi equipaggialo con stile, outfit e gear. L'avatar ti segue in tutta RetroWebGames.</p>
     </header>
 
-    <section class="avatar-grid">
-      <aside class="avatar-preview-card">
-        <div id="avatarStage" class="avatar-stage" aria-label="Anteprima 3D del tuo avatar">
-          <div id="avatarPreview" data-rwg-avatar-mode="full"></div>
+    <section class="avatar-workbench">
+      <aside class="avatar-preview-card" aria-label="Anteprima avatar">
+        <div class="preview-head">
+          <span><i></i> LIVE PREVIEW</span>
+          <button id="resetViewBtn" class="icon-action" type="button" aria-label="Reimposta visuale" title="Reimposta visuale">↻</button>
         </div>
-        <div id="avatarId" class="avatar-mini-id"></div>
+
+        <div id="avatarStage" class="avatar-stage" aria-label="Anteprima del tuo avatar. Trascina per ruotare.">
+          <div class="stage-grid" aria-hidden="true"></div>
+          <div class="stage-scan" aria-hidden="true"></div>
+          <div id="avatarPreview" data-rwg-avatar-mode="full"></div>
+          <div class="stage-hint"><span>↔</span> TRASCINA PER RUOTARE</div>
+        </div>
+
+        <div class="player-card">
+          <div>
+            <span class="player-label">LOCAL PLAYER</span>
+            <strong id="avatarId">PLAYER</strong>
+          </div>
+          <span class="player-chip">READY</span>
+        </div>
+
+        <div id="loadoutSummary" class="loadout-summary" aria-label="Riepilogo equipaggiamento"></div>
+
         <div class="avatar-actions">
-          <button id="randomizeBtn" class="randomize" type="button">RANDOMIZZA</button>
-          <button id="resetViewBtn" class="reset-view" type="button">↻ VISTA</button>
+          <button id="randomizeBtn" class="randomize" type="button"><span aria-hidden="true">✦</span> RANDOM LOADOUT</button>
+          <button id="restoreBtn" class="restore" type="button">ANNULLA MODIFICHE</button>
         </div>
       </aside>
 
       <section class="avatar-editor-card" aria-label="Personalizzazione avatar">
-        <div class="editor-section" data-section="bodyStyle"><h2>CORPORATURA</h2><div class="choice-row"></div></div>
-        <div class="editor-section" data-section="skin"><h2>CARNAGIONE</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="faceStyle"><h2>FACCIA</h2><div class="choice-row"></div></div>
-        <div class="editor-section" data-section="eyeColor"><h2>OCCHI</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="hairStyle"><h2>CAPELLI</h2><div class="choice-row"></div></div>
-        <div class="editor-section" data-section="hairColor"><h2>COLORE CAPELLI</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="topStyle"><h2>MAGLIA / GIACCA</h2><div class="choice-row"></div></div>
-        <div class="editor-section" data-section="shirtColor"><h2>COLORE TOP</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="bottomStyle"><h2>PANTALONI</h2><div class="choice-row"></div></div>
-        <div class="editor-section" data-section="pantsColor"><h2>COLORE PANTALONI</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="shoeColor"><h2>SCARPE</h2><div class="swatches"></div></div>
-        <div class="editor-section" data-section="accessory"><h2>ACCESSORIO</h2><div class="choice-row"></div></div>
+        <div class="editor-header">
+          <div>
+            <span>LOADOUT CONFIGURATOR</span>
+            <strong>SCEGLI IL TUO STILE</strong>
+          </div>
+          <span id="completionBadge" class="completion-badge">15 SLOT</span>
+        </div>
+
+        <div class="editor-tabs" role="tablist" aria-label="Categorie avatar">
+          <button type="button" class="editor-tab active" role="tab" aria-selected="true" data-tab="body"><span aria-hidden="true">◇</span>CORPO</button>
+          <button type="button" class="editor-tab" role="tab" aria-selected="false" data-tab="head"><span aria-hidden="true">◉</span>TESTA</button>
+          <button type="button" class="editor-tab" role="tab" aria-selected="false" data-tab="outfit"><span aria-hidden="true">⬡</span>OUTFIT</button>
+          <button type="button" class="editor-tab" role="tab" aria-selected="false" data-tab="gear"><span aria-hidden="true">✦</span>GEAR</button>
+        </div>
+
+        <div class="editor-panels">
+          <section class="editor-panel active" data-panel="body" role="tabpanel">
+            <div class="panel-intro"><strong>STRUTTURA PLAYER</strong><span>La silhouette resta leggibile anche nel badge piccolo in-game.</span></div>
+            <div class="editor-section" data-section="bodyStyle"><h2>CORPORATURA</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="skin"><h2>CARNAGIONE</h2><div class="swatches"></div></div>
+            <div class="editor-section" data-section="faceStyle"><h2>ESPRESSIONE</h2><div class="choice-grid"></div></div>
+          </section>
+
+          <section class="editor-panel" data-panel="head" role="tabpanel" hidden>
+            <div class="panel-intro"><strong>HEAD CUSTOM</strong><span>Volto, capelli e colori mantengono il look arcade senza perdere leggibilità.</span></div>
+            <div class="editor-section" data-section="eyeColor"><h2>OCCHI</h2><div class="swatches"></div></div>
+            <div class="editor-section" data-section="hairStyle"><h2>CAPELLI</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="hairColor"><h2>COLORE CAPELLI</h2><div class="swatches"></div></div>
+          </section>
+
+          <section class="editor-panel" data-panel="outfit" role="tabpanel" hidden>
+            <div class="panel-intro"><strong>OUTFIT</strong><span>Top, pantaloni e scarpe sono sovrapposti allo scheletro stickman.</span></div>
+            <div class="editor-section" data-section="topStyle"><h2>TOP</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="shirtColor"><h2>COLORE TOP</h2><div class="swatches"></div></div>
+            <div class="editor-section" data-section="bottomStyle"><h2>PANTALONI</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="pantsColor"><h2>COLORE PANTALONI</h2><div class="swatches"></div></div>
+            <div class="editor-section" data-section="shoeColor"><h2>SCARPE</h2><div class="swatches"></div></div>
+          </section>
+
+          <section class="editor-panel" data-panel="gear" role="tabpanel" hidden>
+            <div class="panel-intro"><strong>ARCADE GEAR</strong><span>Gli slot gear sono indipendenti: puoi combinare visore, copricapo, emblema e aura.</span></div>
+            <div class="editor-section" data-section="eyewear"><h2>VISORE / OCCHIALI</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="headgear"><h2>COPRICAPO</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="emblem"><h2>EMBLEMA</h2><div class="choice-grid"></div></div>
+            <div class="editor-section" data-section="aura"><h2>AURA</h2><div class="choice-grid aura-grid"></div></div>
+          </section>
+        </div>
 
         <div class="savebar">
-          <div id="saveStatus" class="save-status" aria-live="polite">SALVATO</div>
-          <button id="saveBtn" type="button">SALVA AVATAR</button>
+          <div class="save-state">
+            <span id="saveStatus" class="save-status" aria-live="polite">SALVATO</span>
+            <small>Memorizzato su questo dispositivo</small>
+          </div>
+          <button id="saveBtn" type="button">SALVA PLAYER</button>
         </div>
       </section>
     </section>
 
-    <p class="profile-note">L'avatar è attualmente salvato localmente insieme all'identità anonima del browser. La struttura è pronta per essere sincronizzata con il futuro profilo server-side.</p>
+    <p class="profile-note">L'avatar è associato all'identità anonima locale del browser. La versione 2 migra automaticamente il vecchio avatar e separa gli slot gear per una personalizzazione più ricca.</p>
   </main>
 
   <script src="../rwg-profile.js"></script>
