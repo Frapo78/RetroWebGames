@@ -37,9 +37,17 @@ must(infinite.includes('function disableEndless()') && infinite.includes("remove
 must(infinite.includes("data-rwg-infinite-complete") && infinite.includes('function enableEndless()'), 'High Scores reset must be able to re-enable endless scrolling after completion');
 must(infinite.includes('Carica 10 posizioni alla volta'), 'High Scores accessibility copy must expose ten-row pagination');
 
-must(css.includes('height:clamp(72px,10dvh,96px)') && css.includes('max-height:96px') && css.includes('grid-template-rows:auto minmax(0,1fr) auto') && css.includes('contain:layout paint'), 'intro High Scores must use the compact responsive 72–96px budget without expanding the intro');
+for (const marker of ['INTRO_BOARD_MIN_PX = 64','INTRO_BOARD_MAX_PX = 420','INTRO_SHARE_RESERVE_PX = 54','fitIntroBoardHeight','setupIntroFit','--rwg-lb-fit-height','window.visualViewport?.height','window.visualViewport?.addEventListener','ResizeObserver','fitMutationObserver.observe(panel']) {
+  must(infinite.includes(marker), `dynamic intro High Scores viewport fitting missing ${marker}`);
+}
+must(infinite.includes("panel.querySelector('.rwg-intro-share')") && infinite.includes('share ? 0 : INTRO_SHARE_RESERVE_PX'), 'dynamic High Scores must reserve space for social sharing until the share row is mounted');
+must(infinite.includes('usableHeight - nonBoardHeight - shareReserve - INTRO_VERTICAL_SAFETY_PX'), 'dynamic High Scores must consume only the remaining intro viewport budget');
+must(infinite.includes("board.dataset.rwgViewportFit = 'true'"), 'dynamic High Scores board must expose its fitted-layout state');
+
+must(css.includes('height:var(--rwg-lb-fit-height,clamp(88px,15dvh,156px))') && css.includes('min-height:64px') && css.includes('max-height:min(420px,55dvh)') && css.includes('grid-template-rows:auto minmax(0,1fr) auto') && css.includes('contain:layout paint'), 'intro High Scores must use the dynamic shared viewport budget with a safe compact fallback');
 must(css.includes('overflow-y:auto') && css.includes('touch-action:pan-y!important') && css.includes('-webkit-overflow-scrolling:touch'), 'High Scores rows must scroll internally on touch/mobile browsers');
-must(css.includes('height:64px') && css.includes('@media(max-width:360px), (max-height:700px)') && css.includes('.rwg-lb-status{display:none}'), 'short-phone High Scores must shrink to 64px and remove the status row');
+must(css.includes('min-height:60px') && css.includes('max-height:min(300px,48dvh)') && css.includes('@media(max-width:360px), (max-height:700px)') && css.includes('.rwg-lb-status{display:none}'), 'short-phone High Scores must retain a compact lower bound while remaining dynamically expandable');
+must(css.includes('[data-rwg-viewport-fit="true"]') && css.includes('transition:height .16s ease'), 'dynamic High Scores resizing should remain visually stable when motion is allowed');
 must(css.includes('.rwg-lb-more') && css.includes('[data-rwg-infinite-complete="true"]'), 'High Scores endless/final-state styling missing');
 
 const gameOver = read('game-over.js');
@@ -67,7 +75,8 @@ const tests = spawnSync(process.execPath, ['--test', path.join(root, 'server/lea
 must(tests.status === 0, `leaderboard tests failed: ${tests.stderr || tests.stdout}`);
 if (failures.length) { console.error(`Leaderboard validation FAILED (${failures.length})`); failures.forEach(item => console.error(`  ✗ ${item}`)); process.exit(1); }
 console.log('Leaderboard validation OK');
-console.log('  ✓ compact internally scrollable HIGH SCORES intro component');
+console.log('  ✓ dynamically fitted internally scrollable HIGH SCORES intro component');
+console.log('  ✓ social share row remains inside the measured intro viewport budget');
 console.log('  ✓ 10-row API paging with defensive endless-scroll completion');
 console.log('  ✓ final page detaches endless-load listeners and retry can re-enable them');
 console.log('  ✓ shared Top 3 pause/home and Top Ten result treatment');
