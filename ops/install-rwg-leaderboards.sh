@@ -12,6 +12,19 @@ STAMP="$(date +%Y%m%d%H%M%S)"
 BACKUP="/var/backups/frapovps/rwg-leaderboard-${STAMP}"
 
 [[ "$EUID" -eq 0 ]] || { echo "Eseguire come root" >&2; exit 1; }
+wait_for_health() {
+  local url="$1" label="$2"
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if curl -fsS -o /dev/null --max-time 5 "$url"; then
+      echo "$label: ok"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$label: nessuna risposta valida da $url" >&2
+  return 1
+}
+
 for path in "$APP/package-lock.json" "$APP/schema.sql" "$PROJECT/ops/rwg-leaderboard.service" "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$VHOST"; do
   [[ -f "$path" ]] || { echo "Manca $path" >&2; exit 1; }
 done
@@ -53,12 +66,8 @@ fi
 systemctl daemon-reload
 systemctl enable rwg-leaderboard.service
 systemctl restart rwg-leaderboard.service
-for _ in 1 2 3 4 5; do
-  if curl -fsS http://127.0.0.1:3112/health; then break; fi
-  sleep 1
-done
-curl -fsS http://127.0.0.1:3112/health >/dev/null
+wait_for_health http://127.0.0.1:3112/health "Health locale leaderboard"
 nginx -t
 systemctl reload nginx
-curl -fsS https://www.retrowebgames.it/api/leaderboards/v1/health >/dev/null
+wait_for_health https://www.retrowebgames.it/api/leaderboards/v1/health "Health pubblica leaderboard"
 echo "RWG leaderboard operativo. Backup: $BACKUP"
