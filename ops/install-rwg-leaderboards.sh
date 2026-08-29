@@ -12,7 +12,9 @@ STAMP="$(date +%Y%m%d%H%M%S)"
 BACKUP="/var/backups/frapovps/rwg-leaderboard-${STAMP}"
 
 [[ "$EUID" -eq 0 ]] || { echo "Eseguire come root" >&2; exit 1; }
-for path in "$APP/package-lock.json" "$APP/schema.sql" "$PROJECT/ops/rwg-leaderboard.service" "$VHOST"; do [[ -f "$path" ]] || { echo "Manca $path" >&2; exit 1; }; done
+for path in "$APP/package-lock.json" "$APP/schema.sql" "$PROJECT/ops/rwg-leaderboard.service" "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$VHOST"; do
+  [[ -f "$path" ]] || { echo "Manca $path" >&2; exit 1; }
+done
 install -d -o root -g root -m 0700 "$BACKUP"
 cp -a "$VHOST" "$BACKUP/retrowebgames.it.conf"
 [[ ! -f "$ENV_FILE" ]] || cp -a "$ENV_FILE" "$BACKUP/leaderboard.env"
@@ -20,16 +22,19 @@ cp -a "$VHOST" "$BACKUP/retrowebgames.it.conf"
 install -d -o root -g site_rwg -m 0750 "$ENV_DIR"
 if [[ ! -s "$ENV_FILE" ]]; then
   DB_PASSWORD="$(openssl rand -hex 24)"
-  install -o root -g site_rwg -m 0640 /dev/stdin "$ENV_FILE" <<ENV
-RWG_LEADERBOARD_HOST=127.0.0.1
-RWG_LEADERBOARD_PORT=3112
-RWG_ORIGIN=https://www.retrowebgames.it
-RWG_DB_HOST=127.0.0.1
-RWG_DB_PORT=3306
-RWG_DB_NAME=rwg_leaderboards
-RWG_DB_USER=rwg_leaderboard
-RWG_DB_PASSWORD=${DB_PASSWORD}
-ENV
+  umask 0077
+  printf '%s\n' \
+    'RWG_LEADERBOARD_HOST=127.0.0.1' \
+    'RWG_LEADERBOARD_PORT=3112' \
+    'RWG_ORIGIN=https://www.retrowebgames.it' \
+    'RWG_DB_HOST=127.0.0.1' \
+    'RWG_DB_PORT=3306' \
+    'RWG_DB_NAME=rwg_leaderboards' \
+    'RWG_DB_USER=rwg_leaderboard' \
+    "RWG_DB_PASSWORD=${DB_PASSWORD}" > "${ENV_FILE}.new"
+  chown root:site_rwg "${ENV_FILE}.new"
+  chmod 0640 "${ENV_FILE}.new"
+  mv -f "${ENV_FILE}.new" "$ENV_FILE"
 fi
 set -a
 source "$ENV_FILE"
@@ -41,26 +46,17 @@ mysql --protocol=tcp -h 127.0.0.1 -u "$RWG_DB_USER" -p"$RWG_DB_PASSWORD" "$RWG_D
 
 runuser -u fra -- npm --prefix "$APP" ci --omit=dev --ignore-scripts
 install -o root -g root -m 0644 "$PROJECT/ops/rwg-leaderboard.service" "$UNIT"
-install -o root -g root -m 0644 /dev/stdin "$SNIPPET" <<'NGINX'
-location ^~ /api/leaderboards/v1/ {
-    proxy_pass http://127.0.0.1:3112/;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_connect_timeout 3s;
-    proxy_read_timeout 10s;
-    client_max_body_size 64k;
-    add_header Cache-Control "no-store" always;
-}
-NGINX
+install -o root -g root -m 0644 "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$SNIPPET"
 if ! grep -qF 'include /etc/nginx/snippets/rwg-leaderboards.conf;' "$VHOST"; then
   sed -i '/^[[:space:]]*location \/ {/i\    include /etc/nginx/snippets/rwg-leaderboards.conf;' "$VHOST"
 fi
 systemctl daemon-reload
-systemctl enable --now rwg-leaderboard.service
-for _ in 1 2 3 4 5; do curl -fsS http://127.0.0.1:3112/health && break; sleep 1; done
+systemctl enable rwg-leaderboard.service
+systemctl restart rwg-leaderboard.service
+for _ in 1 2 3 4 5; do
+  if curl -fsS http://127.0.0.1:3112/health; then break; fi
+  sleep 1
+done
 curl -fsS http://127.0.0.1:3112/health >/dev/null
 nginx -t
 systemctl reload nginx

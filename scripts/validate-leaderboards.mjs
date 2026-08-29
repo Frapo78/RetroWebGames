@@ -21,6 +21,9 @@ must(solitaire.includes("rwg:leaderboard-result"), 'Solitaire victory must emit 
 must(!solitaire.includes("rwg:game-ended"), 'Solitaire must not emit terminal Game Over');
 const schema = read('server/leaderboards/schema.sql'), server = read('server/leaderboards/server.js'), unit = read('ops/rwg-leaderboard.service');
 must(!unit.includes('MemoryDenyWriteExecute=true'), 'systemd MemoryDenyWriteExecute breaks the Node/V8 JIT');
+const installer = read('ops/install-rwg-leaderboards.sh'), nginxSnippet = read('ops/rwg-leaderboards.nginx.conf');
+must(!installer.includes('/dev/stdin'), 'installer must not use /dev/stdin as an install source');
+must(installer.includes('rwg-leaderboards.nginx.conf') && nginxSnippet.includes('proxy_pass http://127.0.0.1:3112/;'), 'versioned leaderboard Nginx snippet missing');
 for (const marker of ['rwg_players','rwg_runs','continue_count','achievements','metrics','rank_primary']) must(schema.includes(marker), `schema missing ${marker}`);
 for (const marker of ["app.get('/games/:slug'","app.post('/runs'",'ROW_NUMBER() OVER','ON DUPLICATE KEY UPDATE']) must(server.includes(marker), `API missing ${marker}`);
 const tests = spawnSync(process.execPath, ['--test', path.join(root, 'server/leaderboards/test.mjs')], { encoding: 'utf8' });
