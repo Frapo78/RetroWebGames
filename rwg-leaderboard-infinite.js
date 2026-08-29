@@ -4,7 +4,8 @@
   if (!document.body?.hasAttribute('data-rwg-game') || window.RWGLeaderboardInfinite) return;
 
   const API_ROOT = '/api/leaderboards/v1';
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
+  const EDGE_THRESHOLD_PX = 24;
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
   const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
@@ -18,6 +19,7 @@
   let renderGuard = false;
   let controller = null;
   let retryButton = null;
+  let endlessBound = false;
 
   const track = (name, params = {}) => window.RWGAnalytics?.track?.(name, params);
 
@@ -59,7 +61,7 @@
     } else if (pagination.hasMore) {
       const more = document.createElement('li');
       more.className = 'rwg-lb-more';
-      more.textContent = '↓ SCORRI PER ALTRI RECORD';
+      more.textContent = '↓ SCORRI PER ALTRI HIGH SCORES';
       fragment.appendChild(more);
     }
     list.replaceChildren(fragment);
@@ -79,6 +81,28 @@
     rows = [...map.values()].sort((a, b) => Number(a.position) - Number(b.position));
   }
 
+  function onScroll() { maybeLoadMore(); }
+  function onWheel() { requestAnimationFrame(maybeLoadMore); }
+  function onTouchEnd() { requestAnimationFrame(maybeLoadMore); }
+
+  function enableEndless() {
+    if (!list || endlessBound) return;
+    endlessBound = true;
+    board?.removeAttribute('data-rwg-infinite-complete');
+    list.addEventListener('scroll', onScroll, { passive: true });
+    list.addEventListener('wheel', onWheel, { passive: true });
+    list.addEventListener('touchend', onTouchEnd, { passive: true });
+  }
+
+  function disableEndless() {
+    if (!list || !endlessBound) return;
+    endlessBound = false;
+    list.removeEventListener('scroll', onScroll);
+    list.removeEventListener('wheel', onWheel);
+    list.removeEventListener('touchend', onTouchEnd);
+    board?.setAttribute('data-rwg-infinite-complete', 'true');
+  }
+
   async function fetchPage(offset, { replace = false } = {}) {
     if (loading || (!replace && !pagination.hasMore)) return;
     loading = true;
@@ -89,28 +113,43 @@
     }
     const signal = controller?.signal;
     try {
-      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?limit=${PAGE_SIZE}&offset=${Math.max(0, offset)}`;
+      const safeOffset = Math.max(0, Number(offset) || 0);
+      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?limit=${PAGE_SIZE}&offset=${safeOffset}`;
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      mergeRows(data.top || [], replace);
+      const pageRows = Array.isArray(data.top) ? data.top : [];
+      mergeRows(pageRows, replace);
+
+      const total = Math.max(rows.length, Number(data.pagination?.total || 0));
+      const nextOffset = Number(data.pagination?.nextOffset ?? (safeOffset + pageRows.length));
+      const backendHasMore = Boolean(data.pagination?.hasMore);
+      const pageIsFull = pageRows.length === PAGE_SIZE;
+      const advances = nextOffset > safeOffset;
+      const beforeKnownEnd = !total || nextOffset < total;
+      const hasMore = backendHasMore && pageIsFull && advances && beforeKnownEnd;
+
       pagination = {
-        limit: Number(data.pagination?.limit || PAGE_SIZE),
-        offset: Number(data.pagination?.offset || offset),
-        total: Number(data.pagination?.total || rows.length),
-        hasMore: Boolean(data.pagination?.hasMore),
-        nextOffset: Number(data.pagination?.nextOffset ?? rows.length)
+        limit: PAGE_SIZE,
+        offset: Number(data.pagination?.offset ?? safeOffset),
+        total,
+        hasMore,
+        nextOffset
       };
+
+      if (hasMore) enableEndless();
+      else disableEndless();
+
       track('leaderboard_infinite_page', {
         leaderboard_page: Math.floor(pagination.offset / PAGE_SIZE) + 1,
-        row_count: Number(data.top?.length || 0),
+        row_count: pageRows.length,
         loaded_count: rows.length,
         total_count: pagination.total,
         has_more: Number(pagination.hasMore)
       });
     } catch (error) {
       if (error?.name !== 'AbortError') {
-        if (!rows.length && status) status.textContent = 'CLASSIFICA NON DISPONIBILE • RIPROVA';
+        if (!rows.length && status) status.textContent = 'HIGH SCORES NON DISPONIBILI • RIPROVA';
         track('leaderboard_load_error', { error_type: 'infinite_page' });
       }
     } finally {
@@ -122,14 +161,15 @@
   function reset() {
     pagination = { offset: 0, limit: PAGE_SIZE, total: 0, hasMore: true, nextOffset: 0 };
     rows = [];
+    enableEndless();
     list?.scrollTo?.({ top: 0, behavior: 'auto' });
     return fetchPage(0, { replace: true });
   }
 
   function maybeLoadMore() {
-    if (!list || loading || !pagination.hasMore) return;
+    if (!list || loading || !pagination.hasMore || !endlessBound) return;
     const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;
-    if (remaining <= 72) fetchPage(pagination.nextOffset || rows.length);
+    if (remaining <= EDGE_THRESHOLD_PX) fetchPage(pagination.nextOffset || rows.length);
   }
 
   function ownBoard(found) {
@@ -141,13 +181,12 @@
     if (!list || !status) return;
     owned = true;
     board.dataset.rwgInfinite = 'true';
+    board.setAttribute('aria-label', `High Scores ${gameSlug}`);
     const heading = board.querySelector('.rwg-lb-heading span');
-    if (heading) heading.textContent = '🏆 CLASSIFICA GLOBALE';
+    if (heading) heading.textContent = '🏆 HIGH SCORES';
     list.setAttribute('tabindex', '0');
-    list.setAttribute('aria-label', 'Classifica globale scorrevole. Carica 20 posizioni alla volta.');
-    list.addEventListener('scroll', maybeLoadMore, { passive: true });
-    list.addEventListener('wheel', maybeLoadMore, { passive: true });
-    list.addEventListener('touchend', () => requestAnimationFrame(maybeLoadMore), { passive: true });
+    list.setAttribute('aria-label', 'High Scores scorrevoli. Carica 10 posizioni alla volta.');
+    enableEndless();
     retryButton?.addEventListener('click', event => {
       event.preventDefault();
       event.stopImmediatePropagation();
