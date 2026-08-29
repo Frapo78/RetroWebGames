@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import mysql from 'mysql2/promise';
 import { randomUUID } from 'node:crypto';
-import { GAMES, normalizeRun, ORDER_SQL } from './ranking.js';
+import { GAMES, normalizeLeaderboardPage, normalizeRun, ORDER_SQL } from './ranking.js';
 
 const port = Number(process.env.RWG_LEADERBOARD_PORT || 3112);
 const host = process.env.RWG_LEADERBOARD_HOST || '127.0.0.1';
@@ -43,17 +43,34 @@ function publicRow(row, playerId) {
     isCurrent: row.player_id === playerId
   };
 }
-async function leaderboard(gameSlug, playerId) {
+async function leaderboard(gameSlug, playerId, page = {}) {
+  const { limit, offset } = normalizeLeaderboardPage(page, { limit: 10 });
+  const end = offset + limit;
   const [rows] = await pool.query(`WITH ranked AS (
     SELECT id,player_id,nickname,score,level_no,continue_count,result_label,server_updated_at,
       JSON_LENGTH(achievements) achievements_count,
-      ROW_NUMBER() OVER (ORDER BY ${ORDER_SQL}) position
+      ROW_NUMBER() OVER (ORDER BY ${ORDER_SQL}) position,
+      COUNT(*) OVER () total_count
     FROM rwg_runs WHERE game_slug=? AND accepted=1
-  ) SELECT * FROM ranked WHERE position<=10 OR player_id=? ORDER BY position`, [gameSlug, playerId]);
-  const top = rows.filter(row => Number(row.position) <= 10).map(row => publicRow(row, playerId));
+  ) SELECT * FROM ranked WHERE (position>? AND position<=?) OR player_id=? ORDER BY position`, [gameSlug, offset, end, playerId]);
+  const top = rows.filter(row => Number(row.position) > offset && Number(row.position) <= end).map(row => publicRow(row, playerId));
   const own = rows.filter(row => row.player_id === playerId).sort((a, b) => Number(a.position) - Number(b.position))[0];
+  const total = Number(rows[0]?.total_count || 0);
   const [[player]] = await pool.query('SELECT last_name FROM rwg_players WHERE id=?', [playerId]);
-  return { gameSlug, generatedAt: new Date().toISOString(), top, current: own ? publicRow(own, playerId) : null, lastName: player?.last_name || '' };
+  return {
+    gameSlug,
+    generatedAt: new Date().toISOString(),
+    top,
+    current: own ? publicRow(own, playerId) : null,
+    lastName: player?.last_name || '',
+    pagination: {
+      limit,
+      offset,
+      total,
+      hasMore: offset + top.length < total,
+      nextOffset: offset + top.length
+    }
+  };
 }
 
 app.get('/health', async () => { await pool.query('SELECT 1'); return { ok: true, service: 'rwg-leaderboards' }; });
@@ -61,7 +78,7 @@ app.get('/games/:slug', async (request, reply) => {
   const { slug } = request.params;
   if (!GAMES.has(slug)) return reply.code(404).send({ message: 'Gioco non trovato.' });
   const playerId = playerFor(request, reply); await ensurePlayer(playerId);
-  return leaderboard(slug, playerId);
+  return leaderboard(slug, playerId, normalizeLeaderboardPage(request.query || {}, { limit: 10 }));
 });
 app.post('/runs', { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } }, async (request, reply) => {
   let run;
@@ -75,7 +92,7 @@ app.post('/runs', { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } }
     (id,player_id,game_slug,nickname,outcome,score,level_no,active_ms,continue_count,rank_primary,rank_secondary,rank_tertiary,result_label,achievements,metrics,locale,timezone,device_class,client_ended_at)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON DUPLICATE KEY UPDATE nickname=VALUES(nickname),outcome=VALUES(outcome),score=VALUES(score),level_no=VALUES(level_no),active_ms=VALUES(active_ms),continue_count=VALUES(continue_count),rank_primary=VALUES(rank_primary),rank_secondary=VALUES(rank_secondary),rank_tertiary=VALUES(rank_tertiary),result_label=VALUES(result_label),achievements=VALUES(achievements),metrics=VALUES(metrics),locale=VALUES(locale),timezone=VALUES(timezone),device_class=VALUES(device_class),client_ended_at=VALUES(client_ended_at)`, values);
-  const board = await leaderboard(run.gameSlug, playerId);
+  const board = await leaderboard(run.gameSlug, playerId, { limit: 20, offset: 0 });
   return { accepted: true, duplicate: Boolean(existing), current: board.current, leaderboard: board };
 });
 
