@@ -6,6 +6,13 @@ const integer = (value, min = 0, max = 2_000_000_000) => {
   return Math.max(min, Math.min(max, Math.trunc(number)));
 };
 
+export function normalizeLeaderboardPage(query = {}, defaults = {}) {
+  const defaultLimit = integer(defaults.limit ?? 10, 1, 50);
+  const limit = integer(query.limit ?? defaultLimit, 1, 50);
+  const offset = integer(query.offset ?? 0, 0, 2_000_000_000);
+  return { limit, offset };
+}
+
 export function normalizeNickname(value) {
   const nickname = String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ');
   if (!/^[\p{L}\p{N}_ -]{3,12}$/u.test(nickname)) throw new Error('Il nome deve contenere 3–12 lettere, numeri, spazi, - o _.');
