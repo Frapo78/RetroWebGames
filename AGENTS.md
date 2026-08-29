@@ -374,3 +374,5 @@ Every game intro receives its top 10 from the shared `rwg-leaderboard.js` bootst
 A new game owns one run id. Credit Continue updates that same run and records `continueCount`; it MUST NOT create duplicate cumulative entries. New game creates a new run. Submission retries are idempotent and offline failures use the shared queue.
 
 The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
+
+Leaderboard systemd hardening MUST NOT set `MemoryDenyWriteExecute=true`: Node/V8 needs executable JIT pages and otherwise terminates with `SIGTRAP` before binding the API port. Preserve the remaining unit hardening and the loopback-only listener.

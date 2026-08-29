@@ -64,3 +64,5 @@ node scripts/validate-contracts.mjs
 ```
 
 Browser smoke tests must cover every intro, successful submission, invalid nickname, API-offline queue/retry, personal position outside the top 10, Continue update and Solitario victory at 320×568 and larger viewports.
+
+Operational guardrail: do not add `MemoryDenyWriteExecute=true` to `rwg-leaderboard.service`. It is incompatible with the Node/V8 JIT on this VPS and causes an immediate `SIGTRAP`; the service remains protected by the other systemd sandbox directives and its loopback-only listener.
