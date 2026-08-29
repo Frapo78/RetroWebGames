@@ -7,7 +7,7 @@ RetroWebGames exposes one server-backed global leaderboard per game. The gamepla
 `game-hud.js` loads the shared leaderboard stack on every game page:
 
 - `rwg-leaderboard.js` — submission, nickname, home/pause boards and compatibility rendering;
-- `rwg-leaderboard-infinite.js` — authoritative paged endless-scroll behavior for the game intro High Scores;
+- `rwg-leaderboard-infinite.js` — authoritative paged endless-scroll behavior and viewport fitting for the game intro High Scores;
 - `rwg-leaderboard.css` — all shared ranking presentation.
 
 Games MUST NOT create local leaderboard implementations.
@@ -21,22 +21,27 @@ The shared client listens to:
 
 The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and per-game cache as game pages. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
 
-## Intro High Scores — compact bounded endless scroll — CRITICAL
+## Intro High Scores — dynamic viewport-fitted endless scroll — CRITICAL
 
 The ranking inside every game start screen is named **HIGH SCORES**. It is not a fixed Top 10: the first ten positions are only the first page of an endless ranking.
 
-The High Scores component MUST NOT expand the intro vertically or push title, description, `GIOCA`, `TORNA AL MENU`, hints or social sharing actions outside their normal start-screen layout.
+The High Scores component must use as much useful vertical space as the current intro can safely provide. It must therefore grow on tall phones/tablets instead of remaining an artificially narrow strip, while still guaranteeing that title/description, `GIOCA`, `TORNA AL MENU`, hints and the social sharing actions remain visible inside the current visual viewport.
 
-The shared component therefore uses a deliberately small responsive vertical budget:
+`rwg-leaderboard-infinite.js` owns this calculation centrally. It measures the intro overlay and panel at runtime and assigns `--rwg-lb-fit-height` to the shared board. The calculation:
 
-- normal viewports: `height: clamp(72px, 10dvh, 96px)`;
-- maximum height: `96px`;
-- narrow/short phones (`max-width:360px` or `max-height:700px`): `64px`;
-- on short phones the informational status line is hidden to preserve vertical room;
-- heading and rows remain inside the component;
-- only `.rwg-lb-list` scrolls vertically;
-- touch scrolling uses `touch-action: pan-y`, contained overscroll and iOS momentum scrolling;
-- the surrounding intro height is independent from the number of ranking records loaded.
+- uses the real visible viewport (`visualViewport.height` when available) and never assumes that browser chrome leaves the full layout viewport visible;
+- subtracts overlay padding and all non-leaderboard intro content;
+- reserves **54 px** for the social row until `.rwg-intro-share` has actually mounted;
+- keeps a **12 px** vertical safety budget;
+- clamps the board to a compact minimum of **64 px** and a generous maximum of **420 px**;
+- recalculates after initial mount, font readiness, share-row insertion, resize, Visual Viewport resize and orientation change;
+- on narrow/short phones the CSS fallback minimum becomes 60 px and the informational status line is hidden, but the component may still grow if real space exists;
+- only `.rwg-lb-list` scrolls vertically; the intro page itself does not become a leaderboard scroller;
+- touch scrolling uses `touch-action: pan-y`, contained overscroll and iOS momentum scrolling.
+
+The CSS fallback, used before the JS measurement settles or if measurement is unavailable, is `clamp(88px, 15dvh, 156px)`. It is not the authoritative final height: the fitted runtime value is.
+
+This means that on a screen such as 390×844, High Scores should generally expose several more rows than the old 64–96 px implementation and naturally push the social icons downward into otherwise unused space. On a shorter viewport it must contract first, never hide the Share controls merely to show more leaderboard rows.
 
 The first ranking request contains exactly **10 positions**. When the internal list reaches the final ~24 px of its own scroll range, `rwg-leaderboard-infinite.js` requests the next ten. Offsets therefore advance `0, 10, 20, 30…` until the ranking is exhausted.
 
@@ -140,14 +145,16 @@ Browser smoke tests must cover every intro, all home Top 3 panels, actual Solita
 
 For intro High Scores specifically test at 320×568, 375×667, 390×844 and larger mobile/tablet viewports:
 
-1. title/description, `GIOCA`, `TORNA AL MENU`, hints and intro social actions remain visible/reachable without High Scores growing the page;
-2. the High Scores component itself stays within the responsive 64–96 px vertical budget;
-3. the ranking list scrolls independently with touch;
-4. initial request loads exactly 10 rows;
-5. reaching its lower edge requests offsets 10, 20, 30…;
-6. a short final page or `hasMore=false` disables further endless-load listeners and requests;
-7. retry resets to offset 0 and re-enables endless loading;
-8. home Top 3 and pause/resume Top 3 remain compact and unchanged.
+1. title/description, `GIOCA`, `TORNA AL MENU`, hints and intro social actions remain visible/reachable;
+2. High Scores expands into genuinely free vertical space and contracts when space is scarce;
+3. the social row remains visible after the leaderboard has reached its fitted height, including with Safari browser chrome visible;
+4. the ranking list scrolls independently with touch;
+5. initial request loads exactly 10 rows;
+6. reaching its lower edge requests offsets 10, 20, 30…;
+7. a short final page or `hasMore=false` disables further endless-load listeners and requests;
+8. retry resets to offset 0 and re-enables endless loading;
+9. rotating/resizing or showing/hiding browser chrome recalculates the leaderboard height without clipping Share;
+10. home Top 3 and pause/resume Top 3 remain compact and unchanged.
 
 Game Over headings must show only each short game name.
 
