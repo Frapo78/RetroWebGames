@@ -366,3 +366,11 @@ Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js
 - Regenerate `sitemap.xml` with `node scripts/generate-sitemap.mjs`; keep only canonical indexable routes and truthful Git-derived `lastmod` dates. Do not add ignored `priority` or `changefreq` fields.
 - Never add hidden keyword copy, doorway pages, fabricated review/rating data, obsolete `meta keywords` or an unsupported `llms.txt` shortcut.
 - Run `node scripts/validate-seo-geo.mjs`; it is also mandatory through `validate-contracts.mjs`. See `docs/SEO-GEO.md`.
+
+## Global leaderboard contract — CRITICAL
+
+Every game intro receives its top 10 from the shared `rwg-leaderboard.js` bootstrap. Games MUST NOT create local leaderboard implementations. Terminal games submit through `rwg:game-over-summary`; successful non-Game-Over completions use `rwg:leaderboard-result` without misusing `rwg:game-ended`.
+
+A new game owns one run id. Credit Continue updates that same run and records `continueCount`; it MUST NOT create duplicate cumulative entries. New game creates a new run. Submission retries are idempotent and offline failures use the shared queue.
+
+The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.

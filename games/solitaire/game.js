@@ -169,6 +169,7 @@
     render();
     markSessionDirty('new-game');
     showToast('NUOVA MANO • BUONA FORTUNA!');
+    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: 'Solitario', gameSlug: 'solitaire' } }));
   }
 
   function snapshot() {
@@ -646,6 +647,11 @@
     celebrate();
     winScreen.classList.add('visible');
     winScreen.setAttribute('aria-hidden', 'false');
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
+      game: 'Solitario', gameSlug: 'solitaire', outcome: 'win', score,
+      level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
+      achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
+    } }));
   }
 
   function celebrate() {

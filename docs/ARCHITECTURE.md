@@ -243,3 +243,17 @@ The home owns the install-acquisition layer. `pwa-install.js` captures `beforein
 ## Shared lazy-image layer
 
 `rwg-lazy-images.js` is the reusable public-page image loader. Home images expose `data-rwg-src` rather than eager `src`, reserve width/height, and keep native lazy/async hints. A 280 px IntersectionObserver margin prefetches near-viewport images; the fallback loads immediately, while MutationObserver and `RWGLazyImages.observe(root)` cover dynamically inserted sections. See `docs/LAZY-IMAGES.md`.
+
+## Server-backed global leaderboards
+
+The static games use a narrowly scoped dynamic service without changing gameplay ownership:
+
+```text
+Game lifecycle → rwg-leaderboard.js → /api/leaderboards/v1/
+                                      → rwg-leaderboard.service (127.0.0.1:3112)
+                                      → MariaDB rwg_leaderboards
+```
+
+`game-hud.js` centrally boots the client. Shared Game Over emits normalized statistics; Solitario emits the successful-completion event directly. One run id spans credit Continue and unfinished-session resume, while a true new game starts a new id. The top 10 contains runs, and a current-device row outside the top 10 reports that anonymous player's best run.
+
+The service is same-origin, rate-limited and idempotent. Browser telemetry remains untrusted input and is bounded/normalized before storage. Credentials and database state remain outside the public repository. See `LEADERBOARDS.md`.

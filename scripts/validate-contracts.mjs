@@ -198,7 +198,7 @@ must(agents.includes('exactly **8 firing forms**'), 'AGENTS.md must document Sta
 must(agents.includes('POWER range: **1..20**'), 'AGENTS.md must document Star Swarm 20-level POWER progression');
 must(agents.includes('Do not conflate these two systems'), 'AGENTS.md must retain Weapon vs POWER semantic guardrail');
 
-for (const rel of ['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs','scripts/validate-lazy-images.mjs','scripts/validate-seo-geo.mjs']) {
+for (const rel of ['scripts/validate-session.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs','scripts/validate-lazy-images.mjs','scripts/validate-seo-geo.mjs','scripts/validate-leaderboards.mjs']) {
   const result = spawnSync(process.execPath, [path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: specialized validator failed: ${(result.stderr || result.stdout || '').trim()}`);
 }

@@ -47,6 +47,22 @@
       }
     };
 
+    const loadLeaderboard = () => {
+      if (!document.querySelector('link[data-rwg-leaderboard-style]')) {
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = new URL('rwg-leaderboard.css', base).href;
+        style.dataset.rwgLeaderboardStyle = 'true';
+        document.head.appendChild(style);
+      }
+      if (!window.RWGLeaderboard && !document.querySelector('script[data-rwg-leaderboard-script]')) {
+        const script = document.createElement('script');
+        script.src = new URL('rwg-leaderboard.js', base).href;
+        script.dataset.rwgLeaderboardScript = 'true';
+        document.body.appendChild(script);
+      }
+    };
+
     const loadGameOver = () => {
       if (!document.querySelector('link[data-rwg-game-over-style]')) {
         const style = document.createElement('link');
@@ -104,6 +120,7 @@
     loadAnalytics();
     loadSession();
     loadIntroShare();
+    loadLeaderboard();
     ensureProfileThenExtras();
   }
 

@@ -53,6 +53,7 @@
   let introTimer = 0;
   let introSkipHandler = null;
   let achievementRaf = 0;
+  let terminalDetail = {};
 
   const intro = document.createElement('section');
   intro.className = 'rwg-game-over-intro';
@@ -238,6 +239,7 @@
     maxCombo = 1;
     maxRally = 0;
     continueCount = 0;
+    terminalDetail = {};
     startingBest = parseNumber(document.getElementById('best'));
     lastTick = performance.now();
     layer.hidden = true;
@@ -248,6 +250,7 @@
   };
 
   const ensureSession = detail => {
+    terminalDetail = { ...terminalDetail, ...(detail || {}) };
     if (sessionActive) {
       const reportedMs = Number(detail?.activeMs);
       if (Number.isFinite(reportedMs) && reportedMs > activeMs) activeMs = reportedMs;
@@ -330,7 +333,8 @@
       maxCombo,
       maxRally,
       activeMs,
-      continueCount
+      continueCount,
+      metrics: { ...terminalDetail }
     };
   };
 

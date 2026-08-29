@@ -269,3 +269,7 @@ La home offre due superfici condivise e non invasive: un avviso slide-in dopo 2 
 ## Caricamento immagini condiviso
 
 La home usa `rwg-lazy-images.js` per caricare tutte le immagini soltanto quando si avvicinano al viewport. Il modulo supporta contenuti inseriti dinamicamente, fallback senza IntersectionObserver e un’API riutilizzabile nelle altre sezioni. Il markup conserva sempre dimensioni intrinseche, `loading="lazy"`, `decoding="async"` e la sorgente differita in `data-rwg-src`. Vedi `docs/LAZY-IMAGES.md` e `scripts/validate-lazy-images.mjs`.
+
+## Classifiche globali
+
+Ogni gioco mostra nell'intro la top 10 globale e, quando necessario, la posizione del browser corrente. A fine partita il pannello coin-op condiviso registra nickname, risultato, progressione, achievement e metriche di gioco nel servizio MariaDB del VPS. I Continue aggiornano la stessa partita e ne dichiarano il conteggio; una nuova partita crea invece una nuova voce. Dettagli tecnici, privacy, API e runbook sono in `docs/LEADERBOARDS.md`.
