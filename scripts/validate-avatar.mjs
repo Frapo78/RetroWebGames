@@ -17,7 +17,7 @@ const editorCss = read('avatar/avatar-editor.css');
 const docs = read('docs/AVATAR.md');
 
 must(shared.includes('const VERSION = 2;'), 'Avatar schema must remain v2');
-must(shared.includes('rwg.avatar.v2:${fingerprint}'), 'Avatar v2 storage key missing');
+must(shared.includes('const STORAGE_KEY = `rwg.avatar.v${VERSION}:${fingerprint}`;'), 'Avatar v2 storage key missing');
 must(shared.includes('rwg.avatar.v1:${fingerprint}'), 'Avatar legacy v1 migration key missing');
 must(shared.includes('function migrateLegacy'), 'Avatar v1 migration function missing');
 must(shared.includes("['glasses','visor'].includes(next.accessory)"), 'Legacy eyewear migration missing');
@@ -26,7 +26,8 @@ must(shared.includes("['cap','headphones'].includes(next.accessory)"), 'Legacy h
 for (const slot of ['eyewear','headgear','emblem','aura']) {
   must(new RegExp(`${slot}: \\[` ).test(shared), `Avatar independent ${slot} option slot missing`);
 }
-must(!/OPTIONS[\s\S]{0,1600}accessory\s*:/.test(shared), 'Legacy combined accessory slot must not remain in v2 OPTIONS');
+const optionsBlock = shared.slice(shared.indexOf('const OPTIONS'), shared.indexOf('const AURA'));
+must(!/\baccessory\s*:/.test(optionsBlock), 'Legacy combined accessory slot must not remain in v2 OPTIONS');
 
 for (const marker of [
   'rwg-avatar-svg',
