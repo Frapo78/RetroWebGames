@@ -1,0 +1,30 @@
+name: avatar-finalize
+'on':
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-avatar-finalize.yml
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: python3 scripts/tmp-avatar-finalize.py
+      - run: node scripts/validate-avatar.mjs
+      - run: node scripts/validate-contracts.mjs
+      - name: commit
+        run: |
+          git config user.name Fra
+          git config user.email 40823974+Frapo78@users.noreply.github.com
+          rm -f scripts/tmp-avatar-finalize.py .github/workflows/tmp-avatar-finalize.yml
+          git add -A
+          git commit -m "docs(avatar): enforce shared gaming identity contract"
+          git push origin main
