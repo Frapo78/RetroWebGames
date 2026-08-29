@@ -7,7 +7,7 @@ RetroWebGames exposes one server-backed global leaderboard per game. The gamepla
 `game-hud.js` loads the shared leaderboard stack on every game page:
 
 - `rwg-leaderboard.js` — submission, nickname, home/pause boards and compatibility rendering;
-- `rwg-leaderboard-infinite.js` — authoritative paged endless-scroll behavior for the game intro leaderboard;
+- `rwg-leaderboard-infinite.js` — authoritative paged endless-scroll behavior for the game intro High Scores;
 - `rwg-leaderboard.css` — all shared ranking presentation.
 
 Games MUST NOT create local leaderboard implementations.
@@ -21,20 +21,33 @@ The shared client listens to:
 
 The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and per-game cache as game pages. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
 
-## Intro leaderboard — bounded endless scroll — CRITICAL
+## Intro High Scores — compact bounded endless scroll — CRITICAL
 
-The leaderboard inside every game start screen MUST NOT expand the intro vertically or push primary controls/social actions outside the visible viewport.
+The ranking inside every game start screen is named **HIGH SCORES**. It is not a fixed Top 10: the first ten positions are only the first page of an endless ranking.
 
-The shared intro leaderboard therefore uses a fixed responsive vertical budget:
+The High Scores component MUST NOT expand the intro vertically or push title, description, `GIOCA`, `TORNA AL MENU`, hints or social sharing actions outside their normal start-screen layout.
 
-- normal viewports: `height: clamp(104px, 14dvh, 132px)`;
-- narrow/short phones: `92px`;
-- heading and status remain inside the component;
+The shared component therefore uses a deliberately small responsive vertical budget:
+
+- normal viewports: `height: clamp(72px, 10dvh, 96px)`;
+- maximum height: `96px`;
+- narrow/short phones (`max-width:360px` or `max-height:700px`): `64px`;
+- on short phones the informational status line is hidden to preserve vertical room;
+- heading and rows remain inside the component;
 - only `.rwg-lb-list` scrolls vertically;
 - touch scrolling uses `touch-action: pan-y`, contained overscroll and iOS momentum scrolling;
-- the surrounding intro does not need to grow as more rankings are loaded.
+- the surrounding intro height is independent from the number of ranking records loaded.
 
-The first ranking request contains **20 positions**. When the internal list is within the final ~72 px of its own scroll range, `rwg-leaderboard-infinite.js` requests the next 20. This repeats until the API returns `hasMore: false`. The UI may therefore show only a few rows at once on a small phone while retaining an unlimited logical ranking through endless scroll.
+The first ranking request contains exactly **10 positions**. When the internal list reaches the final ~24 px of its own scroll range, `rwg-leaderboard-infinite.js` requests the next ten. Offsets therefore advance `0, 10, 20, 30…` until the ranking is exhausted.
+
+End-of-ranking handling is defensive rather than relying on one API flag alone. Infinite loading stops when any of these indicates completion:
+
+- the API returns `pagination.hasMore=false`;
+- the returned page contains fewer than 10 rows;
+- `nextOffset` does not advance;
+- `nextOffset` reaches the known total.
+
+When completed, the component removes its `scroll`, `wheel` and `touchend` endless-load listeners and marks the board with `data-rwg-infinite-complete="true"`. Normal internal scrolling of already loaded records still works, but no further API requests can be triggered. A manual retry/reset re-enables the listeners and restarts at offset 0.
 
 This behavior is centralized through mandatory `game-hud.js`, so Solitario and every other current/future game inherit the same component automatically. Do not add a game-local ranking table or override it with a page-growing list.
 
@@ -63,7 +76,7 @@ Query parameters:
 - `limit` — number of ranked rows, bounded to **1..50**;
 - `offset` — zero-based ranking offset, bounded to a non-negative integer.
 
-The compatibility default remains 10 rows when no query is supplied. Game intro endless scroll explicitly requests `limit=20`.
+The compatibility default remains 10 rows when no query is supplied. Game intro High Scores explicitly request `limit=10` for every page.
 
 The response contains:
 
@@ -80,7 +93,7 @@ The server computes rank and total with SQL window functions and does not downlo
 
 ### Other endpoints
 
-- `POST /runs` creates or updates an idempotent run and returns the authoritative current placement plus the first 20-row ranking page;
+- `POST /runs` creates or updates an idempotent run and returns the authoritative current placement plus a leaderboard snapshot used by the result flow;
 - `GET /health` verifies the process and MariaDB connection.
 
 The service issues a Secure, HttpOnly, SameSite=Lax pseudonymous player cookie. Clearing both cookies and local browser storage loses this anonymous identity. No account, email or hardware fingerprint is collected.
@@ -112,7 +125,7 @@ curl -fsS http://127.0.0.1:3112/health
 curl -fsS https://www.retrowebgames.it/api/leaderboards/v1/health
 ```
 
-Because paginated GET behavior is implemented by `server/leaderboards/server.js`, deploying this change requires updating/restarting the leaderboard service in addition to publishing the static browser assets.
+The GET endpoint already supports `limit=10&offset=N`; this UI change does not require a database migration. Restart the leaderboard service only when server code itself changes.
 
 Credentials live only in `/etc/rwg/leaderboard.env`. The installer is idempotent, applies `schema.sql`, installs locked production dependencies, installs the Nginx proxy snippet and restarts the service. Back up the `rwg_leaderboards` database with the normal MariaDB backup regime.
 
@@ -125,15 +138,16 @@ node scripts/validate-contracts.mjs
 
 Browser smoke tests must cover every intro, all home Top 3 panels, actual Solitario resume prompt, explicit pause visibility, first-use overlay, invalid nickname, automatic later submission without a prompt, gold Top Ten and standard lower-rank Game Over cards, API-offline queue/retry, personal position outside the first page, Continue update and Solitario victory.
 
-For intro ranking specifically test at 320×568 and larger mobile viewports:
+For intro High Scores specifically test at 320×568, 375×667, 390×844 and larger mobile/tablet viewports:
 
-1. title/description, `GIOCA`, `TORNA AL MENU` and intro social actions remain reachable/visible without the leaderboard growing the page;
-2. the leaderboard itself scrolls independently with touch;
-3. initial request loads 20 rows;
-4. reaching its lower edge requests offsets 20, 40, 60…;
-5. loading stops cleanly when `hasMore=false`;
-6. retry resets to offset 0;
-7. home Top 3 and pause/resume Top 3 remain compact and unchanged.
+1. title/description, `GIOCA`, `TORNA AL MENU`, hints and intro social actions remain visible/reachable without High Scores growing the page;
+2. the High Scores component itself stays within the responsive 64–96 px vertical budget;
+3. the ranking list scrolls independently with touch;
+4. initial request loads exactly 10 rows;
+5. reaching its lower edge requests offsets 10, 20, 30…;
+6. a short final page or `hasMore=false` disables further endless-load listeners and requests;
+7. retry resets to offset 0 and re-enables endless loading;
+8. home Top 3 and pause/resume Top 3 remain compact and unchanged.
 
 Game Over headings must show only each short game name.
 
