@@ -10,7 +10,7 @@ const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
 
-for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/auto-move.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
+for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/auto-move.js','games/solitaire/auto-finish.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -18,7 +18,7 @@ for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitai
 const html = read('games/solitaire/index.html');
 must(html.includes('data-rwg-game="true"'), 'Solitaire page must use shared RWG game contract');
 must(html.includes('minimum-scale=1') && html.includes('maximum-scale=1') && html.includes('user-scalable=no'), 'Solitaire viewport must explicitly disable browser scaling');
-must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('auto-move.js') && html.indexOf('auto-move.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/auto-move/game load order is invalid');
+must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('auto-move.js') && html.indexOf('auto-move.js') < html.indexOf('auto-finish.js') && html.indexOf('auto-finish.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/auto-move/auto-finish/game load order is invalid');
 must(html.indexOf('game.js') < html.indexOf('session-adapter.js') && html.indexOf('session-adapter.js') < html.indexOf('../../game-hud.js'), 'Solitaire versioning adapter must load after game.js and before shared HUD');
 must(!html.includes('../../rwg-session.js') && !html.includes('../../rwg-session.css'), 'Solitaire must rely on centralized game-hud session bootstrap, not page-local shared-service preload');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared lifecycle');
@@ -43,6 +43,7 @@ must(/id="drawPileDock"[^>]*style="[^"]*position:fixed[^"]*right:/i.test(html), 
 const style = read('games/solitaire/style.css');
 must(style.includes('touch-action:none!important') && style.includes('-ms-touch-action:none!important'), 'Solitaire CSS must keep touch zoom/pan disabled on the game surface');
 must(style.includes('#drawPileDock') && style.includes('grid-template-columns:repeat(2,var(--draw-slot-w))'), 'Draw pile dock must remain a two-slot horizontal layout');
+must(style.includes('.solitaire-fireworks') && style.includes('@keyframes fireworkParticle') && style.includes('#winScreen.slow-reveal'), 'Solitaire staged victory fireworks/fade CSS missing');
 must(style.includes('bottom:calc(env(safe-area-inset-bottom) + 62px)'), 'Draw pile dock must remain immediately above the lower game controls');
 must(style.includes('#drawPileDock #waste .playing-card'), 'Waste card must retain dock-local card sizing');
 
@@ -81,6 +82,35 @@ const foundationChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns
 must(foundationChoice?.target?.type === 'foundation', 'Automatic move must retain foundation-first ordering when legal');
 must(autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: () => false }) === null, 'Automatic move must be a no-op when no legal destination exists');
 
+const finishSandbox = { window: {} };
+vm.createContext(finishSandbox);
+vm.runInContext(read('games/solitaire/auto-finish.js'), finishSandbox, { filename: 'solitaire/auto-finish.js' });
+const autoFinish = finishSandbox.window.RWGSolitaireAutoFinish;
+must(typeof autoFinish?.plan === 'function', 'Solitaire auto-finish planner missing');
+const suits = ['s','h','d','c'];
+const card = (suit, rank, faceUp = true) => ({ id: `${suit}${rank}`, suit, rank, faceUp });
+const foundationsThrough = rank => Object.fromEntries(suits.map(suit => [suit, Array.from({ length: rank }, (_, index) => card(suit, index + 1))]));
+const solvableFinish = {
+  stock: [], waste: [], foundations: foundationsThrough(12),
+  tableau: suits.map(suit => [card(suit, 13)]).concat([[],[],[]])
+};
+const finishPlan = autoFinish?.plan?.(solvableFinish);
+must(finishPlan?.length === 4 && finishPlan.every(step => step.target.type === 'foundation' && step.cardId.endsWith('13')), 'Auto-finish must plan every remaining legal King');
+const wasteFinish = structuredClone(solvableFinish);
+wasteFinish.waste.push(wasteFinish.tableau[0].pop());
+must(autoFinish?.plan?.(wasteFinish)?.some(step => step.source.type === 'waste'), 'Auto-finish must include an exposed legal waste card');
+const blockedFinish = {
+  stock: [], waste: [], foundations: foundationsThrough(11),
+  tableau: suits.map(suit => [card(suit, 12), card(suit, 13)]).concat([[],[],[]])
+};
+must(autoFinish?.plan?.(blockedFinish) === null, 'Auto-finish must reject face-up cards whose foundation order is still blocked');
+const stockedFinish = structuredClone(solvableFinish);
+stockedFinish.stock.push({ ...stockedFinish.tableau[0].pop(), faceUp: false });
+must(autoFinish?.plan?.(stockedFinish) === null, 'Auto-finish must reject a hand while stock cards remain locked');
+const faceDownFinish = structuredClone(solvableFinish);
+faceDownFinish.tableau[0][0].faceUp = false;
+must(autoFinish?.plan?.(faceDownFinish) === null, 'Auto-finish must reject any face-down tableau card');
+
 const artSandbox = { window: {} };
 vm.createContext(artSandbox);
 vm.runInContext(read('games/solitaire/card-art.js'), artSandbox, { filename: 'solitaire/card-art.js' });
@@ -102,12 +132,12 @@ for (let rank = 1; rank <= 13; rank++) {
   const cornerSize = essential.match(/class="essential-corner"[^>]*font-size="([^"]+)"/)?.[1];
   const topRank = essential.match(/class="essential-top-rank"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
   const hiddenRank = essential.match(/class="essential-rank"[^>]*y="([^"]+)"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
-  const watermark = essential.match(/class="essential-watermark"[^>]*x="50"[^>]*y="118"[^>]*font-size="82"[^>]*opacity="\.075"[^>]*filter:blur\(1\.15px\)[^>]*>([^<]+)<\/text>/);
+  const watermark = essential.match(/class="essential-watermark"[^>]*x="50"[^>]*y="88"[^>]*font-size="176"[^>]*opacity="\.045"[^>]*filter:blur\(2\.2px\)[^>]*>([^<]+)<\/text>/);
   must(topRank?.[2] === essentialRankLabels[rank - 1], `Essential rank ${rank} must expose its canonical upper-right label`);
   must(Boolean(cornerSize) && topRank?.[1] === cornerSize, `Essential rank ${rank} upper-right label must match the upper-left suit size`);
   must(cornerSize === '43.125', `Essential rank ${rank} upper suit and rank must remain 25% smaller than the previous 57.5 size`);
   must(hiddenRank?.[1] === '90' && hiddenRank?.[3] === essentialRankLabels[rank - 1], `Essential rank ${rank} must be recentered below the reduced upper band`);
-  must(watermark?.[1] === (rank % 2 ? '♥' : '♠'), `Essential rank ${rank} must retain a softly blurred, lower-offset suit watermark`);
+  must(watermark?.[1] === (rank % 2 ? '♥' : '♠'), `Essential rank ${rank} must retain a softly blurred, full-card suit watermark`);
   if (rank === 10) {
     must((essential.match(/textLength="28\.5"/g) || []).length === 1 && (essential.match(/textLength="38"/g) || []).length === 1, 'Essential 10 labels must retain proportional horizontal fitting at their respective sizes');
     must((essential.match(/lengthAdjust="spacingAndGlyphs"/g) || []).length === 2, 'Both Essential 10 labels must use the same font fitting method');
@@ -130,6 +160,9 @@ must(game.includes("board.addEventListener('pointerdown'"), 'Card pointer delega
 must(game.includes('AutoMove.chooseNext') && game.includes('preserveAutoCycle: true'), 'Double tap must resolve and preserve cyclic legal destinations through the shared move transaction');
 must(game.includes('data-card-id=') && game.includes('AUTO_MOVE_DURATION_MS = 210'), 'Automatic moves must retain stable card identity and fast FLIP animation timing');
 must(game.includes("matchMedia('(prefers-reduced-motion: reduce)').matches"), 'Automatic card movement must respect reduced-motion preference');
+for (const marker of ['AutoFinish.plan','scheduleAutoFinishCheck','startAutoFinish','AUTO_FINISH_MOVE_MS = 118','recordHistory: false','deferWin: true','launchVictoryFireworks','checkWin({ staged: true })','WIN_FADE_DURATION_MS = 1450']) must(game.includes(marker), `Solitaire auto-finish runtime missing: ${marker}`);
+must(game.includes("board.classList.add('auto-finish-active', 'auto-move-active')") && game.includes('!autoFinishActive'), 'Auto-finish must lock interaction and freeze active play time');
+must(game.includes("track?.('solitaire_auto_finish', { phase: 'start'") && game.includes("phase: 'complete'"), 'Solitaire auto-finish must expose start/complete through centralized analytics');
 
 for (const marker of ['RESUME_SCHEMA = 1','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
 must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Resume validation must require exactly 52 unique cards');
@@ -165,6 +198,7 @@ console.log('  ✓ classic Klondike rules and card artwork');
 console.log('  ✓ browser zoom gestures blocked by viewport + CSS + JS guard');
 console.log('  ✓ stock/waste docked bottom-right as left/right pair');
 console.log('  ✓ cyclic double-tap auto-move with reduced-motion-safe FLIP animation');
+console.log('  ✓ conservative full-hand auto-finish with staged fireworks and victory fade');
 console.log('  ✓ validated 52-card logical snapshot');
 console.log('  ✓ centralized RWGSession v2 bootstrap and compatibility token');
 console.log('  ✓ dirty moves + 5s heartbeat + safe restore semantics');

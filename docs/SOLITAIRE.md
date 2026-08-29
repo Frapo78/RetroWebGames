@@ -9,12 +9,13 @@ Solitario is RetroWebGames' extensible card-game shell. The current playable var
 - `games/solitaire/card-art.js` — cached original classic French-suited SVG artwork
 - `games/solitaire/input-guard.js` — browser gesture/zoom suppression for the game surface
 - `games/solitaire/auto-move.js` — pure cyclic destination resolver for double-tap moves
+- `games/solitaire/auto-finish.js` — pure conservative planner for an obstruction-free finish
 - `games/solitaire/game.js` — authoritative gameplay runtime and logical resume adapter
 - `games/solitaire/session-adapter.js` — persistence compatibility/version wrapper
 - `games/solitaire/style.css`
 - root `rwg-session.js` / `rwg-session.css` — centralized autosave/resume infrastructure loaded by `game-hud.js`
 
-Load order is `variants.js` → `card-art.js` → `input-guard.js` → `auto-move.js` → `game.js` → `session-adapter.js` → shared `game-hud.js` → `orientation.js`.
+Load order is `variants.js` → `card-art.js` → `input-guard.js` → `auto-move.js` → `auto-finish.js` → `game.js` → `session-adapter.js` → shared `game-hud.js` → `orientation.js`.
 
 ## Variant model
 
@@ -93,6 +94,12 @@ The game-level double tap is still handled by `game.js` and must continue to res
 
 The leading card ID owns the cycle cursor. A different card or a manual state mutation resets it. Automatic placement uses a 210 ms FLIP/Web Animations transition from the old card rectangles to the freshly rendered legal destination; the logical move is atomic and immediate. Valid tableau sequences animate as a stack. Reduced-motion preference skips the transition without changing behavior.
 
+### Obstruction-free auto-finish
+
+After every committed move and stock draw, `auto-finish.js` receives a read-only snapshot. It returns a plan only when stock is empty, every remaining tableau/waste card is face-up, the state still contains 52 unique canonical cards, and a full simulation can move every remaining exposed top card to its legal same-suit foundation. A merely face-up but blocked layout returns `null` and remains under player control.
+
+A valid plan locks gameplay, freezes elapsed play time and executes one authoritative `performMove()` per card with a 118 ms FLIP transition. Generated moves preserve scoring/session state but do not fill Undo history because the plan has already proven the hand terminal. The final move defers victory presentation until the whole sequence has completed. Six deterministic firework bursts then play above the board; only afterward does the dedicated victory screen fade in over 1.45 seconds. Reduced-motion users receive a short flash and shortened fade without changing state order. The GA4 event `solitaire_auto_finish` records `phase=start|complete` and the numeric moved-card count through the centralized analytics API.
+
 ## Resumable unfinished hand — CRITICAL
 
 An unfinished hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
@@ -165,7 +172,7 @@ Local convenience statistics include deals, wins, best completion time and best 
 
 Solitario has no forced terminal loss state: an unwinnable or unwanted hand is abandoned by starting a new deal.
 
-A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:game-ended`, because that event opens the shared loss/Game Over flow. Victory clears the unfinished-hand snapshot.
+A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:game-ended`, because that event opens the shared loss/Game Over flow. Victory clears the unfinished-hand snapshot. For an auto-finished hand, leaderboard submission and any first-use nickname prompt are delayed until the fireworks and slow victory fade have finished.
 
 ## Performance
 
@@ -190,7 +197,7 @@ The game intentionally uses DOM/CSS rather than Canvas:
 - ornamental Ace of Spades;
 - symmetric traditional card back.
 
-The live card-style selector remains in the third upper slot. `Essential` is the default; an explicitly persisted `Classic` selection remains respected. Changing style does not restart or mutate the hand. Essential faces keep only the upper-left suit and upper-right canonical rank (`A`, `2`–`10`, `J`, `Q`, `K`), both at size `43.125` (25% below their former `57.5`) and in the suit colour. The second large rank is recentered at `y=90` below the reduced upper band. A large matching suit sits behind and slightly below it at `y=118`, with low opacity and a light blur. No lower-right suit is rendered. The two `10` labels retain the same typeface and proportional horizontal fitting at their respective sizes.
+The live card-style selector remains in the third upper slot. `Essential` is the default; an explicitly persisted `Classic` selection remains respected. Changing style does not restart or mutate the hand. Essential faces keep only the upper-left suit and upper-right canonical rank (`A`, `2`–`10`, `J`, `Q`, `K`), both at size `43.125` (25% below their former `57.5`) and in the suit colour. The second large rank is recentered at `y=90` below the reduced upper band. A matching suit at size `176` forms a full-card background watermark, optically shifted down to `y=88`, clipped by the card edges and kept unobtrusive with opacity `.045` and a `2.2px` blur. No lower-right suit is rendered. The two `10` labels retain the same typeface and proportional horizontal fitting at their respective sizes.
 
 ## Validation
 

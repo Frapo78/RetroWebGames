@@ -87,6 +87,8 @@ A future game gets Analytics automatically by loading the mandatory shared `game
 
 If a future mechanic needs a new business-relevant event, add it to `rwg-analytics.js` or expose a stable platform event and document it here. Do not add a second GA implementation to the game engine.
 
+Solitario uses the existing centralized `window.RWGAnalytics.track()` API for `solitaire_auto_finish`, with low-cardinality `phase` (`start` or `complete`) and numeric `cards_moved`. It never sends card identities or the saved-hand payload.
+
 ## Validation
 
 Run:

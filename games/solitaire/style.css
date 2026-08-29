@@ -64,4 +64,18 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 @keyframes winSpin{to{transform:rotate(360deg)}}@keyframes winPop{0%{opacity:0;transform:scale(1.4) rotate(-4deg)}100%{opacity:1;transform:none}}
 @media(max-height:650px){:root{--draw-slot-w:clamp(46px,12vw,56px)}#variantBadge{display:none}#board{top:calc(env(safe-area-inset-top) + 62px);bottom:calc(env(safe-area-inset-bottom) + 134px)}#drawPileDock{bottom:calc(env(safe-area-inset-bottom) + 58px);padding:5px;gap:5px}#toast{bottom:calc(env(safe-area-inset-bottom) + 134px)}#solitaireHud{top:calc(env(safe-area-inset-top) + 5px)}.intro-copy{font-size:9px}.variant-picker{margin-bottom:8px}.rules-mini{margin-bottom:8px}.hint{display:none}}
 @media(max-width:350px){:root{--draw-slot-w:46px}#board{left:5px;right:5px;--card-gap:3px}.tool-btn{padding:0 8px}.tool-btn span{display:none}#solitaireHud strong{font-size:12px}#drawPileDock{right:6px}}
+
+#winScreen{display:flex;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .24s ease,visibility 0s linear .24s}
+#winScreen.visible{visibility:visible;opacity:1;pointer-events:auto;transition-delay:0s}
+#winScreen.slow-reveal{transition-duration:1.45s}
+.auto-finish-active{pointer-events:none!important}
+.solitaire-fireworks{position:absolute;z-index:34;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(255,230,109,.09),rgba(1,9,18,.22) 48%,rgba(1,9,18,.5));animation:fireworkSky 1.85s ease both}
+.firework-particle,.firework-core{position:absolute;display:block;pointer-events:none}
+.firework-particle{width:4px;height:4px;margin:-2px;border-radius:50%;background:var(--spark);box-shadow:0 0 7px 2px var(--spark);opacity:0;animation:fireworkParticle .78s cubic-bezier(.16,.72,.22,1) var(--delay) both}
+.firework-core{width:8px;height:8px;margin:-4px;border:2px solid #fff7c2;border-radius:50%;box-shadow:0 0 18px 5px #ffe66d;opacity:0;animation:fireworkCore .62s ease-out var(--delay) both}
+@keyframes fireworkSky{0%{opacity:0}10%,82%{opacity:1}100%{opacity:0}}
+@keyframes fireworkParticle{0%{opacity:0;transform:translate(0,0) scale(.2)}12%{opacity:1}72%{opacity:.95}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(.35)}}
+@keyframes fireworkCore{0%{opacity:0;transform:scale(.1)}18%{opacity:1}100%{opacity:0;transform:scale(3.8)}}
+.solitaire-fireworks.reduced-motion{animation-duration:.26s}.solitaire-fireworks.reduced-motion .firework-particle{display:none}.solitaire-fireworks.reduced-motion .firework-core{animation-duration:.22s}
+@media(prefers-reduced-motion:reduce){#winScreen.slow-reveal{transition-duration:.22s}}
 @media(prefers-reduced-motion:reduce){.playing-card,.win-panel{transition:none;animation:none}.playing-card.auto-moving-card{will-change:auto}.win-rays{animation:none}}

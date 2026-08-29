@@ -7,6 +7,8 @@
   if (!CardArt?.getCardFaceSvg || !CardArt?.getCardBackSvg) throw new Error('Solitaire card-art module missing');
   const AutoMove = window.RWGSolitaireAutoMove;
   if (!AutoMove?.chooseNext) throw new Error('Solitaire auto-move module missing');
+  const AutoFinish = window.RWGSolitaireAutoFinish;
+  if (!AutoFinish?.plan) throw new Error('Solitaire auto-finish module missing');
 
   const $ = id => document.getElementById(id);
   const board = $('board');
@@ -43,6 +45,10 @@
   const HISTORY_LIMIT = 100;
   const RESUME_SCHEMA = 1;
   const AUTO_MOVE_DURATION_MS = 210;
+  const AUTO_FINISH_MOVE_MS = 118;
+  const AUTO_FINISH_CHECK_DELAY_MS = AUTO_MOVE_DURATION_MS + 35;
+  const FIREWORKS_DURATION_MS = 1850;
+  const WIN_FADE_DURATION_MS = 1450;
 
   let variant = Variants.get(Variants.DEFAULT_ID);
   let stock = [];
@@ -65,6 +71,11 @@
   let lastTap = { key: '', at: 0 };
   let autoMoveCursor = null;
   let autoMoveLocked = false;
+  let autoFinishActive = false;
+  let autoFinishTimer = 0;
+  let fireworksLayer = null;
+  let victorySequence = 0;
+  let victoryPresentationPending = false;
   let stats = loadStats();
   let cardStyle = loadCardStyle();
 
@@ -145,7 +156,9 @@
   }
 
   function newGame() {
+    if (autoFinishActive || victoryPresentationPending) return;
     window.RWGSession?.clear?.();
+    clearVictoryFireworks();
     variant = Variants.get(variantSelect?.value || Variants.DEFAULT_ID);
     deal();
     selected = null;
@@ -185,7 +198,7 @@
   }
 
   function undo() {
-    if (!running || paused || won || !history.length) return;
+    if (!running || paused || won || autoFinishActive || !history.length) return;
     const state = history.pop();
     stock = state.stock;
     waste = state.waste;
@@ -201,7 +214,7 @@
   }
 
   function drawStock() {
-    if (!running || paused || won) return;
+    if (!running || paused || won || autoFinishActive) return;
     if (!stock.length && !waste.length) return;
     pushHistory();
     selected = null;
@@ -221,6 +234,7 @@
     }
     render();
     markSessionDirty('stock');
+    scheduleAutoFinishCheck();
   }
 
   function sourceKey(source) {
@@ -297,7 +311,7 @@
     return 0;
   }
 
-  function performMove(source, target, { silentInvalid = false, preserveAutoCycle = false } = {}) {
+  function performMove(source, target, { silentInvalid = false, preserveAutoCycle = false, recordHistory = true, deferWin = false } = {}) {
     const cards = getSourceCards(source);
     if (!cards?.length || !target) return false;
     const valid = target.type === 'tableau'
@@ -312,7 +326,7 @@
 
     if (!preserveAutoCycle) resetAutoMoveCycle();
 
-    pushHistory();
+    if (recordHistory) pushHistory();
     const movedCards = removeSource(source, cards.length);
     if (target.type === 'tableau') tableau[target.col].push(...movedCards);
     else foundations[target.suit].push(...movedCards);
@@ -323,7 +337,7 @@
     selected = null;
     render();
     markSessionDirty('move');
-    checkWin();
+    if (!deferWin && !checkWin()) scheduleAutoFinishCheck();
     return true;
   }
 
@@ -341,11 +355,10 @@
     board.classList.remove('auto-move-active');
   }
 
-  function animateAutoMove(cards, fromRects) {
+  function playCardTransition(cards, fromRects, duration = AUTO_MOVE_DURATION_MS) {
     const elements = cards.map(card => cardElementById(card.id)).filter(Boolean);
     if (!elements.length || typeof elements[0].animate !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      finishAutoMoveAnimation(elements);
-      return;
+      return Promise.resolve(elements);
     }
 
     const animations = [];
@@ -357,12 +370,15 @@
       const animation = element.animate([
         { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(.985)`, filter: 'brightness(1.14)' },
         { transform: 'translate(0, 0) scale(1)', filter: 'brightness(1)' }
-      ], { duration: AUTO_MOVE_DURATION_MS, easing: 'cubic-bezier(.2,.82,.25,1)', fill: 'none' });
+      ], { duration, easing: 'cubic-bezier(.2,.82,.25,1)', fill: 'none' });
       animations.push(animation.finished.catch(() => {}));
     }
 
-    if (!animations.length) return finishAutoMoveAnimation(elements);
-    Promise.all(animations).finally(() => finishAutoMoveAnimation(elements));
+    return animations.length ? Promise.all(animations).then(() => elements) : Promise.resolve(elements);
+  }
+
+  function animateAutoMove(cards, fromRects) {
+    playCardTransition(cards, fromRects).then(finishAutoMoveAnimation, () => finishAutoMoveAnimation([]));
   }
 
   function autoMoveCard(source) {
@@ -395,6 +411,61 @@
     return true;
   }
 
+  function scheduleAutoFinishCheck() {
+    clearTimeout(autoFinishTimer);
+    if (!running || paused || won || autoFinishActive) return;
+    autoFinishTimer = setTimeout(() => {
+      if (!running || paused || won || autoFinishActive) return;
+      if (autoMoveLocked) return scheduleAutoFinishCheck();
+      const plan = AutoFinish.plan({ stock, waste, foundations, tableau });
+      if (plan?.length) startAutoFinish(plan);
+    }, AUTO_FINISH_CHECK_DELAY_MS);
+  }
+
+  function releaseAutoFinish() {
+    autoFinishActive = false;
+    autoMoveLocked = false;
+    board.classList.remove('auto-finish-active', 'auto-move-active');
+  }
+
+  async function startAutoFinish(plan) {
+    if (autoFinishActive || !running || paused || won || !plan?.length) return false;
+    autoFinishActive = true;
+    autoMoveLocked = true;
+    selected = null;
+    clearHint();
+    board.classList.add('auto-finish-active', 'auto-move-active');
+    renderHud();
+    showToast('VIA LIBERA • COMPLETAMENTO AUTOMATICO!');
+    window.RWGAnalytics?.track?.('solitaire_auto_finish', { phase: 'start', cards_moved: plan.length });
+
+    for (const step of plan) {
+      const cards = getSourceCards(step.source);
+      if (cards?.length !== 1 || cards[0].id !== step.cardId) {
+        releaseAutoFinish();
+        showToast('COMPLETAMENTO INTERROTTO');
+        return false;
+      }
+      const fromRects = captureCardRects(cards);
+      if (!performMove(step.source, step.target, {
+        silentInvalid: true,
+        preserveAutoCycle: true,
+        recordHistory: false,
+        deferWin: true
+      })) {
+        releaseAutoFinish();
+        showToast('COMPLETAMENTO INTERROTTO');
+        return false;
+      }
+      const elements = await playCardTransition(cards, fromRects, AUTO_FINISH_MOVE_MS);
+      for (const element of elements) element.classList.remove('auto-moving-card');
+    }
+
+    releaseAutoFinish();
+    window.RWGAnalytics?.track?.('solitaire_auto_finish', { phase: 'complete', cards_moved: plan.length });
+    return checkWin({ staged: true });
+  }
+
   function sourceFromElement(el) {
     const card = el?.closest?.('.playing-card[data-source]');
     if (!card) return null;
@@ -414,7 +485,7 @@
   }
 
   function handleTap(el) {
-    if (!running || paused || won) return;
+    if (!running || paused || won || autoFinishActive) return;
     const source = sourceFromElement(el);
     const target = targetFromElement(el);
     const now = performance.now();
@@ -516,9 +587,9 @@
   function renderHud() {
     movesEl.textContent = moves;
     scoreEl.textContent = score.toLocaleString('it-IT');
-    undoBtn.disabled = !history.length || !running || paused || won;
-    hintBtn.disabled = !running || paused || won;
-    newDealBtn.disabled = !running && !won;
+    undoBtn.disabled = !history.length || !running || paused || won || autoFinishActive;
+    hintBtn.disabled = !running || paused || won || autoFinishActive;
+    newDealBtn.disabled = autoFinishActive || victoryPresentationPending || (!running && !won);
     updateTimer(true);
   }
 
@@ -546,7 +617,7 @@
   function frame(now) {
     const dt = Math.min(.1, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
-    if (running && !paused && !won) {
+    if (running && !paused && !won && !autoFinishActive) {
       elapsed += dt;
       updateTimer();
     }
@@ -618,7 +689,7 @@
   }
 
   function showHint() {
-    if (!running || paused || won) return;
+    if (!running || paused || won || autoFinishActive) return;
     clearHint();
     const hint = findHint();
     if (!hint) return showToast('NESSUN SUGGERIMENTO IMMEDIATO');
@@ -628,11 +699,70 @@
     hintTimer = setTimeout(clearHint, 2300);
   }
 
-  function checkWin() {
-    if (SUITS.reduce((sum, suit) => sum + foundations[suit].length, 0) !== 52) return;
+  function dispatchWinResult() {
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
+      game: 'Solitario', gameSlug: 'solitaire', outcome: 'win', score,
+      level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
+      achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
+    } }));
+  }
+
+  function revealWinScreen(slow = false, sequence = victorySequence) {
+    victoryPresentationPending = false;
+    renderHud();
+    celebrate();
+    winScreen.classList.toggle('slow-reveal', slow);
+    winScreen.setAttribute('aria-hidden', 'false');
+    const reveal = () => winScreen.classList.add('visible');
+    if (slow) requestAnimationFrame(() => requestAnimationFrame(reveal));
+    else reveal();
+    setTimeout(() => {
+      if (won && sequence === victorySequence) dispatchWinResult();
+    }, slow ? WIN_FADE_DURATION_MS : 0);
+  }
+
+  function clearVictoryFireworks() {
+    fireworksLayer?.remove();
+    fireworksLayer = null;
+  }
+
+  function launchVictoryFireworks() {
+    clearVictoryFireworks();
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const layer = document.createElement('div');
+    layer.className = `solitaire-fireworks${reducedMotion ? ' reduced-motion' : ''}`;
+    layer.setAttribute('aria-hidden', 'true');
+    const colors = ['#ffe66d', '#ff5da2', '#67e8ff', '#7cffb2', '#ffffff'];
+    const origins = [[18,32],[48,20],[78,34],[30,58],[68,62],[50,43]];
+    origins.forEach(([left, top], burst) => {
+      const core = document.createElement('i');
+      core.className = 'firework-core';
+      core.style.cssText = `left:${left}%;top:${top}%;--delay:${burst * 115}ms`;
+      layer.append(core);
+      for (let ray = 0; ray < 14; ray++) {
+        const angle = Math.PI * 2 * ray / 14;
+        const distance = 38 + (ray % 4) * 9;
+        const particle = document.createElement('i');
+        particle.className = 'firework-particle';
+        particle.style.cssText = `left:${left}%;top:${top}%;--tx:${Math.cos(angle) * distance}px;--ty:${Math.sin(angle) * distance}px;--delay:${burst * 115}ms;--spark:${colors[(ray + burst) % colors.length]}`;
+        layer.append(particle);
+      }
+    });
+    winScreen.parentElement.append(layer);
+    fireworksLayer = layer;
+    return new Promise(resolve => setTimeout(() => {
+      clearVictoryFireworks();
+      resolve();
+    }, reducedMotion ? 260 : FIREWORKS_DURATION_MS));
+  }
+
+  function checkWin({ staged = false } = {}) {
+    if (SUITS.reduce((sum, suit) => sum + foundations[suit].length, 0) !== 52) return false;
+    if (won) return true;
     won = true;
     running = false;
     paused = false;
+    victoryPresentationPending = staged;
     window.RWGSession?.clear?.();
     score += Math.max(0, 1000 - Math.floor(elapsed) * 2);
     stats.wins++;
@@ -644,14 +774,12 @@
     winMovesEl.textContent = moves;
     winScoreEl.textContent = score.toLocaleString('it-IT');
     bestTimeLine.textContent = `MIGLIOR TEMPO ${formatTime(stats.bestTime)}`;
-    celebrate();
-    winScreen.classList.add('visible');
-    winScreen.setAttribute('aria-hidden', 'false');
-    window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
-      game: 'Solitario', gameSlug: 'solitaire', outcome: 'win', score,
-      level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
-      achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
-    } }));
+    const sequence = ++victorySequence;
+    if (staged) launchVictoryFireworks().then(() => {
+      if (won && sequence === victorySequence) revealWinScreen(true, sequence);
+    });
+    else revealWinScreen(false, sequence);
+    return true;
   }
 
   function celebrate() {
@@ -669,13 +797,17 @@
   }
 
   function hideWin() {
+    victorySequence++;
+    victoryPresentationPending = false;
     winScreen.classList.remove('visible');
+    winScreen.classList.remove('slow-reveal');
     winScreen.setAttribute('aria-hidden', 'true');
     winScreen.querySelectorAll('.confetti-card').forEach(el => el.remove());
+    clearVictoryFireworks();
   }
 
   function togglePause() {
-    if (!running || won) return;
+    if (!running || won || autoFinishActive) return;
     paused = !paused;
     selected = null;
     resetAutoMoveCycle();
@@ -795,6 +927,7 @@
     variantNameEl.textContent = variant.name.toUpperCase();
     render();
     showToast('PARTITA PRECEDENTE RIPRESA');
+    scheduleAutoFinishCheck();
     return true;
   }
 
@@ -870,7 +1003,7 @@
   winNewBtn.addEventListener('click', newGame);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running && !paused && !won) {
+    if (document.hidden && running && !paused && !won && !autoFinishActive) {
       paused = true;
       selected = null;
       pauseBtn.textContent = '▶';
@@ -883,7 +1016,7 @@
   let resizeTimer = 0;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => render(), 90);
+    resizeTimer = setTimeout(() => { if (!autoFinishActive) render(); }, 90);
   });
 
   variantNameEl.textContent = variant.name.toUpperCase();

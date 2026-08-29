@@ -142,7 +142,7 @@
       <g fill="${color}" font-family="'Times New Roman',Georgia,serif" font-weight="700">
         ${corner}
         ${topRank}
-        <text class="essential-watermark" x="50" y="118" text-anchor="middle" dominant-baseline="central" font-size="82" font-weight="400" opacity=".075" style="filter:blur(1.15px)">${symbol}</text>
+        <text class="essential-watermark" x="50" y="88" text-anchor="middle" dominant-baseline="central" font-size="176" font-weight="400" opacity=".045" style="filter:blur(2.2px)">${symbol}</text>
         <text class="essential-rank" x="50" y="${hiddenRankY}" text-anchor="middle" dominant-baseline="central" font-size="${valueSize}"${hiddenRankFit}>${label}</text>
       </g>
     </svg>`;

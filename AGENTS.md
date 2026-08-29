@@ -254,6 +254,7 @@ Authoritative files:
 - `games/solitaire/variants.js` — rules registry;
 - `games/solitaire/card-art.js` — card rendering;
 - `games/solitaire/auto-move.js` — cyclic double-tap destination resolver;
+- `games/solitaire/auto-finish.js` — pure obstruction-free finish planner;
 - `games/solitaire/game.js` — gameplay and logical snapshot implementation;
 - `games/solitaire/session-adapter.js` — current persistence compatibility/version wrapper;
 - `docs/SOLITAIRE.md` — detailed contract.
@@ -267,8 +268,9 @@ Current game is classic Klondike draw-one:
 - King-only empty tableau;
 - same-suit ascending foundations;
 - Undo history up to current runtime limit;
-- classic/essential card styles, essential default; every Essential face keeps only its upper-left suit and upper-right rank at size `43.125`, centres its second rank at `y=90`, and includes a low-opacity blurred suit watermark at `y=118`. The lower-right suit must not return, and the two Essential `10` labels must preserve the same typeface and proportional fitting.
+- classic/essential card styles, essential default; every Essential face keeps only its upper-left suit and upper-right rank at size `43.125`, centres its second rank at `y=90`, and uses a clipped full-card suit watermark at size `176`, `y=88`, opacity `.045` and blur `2.2px`. The lower-right suit must not return, and the two Essential `10` labels must preserve the same typeface and proportional fitting.
 - Double tap uses foundation-first then left-to-right tableau ordering, cycles alternative legal destinations by card ID and commits exclusively through `performMove()`; the 210 ms FLIP animation must never become game-state authority.
+- Auto-finish may start only after its pure planner proves that all 52 unique cards can reach foundations with no stock or face-down/blocked remainder. It must commit through `performMove()`, freeze interaction/time, defer win detection until all 118 ms moves finish, then show fireworks before the 1.45 s victory fade. A face-up but obstructed hand must not trigger it.
 
 ### Resumable-hand invariants
 
