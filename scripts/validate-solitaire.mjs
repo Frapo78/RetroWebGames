@@ -102,12 +102,15 @@ for (let rank = 1; rank <= 13; rank++) {
   const cornerSize = essential.match(/class="essential-corner"[^>]*font-size="([^"]+)"/)?.[1];
   const topRank = essential.match(/class="essential-top-rank"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
   const hiddenRank = essential.match(/class="essential-rank"[^>]*y="([^"]+)"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
+  const watermark = essential.match(/class="essential-watermark"[^>]*x="50"[^>]*y="118"[^>]*font-size="82"[^>]*opacity="\.075"[^>]*filter:blur\(1\.15px\)[^>]*>([^<]+)<\/text>/);
   must(topRank?.[2] === essentialRankLabels[rank - 1], `Essential rank ${rank} must expose its canonical upper-right label`);
   must(Boolean(cornerSize) && topRank?.[1] === cornerSize, `Essential rank ${rank} upper-right label must match the upper-left suit size`);
-  must(hiddenRank?.[1] === '96' && hiddenRank?.[3] === essentialRankLabels[rank - 1], `Essential rank ${rank} must be centered in the stacked-card hidden region`);
+  must(cornerSize === '43.125', `Essential rank ${rank} upper suit and rank must remain 25% smaller than the previous 57.5 size`);
+  must(hiddenRank?.[1] === '90' && hiddenRank?.[3] === essentialRankLabels[rank - 1], `Essential rank ${rank} must be recentered below the reduced upper band`);
+  must(watermark?.[1] === (rank % 2 ? '♥' : '♠'), `Essential rank ${rank} must retain a softly blurred, lower-offset suit watermark`);
   if (rank === 10) {
-    must((essential.match(/textLength="38"/g) || []).length === 2 && (essential.match(/lengthAdjust="spacingAndGlyphs"/g) || []).length === 2, 'Both Essential 10 labels must use identical horizontal fitting');
-    must(hiddenRank?.[2] === topRank?.[1], 'Both Essential 10 labels must use identical font sizing');
+    must((essential.match(/textLength="28\.5"/g) || []).length === 1 && (essential.match(/textLength="38"/g) || []).length === 1, 'Essential 10 labels must retain proportional horizontal fitting at their respective sizes');
+    must((essential.match(/lengthAdjust="spacingAndGlyphs"/g) || []).length === 2, 'Both Essential 10 labels must use the same font fitting method');
   }
   must(!essential.includes('court-portrait') && !essential.includes('ace-of-spades'), `Essential rank ${rank} must contain no classic drawing`);
 }

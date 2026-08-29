@@ -130,17 +130,20 @@
     const { symbol, color } = SUITS[suit];
     const label = rankLabel(rank);
     const valueSize = label === '10' ? 57.5 : 59;
-    const hiddenRankY = (50 + 142) / 2;
-    const corner = `<text class="essential-corner" x="24" y="43" text-anchor="middle" font-size="57.5">${symbol}</text>`;
-    const rankFit = label === '10' ? ' textLength="38" lengthAdjust="spacingAndGlyphs"' : '';
-    const topRank = `<text class="essential-top-rank" x="76" y="43" text-anchor="middle" font-size="57.5"${rankFit}>${label}</text>`;
+    const topSize = 57.5 * .75;
+    const hiddenRankY = (38 + 142) / 2;
+    const corner = `<text class="essential-corner" x="24" y="35" text-anchor="middle" font-size="${topSize}">${symbol}</text>`;
+    const topRankFit = label === '10' ? ' textLength="28.5" lengthAdjust="spacingAndGlyphs"' : '';
+    const hiddenRankFit = label === '10' ? ' textLength="38" lengthAdjust="spacingAndGlyphs"' : '';
+    const topRank = `<text class="essential-top-rank" x="76" y="35" text-anchor="middle" font-size="${topSize}"${topRankFit}>${label}</text>`;
     return `<svg class="card-art card-style-essential" viewBox="0 0 100 142" preserveAspectRatio="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
       <rect x=".7" y=".7" width="98.6" height="140.6" rx="7.5" fill="#fffdf7" stroke="#b9b4a9" stroke-width="1.4"/>
       <rect x="2.5" y="2.5" width="95" height="137" rx="6" fill="none" stroke="#eee9de" stroke-width=".8"/>
       <g fill="${color}" font-family="'Times New Roman',Georgia,serif" font-weight="700">
         ${corner}
         ${topRank}
-        <text class="essential-rank" x="50" y="${hiddenRankY}" text-anchor="middle" dominant-baseline="central" font-size="${valueSize}"${rankFit}>${label}</text>
+        <text class="essential-watermark" x="50" y="118" text-anchor="middle" dominant-baseline="central" font-size="82" font-weight="400" opacity=".075" style="filter:blur(1.15px)">${symbol}</text>
+        <text class="essential-rank" x="50" y="${hiddenRankY}" text-anchor="middle" dominant-baseline="central" font-size="${valueSize}"${hiddenRankFit}>${label}</text>
       </g>
     </svg>`;
   }
