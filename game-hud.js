@@ -61,6 +61,12 @@
         script.dataset.rwgLeaderboardScript = 'true';
         document.body.appendChild(script);
       }
+      if (!window.RWGLeaderboardInfinite && !document.querySelector('script[data-rwg-leaderboard-infinite-script]')) {
+        const script = document.createElement('script');
+        script.src = new URL('rwg-leaderboard-infinite.js', base).href;
+        script.dataset.rwgLeaderboardInfiniteScript = 'true';
+        document.body.appendChild(script);
+      }
     };
 
     const loadGameOver = () => {
