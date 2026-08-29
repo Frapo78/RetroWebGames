@@ -16,3 +16,4 @@ jobs:
       - run: node --test server/leaderboards/test.mjs
       - run: node scripts/validate-leaderboards.mjs
       - run: node scripts/validate-contracts.mjs
+# one-shot rerun after paging fallback correction
