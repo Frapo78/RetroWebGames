@@ -314,6 +314,12 @@ Current game is classic Klondike draw-one:
 
 Run `node scripts/validate-solitaire.mjs` after Solitario changes.
 
+## 7A. Neon Snake speed contract
+
+Neon Snake starts at `1000 ms` per cell and uses the gradual `0.965` per-level interval factor with a `170 ms` unboosted floor. The old `154-(level-1)*9` curve must not return. `TURBO ×2` is strictly press-and-hold: pointer/Shift release, cancel/lost capture, pause, background, blur, Game Over, Continue, restore and new game must clear it. Turbo is transient and never persisted. Combo and temporary-orb windows scale from the unboosted step interval so the accessible pace does not make them unreachable.
+
+Run `node scripts/validate-neon-snake.mjs` after Neon Snake changes.
+
 ## 8. Rendering and performance
 
 Current architecture intentionally uses JavaScript + Canvas 2D for arcade games and DOM/CSS where appropriate for Solitario.

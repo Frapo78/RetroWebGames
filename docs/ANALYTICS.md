@@ -46,7 +46,7 @@ Gameplay funnel:
 - `game_end` — terminal Game Over with available numeric result fields.
 - `game_complete` — successful non-Game-Over completion event where supported.
 
-Useful controls are grouped under `game_control` (Undo, Hint, New Deal, calibration, mute, card style) and `game_variant_select`.
+Useful controls are grouped under `game_control` (Undo, Hint, New Deal, calibration, mute, momentary Turbo, card style) and `game_variant_select`.
 
 Leaderboard funnel:
 

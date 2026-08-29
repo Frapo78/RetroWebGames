@@ -45,15 +45,21 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 .status-badge { display: inline-flex; padding: 6px 10px; border: 1px solid rgba(101,231,255,.28); border-radius: 999px; color: #bdf6ff; background: rgba(5,18,34,.9); font-size: 9px; letter-spacing: .08em; box-shadow: 0 0 18px rgba(101,231,255,.14); }
 #banner { position: absolute; z-index: 4; left: 50%; top: 16px; transform: translateX(-50%) translateY(-8px); padding: 7px 11px; border: 1px solid rgba(255,230,109,.22); border-radius: 999px; color: var(--yellow); background: rgba(4,9,20,.84); font-size: 9px; letter-spacing: .1em; opacity: 0; transition: .18s ease; pointer-events: none; white-space: nowrap; }
 #banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-#controls { position: absolute; z-index: 5; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 18px); width: 178px; height: 118px; transform: translateX(-50%); }
-#controls button {
+#controls { position: absolute; z-index: 5; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 18px); width: min(calc(100% - 24px), 286px); height: 118px; display: flex; align-items: center; justify-content: space-between; gap: 14px; transform: translateX(-50%); }
+.dpad { position: relative; flex: 0 0 178px; width: 178px; height: 118px; }
+.dpad button {
   position: absolute; width: 54px; height: 50px; display: grid; place-items: center; border: 1px solid rgba(101,231,255,.18); border-radius: 15px; color: #dcfaff; background: linear-gradient(180deg, rgba(17,39,68,.94), rgba(7,15,30,.94)); box-shadow: inset 0 1px rgba(255,255,255,.06), 0 10px 24px rgba(0,0,0,.25); font-size: 18px;
 }
 #controls button:active { transform: scale(.94); background: rgba(101,231,255,.15); }
-#controls .up { left: 62px; top: 0; }
-#controls .left { left: 0; top: 58px; }
-#controls .down { left: 62px; top: 58px; }
-#controls .right { right: 0; top: 58px; }
+.dpad .up { left: 62px; top: 0; }
+.dpad .left { left: 0; top: 58px; }
+.dpad .down { left: 62px; top: 58px; }
+.dpad .right { right: 0; top: 58px; }
+#boostBtn { flex: 0 0 78px; width: 78px; height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid rgba(255,230,109,.38); border-radius: 20px; color: #fff8cf; background: linear-gradient(180deg,rgba(79,58,15,.94),rgba(25,19,8,.96)); box-shadow: inset 0 1px rgba(255,255,255,.08),0 10px 26px rgba(0,0,0,.28),0 0 18px rgba(255,230,109,.08); cursor: pointer; touch-action: none; }
+#boostBtn span { font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+#boostBtn strong { color: var(--yellow); font-size: 21px; line-height: 1; }
+#boostBtn.is-active { color: #06130c; background: linear-gradient(135deg,#ffe66d,#7cffb2); border-color: #fff6ad; box-shadow: 0 0 25px rgba(255,230,109,.42); }
+#boostBtn.is-active strong { color: #07170e; }
 .gesture-hint { position: absolute; z-index: 3; left: 18px; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 139px); margin: 0; color: #657b94; text-align: center; font-size: 8px; line-height: 1.45; }
 #overlay { position: absolute; z-index: 20; inset: 0; display: none; place-items: center; padding: 24px; background: rgba(1,4,11,.82); backdrop-filter: blur(13px); }
 #overlay.visible { display: grid; }
@@ -69,4 +75,8 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 @media (min-width: 580px) {
   #gameWrap { left: 24px; right: 24px; }
   .gesture-hint { font-size: 9px; }
+}
+@media (max-width: 330px) {
+  #controls { width: min(calc(100% - 16px), 278px); gap: 10px; }
+  #boostBtn { flex-basis: 72px; width: 72px; }
 }

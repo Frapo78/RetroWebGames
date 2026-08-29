@@ -185,7 +185,7 @@
       });
     }
 
-    const controlMap = { undoBtn: 'undo', hintBtn: 'hint', newDealBtn: 'new_deal', calibrateBtn: 'calibrate', muteBtn: 'mute' };
+    const controlMap = { undoBtn: 'undo', hintBtn: 'hint', newDealBtn: 'new_deal', calibrateBtn: 'calibrate', muteBtn: 'mute', boostBtn: 'turbo' };
     if (controlMap[target.id]) track('game_control', { control: controlMap[target.id] });
     if (target.closest?.('[href*="/avatar/"]')) track('profile_open', { source: pageKind });
   }, true);

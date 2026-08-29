@@ -32,7 +32,7 @@ Paddle duel verticale first-to-7 con CPU adattiva, rally record e velocità cres
 Percorso: `games/neon-rally/`
 
 ### Neon Snake
-Snake arcade 20×28 con combo, bonus orb, Shield, ostacoli progressivi e accelerazione.
+Snake arcade 20×28 con partenza accessibile, accelerazione graduale, Turbo ×2 press-and-hold, combo, bonus orb, Shield e ostacoli progressivi.
 
 Percorso: `games/neon-snake/`
 
