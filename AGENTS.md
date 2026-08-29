@@ -271,6 +271,7 @@ Current game is classic Klondike draw-one:
 - classic/essential card styles, essential default; every Essential face keeps only its upper-left suit and upper-right rank at size `43.125`, centres its second rank at `y=90`, and uses a clipped full-card suit watermark at size `176`, `y=88`, opacity `.045` and blur `2.2px`. The lower-right suit must not return, and the two Essential `10` labels must preserve the same typeface and proportional fitting.
 - Double tap uses foundation-first then left-to-right tableau ordering, cycles alternative legal destinations by card ID and commits exclusively through `performMove()`; the 210 ms FLIP animation must never become game-state authority.
 - Auto-finish may start only after its pure planner proves that all 52 unique cards can reach foundations with no stock or face-down/blocked remainder. It must commit through `performMove()`, freeze interaction/time, defer win detection until all 118 ms moves finish, then show fireworks before the 1.45 s victory fade. A face-up but obstructed hand must not trigger it.
+- The in-game Solitario `NUOVA` control must ask for explicit confirmation before abandoning an active deal. Its compact centered dialog freezes timer, board input, hints and auto-finish; cancel/backdrop/Escape preserve the exact hand, and only confirm may clear progress and deal again. Intro and completed-hand new-game actions remain direct.
 
 ### Resumable-hand invariants
 

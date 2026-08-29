@@ -27,6 +27,9 @@ must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL ME
 must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets');
 must(html.includes('value="essential" selected'), 'Essential card set must remain markup default');
 must(html.includes('doppio tap per mossa automatica'), 'Solitaire intro must explain the expanded automatic double-tap gesture');
+for (const marker of ['id="newDealConfirm"','role="dialog"','aria-modal="true"','id="newDealCancelBtn"','id="newDealConfirmBtn"','Tutti i progressi della mano attuale andranno persi']) {
+  must(html.includes(marker), `Solitaire new-deal confirmation markup missing: ${marker}`);
+}
 
 const boardStart = html.indexOf('<section id="board"');
 const boardEnd = html.indexOf('</section>', boardStart);
@@ -44,6 +47,7 @@ const style = read('games/solitaire/style.css');
 must(style.includes('touch-action:none!important') && style.includes('-ms-touch-action:none!important'), 'Solitaire CSS must keep touch zoom/pan disabled on the game surface');
 must(style.includes('#drawPileDock') && style.includes('grid-template-columns:repeat(2,var(--draw-slot-w))'), 'Draw pile dock must remain a two-slot horizontal layout');
 must(style.includes('.solitaire-fireworks') && style.includes('@keyframes fireworkParticle') && style.includes('#winScreen.slow-reveal'), 'Solitaire staged victory fireworks/fade CSS missing');
+must(style.includes('.new-deal-confirm.visible') && style.includes('.new-deal-confirm-card') && style.includes('#newDealCancelBtn') && style.includes('#newDealConfirmBtn'), 'Solitaire compact new-deal confirmation styling missing');
 must(style.includes('bottom:calc(env(safe-area-inset-bottom) + 62px)'), 'Draw pile dock must remain immediately above the lower game controls');
 must(style.includes('#drawPileDock #waste .playing-card'), 'Waste card must retain dock-local card sizing');
 
@@ -163,6 +167,10 @@ must(game.includes("matchMedia('(prefers-reduced-motion: reduce)').matches"), 'A
 for (const marker of ['AutoFinish.plan','scheduleAutoFinishCheck','startAutoFinish','AUTO_FINISH_MOVE_MS = 118','recordHistory: false','deferWin: true','launchVictoryFireworks','checkWin({ staged: true })','WIN_FADE_DURATION_MS = 1450']) must(game.includes(marker), `Solitaire auto-finish runtime missing: ${marker}`);
 must(game.includes("board.classList.add('auto-finish-active', 'auto-move-active')") && game.includes('!autoFinishActive'), 'Auto-finish must lock interaction and freeze active play time');
 must(game.includes("track?.('solitaire_auto_finish', { phase: 'start'") && game.includes("phase: 'complete'"), 'Solitaire auto-finish must expose start/complete through centralized analytics');
+for (const marker of ['requestNewGame()','cancelNewGame()','confirmNewGame()',"newDealBtn.addEventListener('click', requestNewGame)","event.key === 'Escape'","track?.('solitaire_new_deal_confirm'",'newDealConfirmOpen']) {
+  must(game.includes(marker), `Solitaire guarded new-deal flow missing: ${marker}`);
+}
+must(game.includes('!autoFinishActive && !newDealConfirmOpen') && game.includes('autoMoveLocked || newDealConfirmOpen'), 'New-deal confirmation must freeze timer and block board interaction');
 
 for (const marker of ['RESUME_SCHEMA = 1','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
 must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Resume validation must require exactly 52 unique cards');
@@ -199,6 +207,7 @@ console.log('  ✓ browser zoom gestures blocked by viewport + CSS + JS guard');
 console.log('  ✓ stock/waste docked bottom-right as left/right pair');
 console.log('  ✓ cyclic double-tap auto-move with reduced-motion-safe FLIP animation');
 console.log('  ✓ conservative full-hand auto-finish with staged fireworks and victory fade');
+console.log('  ✓ compact guarded confirmation before abandoning an active deal');
 console.log('  ✓ validated 52-card logical snapshot');
 console.log('  ✓ centralized RWGSession v2 bootstrap and compatibility token');
 console.log('  ✓ dirty moves + 5s heartbeat + safe restore semantics');

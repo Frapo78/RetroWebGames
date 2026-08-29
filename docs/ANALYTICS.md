@@ -89,6 +89,8 @@ If a future mechanic needs a new business-relevant event, add it to `rwg-analyti
 
 Solitario uses the existing centralized `window.RWGAnalytics.track()` API for `solitaire_auto_finish`, with low-cardinality `phase` (`start` or `complete`) and numeric `cards_moved`. It never sends card identities or the saved-hand payload.
 
+The destructive new-deal confirmation uses `solitaire_new_deal_confirm` with low-cardinality `phase` (`open`, `cancel` or `confirm`). It sends no card state, score, saved-hand payload or free-form user content.
+
 ## Validation
 
 Run:

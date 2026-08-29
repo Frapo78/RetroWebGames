@@ -29,6 +29,9 @@
   const hintBtn = $('hintBtn');
   const newDealBtn = $('newDealBtn');
   const toastEl = $('toast');
+  const newDealConfirm = $('newDealConfirm');
+  const newDealCancelBtn = $('newDealCancelBtn');
+  const newDealConfirmBtn = $('newDealConfirmBtn');
   const winScreen = $('winScreen');
   const winTimeEl = $('winTime');
   const winMovesEl = $('winMoves');
@@ -76,6 +79,7 @@
   let fireworksLayer = null;
   let victorySequence = 0;
   let victoryPresentationPending = false;
+  let newDealConfirmOpen = false;
   let stats = loadStats();
   let cardStyle = loadCardStyle();
 
@@ -157,6 +161,7 @@
 
   function newGame() {
     if (autoFinishActive || victoryPresentationPending) return;
+    hideNewDealConfirm();
     window.RWGSession?.clear?.();
     clearVictoryFireworks();
     variant = Variants.get(variantSelect?.value || Variants.DEFAULT_ID);
@@ -185,6 +190,43 @@
     window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: 'Solitario', gameSlug: 'solitaire' } }));
   }
 
+  function hideNewDealConfirm() {
+    newDealConfirmOpen = false;
+    newDealConfirm.classList.remove('visible');
+    newDealConfirm.setAttribute('aria-hidden', 'true');
+    lastFrame = performance.now();
+  }
+
+  function requestNewGame() {
+    if (!running || won) return newGame();
+    if (autoFinishActive || victoryPresentationPending || newDealConfirmOpen) return;
+    newDealConfirmOpen = true;
+    selected = null;
+    clearHint();
+    renderHud();
+    newDealConfirm.classList.add('visible');
+    newDealConfirm.setAttribute('aria-hidden', 'false');
+    window.RWGSession?.saveNow?.('new-deal-confirm');
+    window.RWGAnalytics?.track?.('solitaire_new_deal_confirm', { phase: 'open' });
+    requestAnimationFrame(() => newDealCancelBtn.focus());
+  }
+
+  function cancelNewGame() {
+    if (!newDealConfirmOpen) return;
+    hideNewDealConfirm();
+    renderHud();
+    scheduleAutoFinishCheck();
+    window.RWGAnalytics?.track?.('solitaire_new_deal_confirm', { phase: 'cancel' });
+    newDealBtn.focus();
+  }
+
+  function confirmNewGame() {
+    if (!newDealConfirmOpen) return;
+    window.RWGAnalytics?.track?.('solitaire_new_deal_confirm', { phase: 'confirm' });
+    hideNewDealConfirm();
+    newGame();
+  }
+
   function snapshot() {
     return {
       stock: clone(stock), waste: clone(waste), foundations: clone(foundations), tableau: clone(tableau),
@@ -198,7 +240,7 @@
   }
 
   function undo() {
-    if (!running || paused || won || autoFinishActive || !history.length) return;
+    if (!running || paused || won || autoFinishActive || newDealConfirmOpen || !history.length) return;
     const state = history.pop();
     stock = state.stock;
     waste = state.waste;
@@ -214,7 +256,7 @@
   }
 
   function drawStock() {
-    if (!running || paused || won || autoFinishActive) return;
+    if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
     if (!stock.length && !waste.length) return;
     pushHistory();
     selected = null;
@@ -413,9 +455,9 @@
 
   function scheduleAutoFinishCheck() {
     clearTimeout(autoFinishTimer);
-    if (!running || paused || won || autoFinishActive) return;
+    if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
     autoFinishTimer = setTimeout(() => {
-      if (!running || paused || won || autoFinishActive) return;
+      if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
       if (autoMoveLocked) return scheduleAutoFinishCheck();
       const plan = AutoFinish.plan({ stock, waste, foundations, tableau });
       if (plan?.length) startAutoFinish(plan);
@@ -429,7 +471,7 @@
   }
 
   async function startAutoFinish(plan) {
-    if (autoFinishActive || !running || paused || won || !plan?.length) return false;
+    if (autoFinishActive || !running || paused || won || newDealConfirmOpen || !plan?.length) return false;
     autoFinishActive = true;
     autoMoveLocked = true;
     selected = null;
@@ -485,7 +527,7 @@
   }
 
   function handleTap(el) {
-    if (!running || paused || won || autoFinishActive) return;
+    if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
     const source = sourceFromElement(el);
     const target = targetFromElement(el);
     const now = performance.now();
@@ -587,9 +629,9 @@
   function renderHud() {
     movesEl.textContent = moves;
     scoreEl.textContent = score.toLocaleString('it-IT');
-    undoBtn.disabled = !history.length || !running || paused || won || autoFinishActive;
-    hintBtn.disabled = !running || paused || won || autoFinishActive;
-    newDealBtn.disabled = autoFinishActive || victoryPresentationPending || (!running && !won);
+    undoBtn.disabled = !history.length || !running || paused || won || autoFinishActive || newDealConfirmOpen;
+    hintBtn.disabled = !running || paused || won || autoFinishActive || newDealConfirmOpen;
+    newDealBtn.disabled = autoFinishActive || victoryPresentationPending || newDealConfirmOpen || (!running && !won);
     updateTimer(true);
   }
 
@@ -617,7 +659,7 @@
   function frame(now) {
     const dt = Math.min(.1, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
-    if (running && !paused && !won && !autoFinishActive) {
+    if (running && !paused && !won && !autoFinishActive && !newDealConfirmOpen) {
       elapsed += dt;
       updateTimer();
     }
@@ -689,7 +731,7 @@
   }
 
   function showHint() {
-    if (!running || paused || won || autoFinishActive) return;
+    if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
     clearHint();
     const hint = findHint();
     if (!hint) return showToast('NESSUN SUGGERIMENTO IMMEDIATO');
@@ -807,7 +849,7 @@
   }
 
   function togglePause() {
-    if (!running || won || autoFinishActive) return;
+    if (!running || won || autoFinishActive || newDealConfirmOpen) return;
     paused = !paused;
     selected = null;
     resetAutoMoveCycle();
@@ -901,6 +943,7 @@
 
   function restoreResumeState(state) {
     if (!validateResumeState(state)) return false;
+    hideNewDealConfirm();
     variant = Variants.get(state.variantId);
     variantSelect.value = variant.id;
     stock = clone(state.stock);
@@ -950,7 +993,7 @@
   window.RWGSession?.register?.(resumeAdapter);
 
   board.addEventListener('pointerdown', event => {
-    if (!running || paused || won || autoMoveLocked) return;
+    if (!running || paused || won || autoMoveLocked || newDealConfirmOpen) return;
     const source = sourceFromElement(event.target);
     const cards = getSourceCards(source);
     if (!source || !cards?.length) return;
@@ -998,12 +1041,20 @@
   undoBtn.addEventListener('click', undo);
   pauseBtn.addEventListener('click', togglePause);
   hintBtn.addEventListener('click', showHint);
-  newDealBtn.addEventListener('click', newGame);
+  newDealBtn.addEventListener('click', requestNewGame);
+  newDealCancelBtn.addEventListener('click', cancelNewGame);
+  newDealConfirmBtn.addEventListener('click', confirmNewGame);
+  newDealConfirm.addEventListener('click', event => {
+    if (event.target === newDealConfirm) cancelNewGame();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && newDealConfirmOpen) cancelNewGame();
+  });
   startBtn.addEventListener('click', newGame);
   winNewBtn.addEventListener('click', newGame);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running && !paused && !won && !autoFinishActive) {
+    if (document.hidden && running && !paused && !won && !autoFinishActive && !newDealConfirmOpen) {
       paused = true;
       selected = null;
       pauseBtn.textContent = '▶';
@@ -1016,7 +1067,7 @@
   let resizeTimer = 0;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { if (!autoFinishActive) render(); }, 90);
+    resizeTimer = setTimeout(() => { if (!autoFinishActive && !newDealConfirmOpen) render(); }, 90);
   });
 
   variantNameEl.textContent = variant.name.toUpperCase();

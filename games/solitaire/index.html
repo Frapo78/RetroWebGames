@@ -166,6 +166,17 @@
       <button id="newDealBtn" class="tool-btn" type="button" aria-label="Nuova mano">↻ <span>NUOVA</span></button>
     </div>
     <div id="toast" role="status" aria-live="polite"></div>
+    <section id="newDealConfirm" class="new-deal-confirm" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="newDealConfirmTitle" aria-describedby="newDealConfirmCopy">
+      <div class="new-deal-confirm-card">
+        <p class="new-deal-confirm-kicker">MANO IN CORSO</p>
+        <h2 id="newDealConfirmTitle">NUOVA PARTITA?</h2>
+        <p id="newDealConfirmCopy">Vuoi davvero terminare questa partita e iniziarne una nuova? Tutti i progressi della mano attuale andranno persi.</p>
+        <div class="new-deal-confirm-actions">
+          <button id="newDealCancelBtn" type="button">CONTINUA A GIOCARE</button>
+          <button id="newDealConfirmBtn" type="button">SÌ, NUOVA PARTITA</button>
+        </div>
+      </div>
+    </section>
     <section id="winScreen" aria-hidden="true">
       <div class="win-rays" aria-hidden="true"></div>
       <div class="win-panel">

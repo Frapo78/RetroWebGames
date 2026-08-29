@@ -77,5 +77,16 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 @keyframes fireworkParticle{0%{opacity:0;transform:translate(0,0) scale(.2)}12%{opacity:1}72%{opacity:.95}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(.35)}}
 @keyframes fireworkCore{0%{opacity:0;transform:scale(.1)}18%{opacity:1}100%{opacity:0;transform:scale(3.8)}}
 .solitaire-fireworks.reduced-motion{animation-duration:.26s}.solitaire-fireworks.reduced-motion .firework-particle{display:none}.solitaire-fireworks.reduced-motion .firework-core{animation-duration:.22s}
+.new-deal-confirm{position:absolute;z-index:42;inset:0;display:grid;place-items:center;padding:18px max(14px,env(safe-area-inset-right)) 18px max(14px,env(safe-area-inset-left));background:rgba(1,12,10,.72);backdrop-filter:blur(8px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .2s}
+.new-deal-confirm.visible{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+.new-deal-confirm-card{width:min(100%,350px);padding:20px 17px 16px;border:1px solid rgba(241,213,138,.48);border-radius:18px;text-align:center;color:#f8fff9;background:radial-gradient(circle at 50% 0,rgba(241,213,138,.12),transparent 52%),linear-gradient(155deg,rgba(8,48,38,.98),rgba(2,24,20,.99));box-shadow:0 20px 60px rgba(0,0,0,.48),inset 0 0 0 1px rgba(255,255,255,.04)}
+.new-deal-confirm-kicker{margin:0 0 7px;color:var(--gold);font-size:8px;font-weight:900;letter-spacing:.2em}
+.new-deal-confirm h2{margin:0;color:#fffdf4;font-size:clamp(24px,8vw,32px);line-height:1;letter-spacing:-.035em}
+.new-deal-confirm-card>p:nth-of-type(2){max-width:34ch;margin:12px auto 16px;color:#bdd2ca;font-size:10px;line-height:1.55}
+.new-deal-confirm-actions{display:grid;gap:8px}
+.new-deal-confirm-actions button{width:100%;min-height:44px;padding:10px 12px;border-radius:12px;font-size:9px;font-weight:900;letter-spacing:.08em;cursor:pointer}
+#newDealCancelBtn{border:1px solid rgba(124,255,178,.55);color:#06291e;background:linear-gradient(135deg,#76efad,#b4ffd5);box-shadow:0 7px 20px rgba(75,222,143,.13)}
+#newDealConfirmBtn{border:1px solid rgba(255,126,136,.38);color:#ffdadd;background:rgba(126,25,39,.46)}
+.new-deal-confirm-actions button:focus-visible{outline:3px solid #ffe66d;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){#winScreen.slow-reveal{transition-duration:.22s}}
-@media(prefers-reduced-motion:reduce){.playing-card,.win-panel{transition:none;animation:none}.playing-card.auto-moving-card{will-change:auto}.win-rays{animation:none}}
+@media(prefers-reduced-motion:reduce){.playing-card,.win-panel,.new-deal-confirm{transition:none;animation:none}.playing-card.auto-moving-card{will-change:auto}.win-rays{animation:none}}

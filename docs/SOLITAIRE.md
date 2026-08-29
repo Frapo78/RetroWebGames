@@ -100,6 +100,8 @@ After every committed move and stock draw, `auto-finish.js` receives a read-only
 
 A valid plan locks gameplay, freezes elapsed play time and executes one authoritative `performMove()` per card with a 118 ms FLIP transition. Generated moves preserve scoring/session state but do not fill Undo history because the plan has already proven the hand terminal. The final move defers victory presentation until the whole sequence has completed. Six deterministic firework bursts then play above the board; only afterward does the dedicated victory screen fade in over 1.45 seconds. Reduced-motion users receive a short flash and shortened fade without changing state order. The GA4 event `solitaire_auto_finish` records `phase=start|complete` and the numeric moved-card count through the centralized analytics API.
 
+The in-game `NUOVA` control never discards an active deal immediately. It opens a compact, centered, accessible confirmation dialog that explains that the current hand progress will be lost. While the dialog is open, cards, controls, hints, auto-finish and elapsed play time are frozen; cancelling resumes the exact same state, while explicit confirmation clears the saved run and deals a fresh hand. Backdrop tap and `Escape` are safe cancellation paths. The centralized Analytics API records only the low-cardinality `open`, `cancel` and `confirm` phases through `solitaire_new_deal_confirm`.
+
 ## Resumable unfinished hand — CRITICAL
 
 An unfinished hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
