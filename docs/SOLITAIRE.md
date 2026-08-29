@@ -190,7 +190,7 @@ The game intentionally uses DOM/CSS rather than Canvas:
 - ornamental Ace of Spades;
 - symmetric traditional card back.
 
-The live card-style selector remains in the third upper slot. `Essential` is the default; an explicitly persisted `Classic` selection remains respected. Changing style does not restart or mutate the hand.
+The live card-style selector remains in the third upper slot. `Essential` is the default; an explicitly persisted `Classic` selection remains respected. Changing style does not restart or mutate the hand. Essential faces keep the oversized upper-left suit and centered rank, add the canonical rank (`A`, `2`–`10`, `J`, `Q`, `K`) in the upper-right at the same size and colour as that suit, and retain the mirrored lower-right suit. The two-character `10` is fitted horizontally inside the same corner footprint without reducing its font size.
 
 ## Validation
 

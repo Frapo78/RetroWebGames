@@ -130,11 +130,14 @@
     const { symbol, color } = SUITS[suit];
     const label = rankLabel(rank), valueSize = label === '10' ? 45 : 59;
     const corner = `<text class="essential-corner" x="24" y="43" text-anchor="middle" font-size="57.5">${symbol}</text>`;
+    const topRankFit = label === '10' ? ' textLength="38" lengthAdjust="spacingAndGlyphs"' : '';
+    const topRank = `<text class="essential-top-rank" x="76" y="43" text-anchor="middle" font-size="57.5"${topRankFit}>${label}</text>`;
     return `<svg class="card-art card-style-essential" viewBox="0 0 100 142" preserveAspectRatio="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
       <rect x=".7" y=".7" width="98.6" height="140.6" rx="7.5" fill="#fffdf7" stroke="#b9b4a9" stroke-width="1.4"/>
       <rect x="2.5" y="2.5" width="95" height="137" rx="6" fill="none" stroke="#eee9de" stroke-width=".8"/>
       <g fill="${color}" font-family="'Times New Roman',Georgia,serif" font-weight="700">
         ${corner}
+        ${topRank}
         <g transform="rotate(180 50 71)">${corner}</g>
         <text class="essential-rank" x="50" y="74" text-anchor="middle" dominant-baseline="central" font-size="${valueSize}">${label}</text>
       </g>
