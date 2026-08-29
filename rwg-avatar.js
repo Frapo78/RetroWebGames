@@ -187,7 +187,7 @@
 
   function eyewearMarkup(style) {
     if (style === 'glasses') return '<g fill="rgba(101,231,255,.10)" stroke="#18243a" stroke-width="4"><rect x="83" y="68" width="24" height="18" rx="7"/><rect x="113" y="68" width="24" height="18" rx="7"/><path d="M107 76h6"/></g>';
-    if (style === 'visor') return '<rect x="81" y="67" width="58" height="20" rx="9" fill="rgba(101,231,255,.28)" stroke="#65e7ff" stroke-width="3" filter="url(#rwgAvGlow)"/>';
+    if (style === 'visor') return '<rect x="81" y="67" width="58" height="20" rx="9" fill="rgba(101,231,255,.28)" stroke="#65e7ff" stroke-width="3"/>';
     return '';
   }
 
@@ -215,7 +215,6 @@
           <svg class="rwg-avatar-svg" viewBox="0 0 220 340" role="presentation" focusable="false">
             <defs>
               <filter id="${uid}Glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              <filter id="rwgAvGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
               <linearGradient id="${uid}Shirt" x1="0" x2="1"><stop stop-color="${a.shirtColor}"/><stop offset=".55" stop-color="${a.shirtColor}"/><stop offset="1" stop-color="#08101c" stop-opacity=".38"/></linearGradient>
               <linearGradient id="${uid}Pants" x1="0" x2="1"><stop stop-color="${a.pantsColor}"/><stop offset=".6" stop-color="${a.pantsColor}"/><stop offset="1" stop-color="#02050b" stop-opacity=".44"/></linearGradient>
             </defs>
