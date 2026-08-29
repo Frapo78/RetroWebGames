@@ -6,6 +6,10 @@
   const API_ROOT = '/api/leaderboards/v1';
   const PAGE_SIZE = 10;
   const EDGE_THRESHOLD_PX = 24;
+  const INTRO_BOARD_MIN_PX = 64;
+  const INTRO_BOARD_MAX_PX = 420;
+  const INTRO_VERTICAL_SAFETY_PX = 12;
+  const INTRO_SHARE_RESERVE_PX = 54;
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
   const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
@@ -20,12 +24,67 @@
   let controller = null;
   let retryButton = null;
   let endlessBound = false;
+  let fitFrame = 0;
+  let fitObserver = null;
+  let fitMutationObserver = null;
 
   const track = (name, params = {}) => window.RWGAnalytics?.track?.(name, params);
+  const px = value => Number.parseFloat(value) || 0;
 
   function resultText(row) {
     if (gameSlug === 'neon-rally' && row.resultLabel) return row.resultLabel;
     return formatNumber(row.score);
+  }
+
+  function fitIntroBoardHeight() {
+    fitFrame = 0;
+    if (!board?.isConnected) return;
+    const overlay = board.closest('#overlay') || document.getElementById('overlay');
+    const panel = board.parentElement;
+    if (!overlay || !panel || !overlay.classList.contains('visible')) return;
+
+    const overlayStyle = getComputedStyle(overlay);
+    const usableHeight = Math.max(0, overlay.clientHeight - px(overlayStyle.paddingTop) - px(overlayStyle.paddingBottom));
+    const boardHeight = board.getBoundingClientRect().height || INTRO_BOARD_MIN_PX;
+    const panelHeight = panel.getBoundingClientRect().height;
+    const nonBoardHeight = Math.max(0, panelHeight - boardHeight);
+    const share = panel.querySelector('.rwg-intro-share');
+    const shareReserve = share ? 0 : INTRO_SHARE_RESERVE_PX;
+    const fitted = Math.floor(Math.max(
+      INTRO_BOARD_MIN_PX,
+      Math.min(INTRO_BOARD_MAX_PX, usableHeight - nonBoardHeight - shareReserve - INTRO_VERTICAL_SAFETY_PX)
+    ));
+
+    board.style.setProperty('--rwg-lb-fit-height', `${fitted}px`);
+    board.dataset.rwgViewportFit = 'true';
+  }
+
+  function scheduleIntroFit() {
+    if (fitFrame) return;
+    fitFrame = requestAnimationFrame(fitIntroBoardHeight);
+  }
+
+  function setupIntroFit() {
+    if (!board) return;
+    const overlay = board.closest('#overlay') || document.getElementById('overlay');
+    const panel = board.parentElement;
+    scheduleIntroFit();
+    setTimeout(scheduleIntroFit, 80);
+    setTimeout(scheduleIntroFit, 320);
+
+    window.addEventListener('resize', scheduleIntroFit, { passive: true });
+    window.addEventListener('orientationchange', scheduleIntroFit, { passive: true });
+    window.visualViewport?.addEventListener('resize', scheduleIntroFit, { passive: true });
+    document.fonts?.ready?.then?.(scheduleIntroFit).catch?.(() => {});
+
+    if ('ResizeObserver' in window && overlay) {
+      fitObserver = new ResizeObserver(scheduleIntroFit);
+      fitObserver.observe(overlay);
+    }
+    if (panel) {
+      fitMutationObserver = new MutationObserver(scheduleIntroFit);
+      fitMutationObserver.observe(panel, { childList: true, subtree: false });
+    }
   }
 
   function appendRow(fragment, row) {
@@ -72,6 +131,7 @@
         ? `${shown.toLocaleString('it-IT')} DI ${total.toLocaleString('it-IT')}${pagination.hasMore ? ' • SCORRI PER CONTINUARE' : ' • TUTTI I RECORD'}`
         : '';
     }
+    scheduleIntroFit();
     setTimeout(() => { renderGuard = false; }, 0);
   }
 
@@ -187,6 +247,7 @@
     list.setAttribute('tabindex', '0');
     list.setAttribute('aria-label', 'High Scores scorrevoli. Carica 10 posizioni alla volta.');
     enableEndless();
+    setupIntroFit();
     retryButton?.addEventListener('click', event => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -220,5 +281,5 @@
     setTimeout(() => { if (!owned) ownBoard(document.querySelector('.rwg-leaderboard-board')); }, 1800);
   }
 
-  window.RWGLeaderboardInfinite = Object.freeze({ reset, loadMore: maybeLoadMore, pageSize: PAGE_SIZE });
+  window.RWGLeaderboardInfinite = Object.freeze({ reset, loadMore: maybeLoadMore, fit: scheduleIntroFit, pageSize: PAGE_SIZE });
 })();
