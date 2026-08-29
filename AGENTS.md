@@ -267,7 +267,7 @@ Current game is classic Klondike draw-one:
 - King-only empty tableau;
 - same-suit ascending foundations;
 - Undo history up to current runtime limit;
-- classic/essential card styles, essential default; every Essential face keeps its oversized upper-left suit and exposes the canonical rank in the upper-right at the same font size and suit colour.
+- classic/essential card styles, essential default; every Essential face keeps only its oversized upper-left suit, exposes the canonical rank in the upper-right at the same font size and suit colour, and centres its second rank at `y=96` in the mobile tableau region hidden by stacking. The lower-right suit must not return, and the two Essential `10` labels must share identical typography.
 - Double tap uses foundation-first then left-to-right tableau ordering, cycles alternative legal destinations by card ID and commits exclusively through `performMove()`; the 210 ms FLIP animation must never become game-state authority.
 
 ### Resumable-hand invariants

@@ -97,12 +97,18 @@ const essentialRankLabels = ['A','2','3','4','5','6','7','8','9','10','J','Q','K
 for (let rank = 1; rank <= 13; rank++) {
   const essential = art?.getCardFaceSvg?.({ rank, suit: rank % 2 ? 'h' : 's' }, 'essential') || '';
   must(essential.includes('card-style-essential') && essential.includes('essential-rank'), `Essential rank ${rank} template missing`);
-  must((essential.match(/essential-corner/g) || []).length === 2, `Essential rank ${rank} must expose two corner suits`);
+  must((essential.match(/essential-corner/g) || []).length === 1, `Essential rank ${rank} must expose only the upper-left suit`);
+  must(!essential.includes('rotate(180 50 71)'), `Essential rank ${rank} must not retain the lower-right suit`);
   const cornerSize = essential.match(/class="essential-corner"[^>]*font-size="([^"]+)"/)?.[1];
   const topRank = essential.match(/class="essential-top-rank"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
+  const hiddenRank = essential.match(/class="essential-rank"[^>]*y="([^"]+)"[^>]*font-size="([^"]+)"[^>]*>([^<]+)<\/text>/);
   must(topRank?.[2] === essentialRankLabels[rank - 1], `Essential rank ${rank} must expose its canonical upper-right label`);
   must(Boolean(cornerSize) && topRank?.[1] === cornerSize, `Essential rank ${rank} upper-right label must match the upper-left suit size`);
-  if (rank === 10) must(essential.includes('textLength="38"') && essential.includes('lengthAdjust="spacingAndGlyphs"'), 'Essential 10 must fit its upper-right corner without overflow');
+  must(hiddenRank?.[1] === '96' && hiddenRank?.[3] === essentialRankLabels[rank - 1], `Essential rank ${rank} must be centered in the stacked-card hidden region`);
+  if (rank === 10) {
+    must((essential.match(/textLength="38"/g) || []).length === 2 && (essential.match(/lengthAdjust="spacingAndGlyphs"/g) || []).length === 2, 'Both Essential 10 labels must use identical horizontal fitting');
+    must(hiddenRank?.[2] === topRank?.[1], 'Both Essential 10 labels must use identical font sizing');
+  }
   must(!essential.includes('court-portrait') && !essential.includes('ace-of-spades'), `Essential rank ${rank} must contain no classic drawing`);
 }
 
