@@ -12,12 +12,18 @@ for (const rel of ['rwg-leaderboard.js','game-hud.js','game-over.js','server/lea
   must(checked.status === 0, `${rel}: syntax invalid`);
 }
 const hud = read('game-hud.js'), client = read('rwg-leaderboard.js'), css = read('rwg-leaderboard.css');
+const hub = read('index.html');
 must(hud.includes('loadLeaderboard();') && hud.includes('rwg-leaderboard.js') && hud.includes('rwg-leaderboard.css'), 'game-hud must centrally bootstrap leaderboard assets');
-for (const marker of ['TOP 10 GLOBALE','INSERISCI IL TUO NOME','REGISTRA RECORD','rwg:game-over-summary','rwg:game-over-revealed','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1','leaderboard_auto_submit_start','leaderboard_auto_submit','leaderboard_name_saved']) must(client.includes(marker), `leaderboard client missing ${marker}`);
+must(hub.includes('rwg-leaderboard.js') && hub.includes('rwg-leaderboard.css'), 'home must load the shared leaderboard client and styles');
+for (const marker of ['TOP 10 GLOBALE','TOP 3 GLOBALE','INSERISCI IL TUO NOME','REGISTRA RECORD','rwg:game-over-summary','rwg:game-over-revealed','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1','leaderboard_auto_submit_start','leaderboard_auto_submit','leaderboard_name_saved','leaderboard_home_top3','leaderboard_pause_view','leaderboard_rank_card_view']) must(client.includes(marker), `leaderboard client missing ${marker}`);
 must(client.includes("if (Number(row.continueCount) > 0)"), 'Continue count must be shown only when positive');
 must(client.includes('validNickname(savedNickname)') && client.includes('automatic: true'), 'saved nickname must trigger silent automatic registration');
 must(client.includes('rwg-leaderboard-name-modal') && css.includes('.rwg-leaderboard-name-modal{position:fixed'), 'first-use nickname must use a dedicated modal above Game Over');
 must(!client.includes("document.querySelector('.rwg-game-over-card')"), 'nickname form must not be embedded in the Game Over card');
+must(client.includes("document.querySelectorAll('.game-card") && client.includes("slice(0, 3)") && css.includes('.rwg-home-top3{'), 'home must render a Top 3 below every discovered game card');
+must(client.includes("classList.contains('rwg-resume-open')") && client.includes("pauseBtn?.textContent.trim() === '▶'") && css.includes('.rwg-leaderboard-pause-board{position:fixed'), 'resume and pause states must show the compact in-game Top 3');
+must(client.includes('SEI NELLA TOP TEN!') && client.includes("rank <= 10") && css.includes('.rwg-leaderboard-rank-card.is-top-ten'), 'Game Over must highlight authoritative Top Ten positions in gold');
+must(client.includes('POSIZIONE IN AGGIORNAMENTO') && client.includes('pending: true'), 'offline Game Over rank must remain explicitly pending');
 must(css.includes('@media(max-width:360px)'), 'leaderboard must retain small-phone layout');
 const gameOver = read('game-over.js');
 must(gameOver.includes('document.body.dataset.rwgGameName') && !gameOver.includes("document.title.split"), 'Game Over title must use the short game identity, never the SEO title');

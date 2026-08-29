@@ -11,11 +11,15 @@ RetroWebGames exposes one server-backed global leaderboard per game. The gamepla
 - `rwg:leaderboard-result` — successful completion without Game Over, currently Solitario;
 - `online` — retries idempotently queued submissions.
 
+The home loads the same client and stylesheet directly. It attaches a live Top 3 below each of the nine game cards, using the same endpoint and per-game cache as game pages. On game pages a second compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
+
 A credit Continue remains part of the same run. A later Game Over updates that run and its `continueCount`; the UI displays `CONTINUE ×N` only for positive values. A deliberate new game creates a new run and therefore a new leaderboard entry.
 
 The nickname is 3–12 Unicode letters/numbers plus spaces, `_` or `-`. The first completed result without a valid saved name opens a dedicated coin-op modal above the shared Game Over; the form is no longer embedded in the summary card. The accepted name is stored locally and server-side as the player's latest name. Every later result from that browser is registered automatically with the saved name, without showing the modal again. Historical runs keep their nickname snapshot.
 
 Only the first-name choice blocks the Game Over actions. Automatic later submissions run without interrupting the player. A network failure queues the complete result locally and unlocks the first-use modal, so an API outage cannot trap gameplay. The server's unique run id makes retries safe.
+
+After server acceptance, Game Over inserts a compact position card before sharing controls. Rank 1–10 is highlighted in gold with `SEI NELLA TOP TEN!`; lower ranks use the standard cyan treatment. Offline queueing displays `POSIZIONE IN AGGIORNAMENTO` until a server rank exists and never fabricates a placement.
 
 Analytics measures this funnel through the shared RWG layer. A successful live or queued delivery emits GA4 recommended `post_score`; views, retry, first-use prompt, automatic submission, validation, offline queue and aggregate flush outcomes use dedicated low-cardinality events. Nickname, player/device identifiers, run id and free-form messages never enter Analytics. See `docs/ANALYTICS.md`.
 
@@ -65,7 +69,7 @@ node scripts/validate-leaderboards.mjs
 node scripts/validate-contracts.mjs
 ```
 
-Browser smoke tests must cover every intro, first-use overlay, invalid nickname, automatic later submission without a prompt, API-offline queue/retry, personal position outside the top 10, Continue update and Solitario victory at 320×568 and larger viewports. Game Over headings must show only each short game name.
+Browser smoke tests must cover every intro, all nine home Top 3 panels, actual Solitario resume prompt, explicit pause visibility, first-use overlay, invalid nickname, automatic later submission without a prompt, gold Top Ten and standard lower-rank Game Over cards, API-offline queue/retry, personal position outside the top 10, Continue update and Solitario victory at 320×568 and larger viewports. Game Over headings must show only each short game name.
 
 Operational guardrail: do not add `MemoryDenyWriteExecute=true` to `rwg-leaderboard.service`. It is incompatible with the Node/V8 JIT on this VPS and causes an immediate `SIGTRAP`; the service remains protected by the other systemd sandbox directives and its loopback-only listener.
 

@@ -259,4 +259,6 @@ Game lifecycle → rwg-leaderboard.js → /api/leaderboards/v1/
 
 On the first completed result without a stored nickname, the leaderboard presents its own coin-op modal above the terminal summary. A valid name is persisted locally; all later results use it automatically without reopening the prompt. Network failures still enter the idempotent offline queue.
 
+The same shared client owns every ranking surface: full Top 10 in game intros, compact Top 3 above the playfield during the resume question and every explicit pause, Top 3 below each home game card, and the compact Game Over rank card. The rank card is gold for positions 1–10, standard below the Top 10 and pending when an offline result has no authoritative position yet.
+
 The service is same-origin, rate-limited and idempotent. Browser telemetry remains untrusted input and is bounded/normalized before storage. Credentials and database state remain outside the public repository. See `LEADERBOARDS.md`.

@@ -1,9 +1,91 @@
 (() => {
   'use strict';
 
-  if (window.RWGLeaderboard || !document.body?.hasAttribute('data-rwg-game')) return;
-
   const API_ROOT = '/api/leaderboards/v1';
+  const isGamePage = document.body?.hasAttribute('data-rwg-game');
+
+  function track(name, params = {}) {
+    const send = () => window.RWGAnalytics?.track?.(name, params);
+    if (window.RWGAnalytics?.track) send();
+    else window.addEventListener('rwg:analytics-ready', send, { once: true });
+  }
+
+  function mountHubLeaderboards() {
+    if (window.RWGHomeLeaderboards) return;
+    const cards = [...document.querySelectorAll('.game-card[href*="/games/"]')];
+    if (!cards.length) return;
+    const safeGet = key => { try { return localStorage.getItem(key) || ''; } catch (_) { return ''; } };
+    const safeSet = (key, value) => { try { localStorage.setItem(key, value); } catch (_) {} };
+    const number = value => Number(value || 0).toLocaleString('it-IT');
+    const panels = new Map();
+
+    function resultText(slug, row) {
+      return slug === 'neon-rally' && row.resultLabel ? row.resultLabel : number(row.score);
+    }
+
+    function render(panel, slug, data, stale = false) {
+      const list = panel.querySelector('.rwg-home-top3-list');
+      list.replaceChildren();
+      for (const row of (data.top || []).slice(0, 3)) {
+        const item = document.createElement('li');
+        const rank = document.createElement('span'); rank.textContent = `#${row.position}`;
+        const name = document.createElement('strong'); name.textContent = row.nickname;
+        const score = document.createElement('b'); score.textContent = resultText(slug, row);
+        item.append(rank, name, score); list.appendChild(item);
+      }
+      if (!list.children.length) {
+        const empty = document.createElement('li'); empty.className = 'is-empty'; empty.textContent = 'NESSUN RECORD • IL PODIO TI ASPETTA'; list.appendChild(empty);
+      }
+      panel.querySelector('.rwg-home-top3-status').textContent = stale ? 'ULTIMI DATI SALVATI' : '';
+    }
+
+    async function load(slug, panel) {
+      panel.classList.add('is-loading');
+      try {
+        const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        safeSet(`rwg.leaderboard.cache.v1:${slug}`, JSON.stringify(data));
+        render(panel, slug, data, false);
+        return 'network';
+      } catch (_) {
+        let cached = null;
+        try { cached = JSON.parse(safeGet(`rwg.leaderboard.cache.v1:${slug}`)); } catch (_) {}
+        if (cached) { render(panel, slug, cached, true); return 'cache'; }
+        panel.querySelector('.rwg-home-top3-list').innerHTML = '<li class="is-empty">CLASSIFICA NON DISPONIBILE</li>';
+        return 'error';
+      } finally { panel.classList.remove('is-loading'); }
+    }
+
+    for (const card of cards) {
+      const slug = new URL(card.href, location.href).pathname.split('/').filter(Boolean).pop();
+      if (!slug) continue;
+      const title = card.querySelector('h2')?.textContent?.trim() || slug;
+      const stack = document.createElement('div'); stack.className = 'game-card-stack';
+      const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug;
+      panel.setAttribute('aria-label', `Top 3 globale ${title}`);
+      panel.innerHTML = `<div class="rwg-home-top3-heading"><span>🏆 TOP 3 GLOBALE</span><button type="button" aria-label="Aggiorna Top 3 ${title}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">CONNESSIONE AL CABINATO…</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
+      card.before(stack); stack.append(card, panel); panels.set(slug, panel);
+      panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug }); load(slug, panel); });
+    }
+
+    Promise.all([...panels].map(([slug, panel]) => load(slug, panel))).then(results => {
+      track('leaderboard_home_top3', {
+        leaderboard_count: results.length,
+        network_count: results.filter(value => value === 'network').length,
+        cache_count: results.filter(value => value === 'cache').length,
+        error_count: results.filter(value => value === 'error').length
+      });
+    });
+    window.RWGHomeLeaderboards = Object.freeze({ reload: () => Promise.all([...panels].map(([slug, panel]) => load(slug, panel))) });
+  }
+
+  if (!isGamePage) {
+    mountHubLeaderboards();
+    return;
+  }
+  if (window.RWGLeaderboard) return;
+
   const NAME_KEY = 'rwg.leaderboard.name.v1';
   const QUEUE_KEY = 'rwg.leaderboard.queue.v1';
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
@@ -12,16 +94,12 @@
   const CACHE_KEY = `rwg.leaderboard.cache.v1:${gameSlug}`;
   const startBtn = document.getElementById('startBtn');
   let introBoard = null;
+  let pauseBoard = null;
+  let pauseBoardVisible = false;
   let latestBoard = null;
   let submitting = false;
   let retryingQueue = false;
   let pendingGameOverDetail = null;
-
-  function track(name, params = {}) {
-    const send = () => window.RWGAnalytics?.track?.(name, params);
-    if (window.RWGAnalytics?.track) send();
-    else window.addEventListener('rwg:analytics-ready', send, { once: true });
-  }
 
   const storage = {
     get(key, fallback = '') { try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; } },
@@ -53,6 +131,17 @@
     return section;
   }
 
+  function makePauseBoard() {
+    const section = document.createElement('aside');
+    section.className = 'rwg-leaderboard-pause-board';
+    section.hidden = true;
+    section.setAttribute('aria-label', `Podio globale ${gameLabel()}`);
+    section.innerHTML = `
+      <div class="rwg-lb-pause-heading">🏆 TOP 3 GLOBALE</div>
+      <ol class="rwg-lb-pause-list"><li class="rwg-lb-loading">CONNESSIONE…</li></ol>`;
+    return section;
+  }
+
   function mountIntroBoard() {
     const panel = document.querySelector('#overlay .panel, #overlay .overlay-card, #overlay > div');
     const menu = document.querySelector('.rwg-intro-secondary');
@@ -61,6 +150,37 @@
     menu.insertAdjacentElement('afterend', introBoard);
     const cached = readJson(CACHE_KEY, null);
     if (cached) renderBoard(cached, true);
+  }
+
+  function mountPauseBoard() {
+    pauseBoard = makePauseBoard();
+    document.body.appendChild(pauseBoard);
+  }
+
+  function renderPauseBoard(data) {
+    if (!pauseBoard) return;
+    const list = pauseBoard.querySelector('.rwg-lb-pause-list');
+    list.replaceChildren();
+    for (const row of (data.top || []).slice(0, 3)) appendRow(list, row);
+    if (!list.children.length) {
+      const empty = document.createElement('li'); empty.className = 'rwg-lb-loading'; empty.textContent = 'IL PODIO TI ASPETTA'; list.appendChild(empty);
+    }
+  }
+
+  function syncPauseBoardVisibility() {
+    if (!pauseBoard) return;
+    const resumeOpen = document.documentElement.classList.contains('rwg-resume-open');
+    const paused = pauseBtn?.textContent.trim() === '▶';
+    const blocked = document.body.classList.contains('rwg-game-over-open');
+    const visible = !blocked && (resumeOpen || paused);
+    pauseBoard.hidden = !visible;
+    if (visible && !pauseBoardVisible) {
+      track('leaderboard_pause_view', {
+        visibility_reason: resumeOpen ? 'resume_prompt' : 'pause',
+        row_count: Number(latestBoard?.top?.slice(0, 3).length || 0)
+      });
+    }
+    pauseBoardVisible = visible;
   }
 
   function resultText(row) {
@@ -83,6 +203,7 @@
 
   function renderBoard(data, stale = false) {
     latestBoard = data;
+    renderPauseBoard(data);
     if (!introBoard) return;
     const list = introBoard.querySelector('.rwg-lb-list');
     const status = introBoard.querySelector('.rwg-lb-status');
@@ -100,8 +221,7 @@
   }
 
   async function loadBoard() {
-    if (!introBoard) return;
-    introBoard.classList.add('is-loading');
+    introBoard?.classList.add('is-loading');
     try {
       const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(gameSlug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -119,10 +239,11 @@
         renderBoard(cached, true);
         track('leaderboard_view', { delivery: 'cache', row_count: Number(cached.top?.length || 0) });
       } else {
-        introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
+        if (introBoard) introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
+        if (pauseBoard) pauseBoard.querySelector('.rwg-lb-pause-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE</li>';
         track('leaderboard_load_error', { error_type: 'unavailable' });
       }
-    } finally { introBoard.classList.remove('is-loading'); }
+    } finally { introBoard?.classList.remove('is-loading'); }
   }
 
   function setGameOverLocked(locked) {
@@ -130,6 +251,33 @@
     document.querySelectorAll('.rwg-continue-credit,.rwg-play-again').forEach(button => { button.disabled = locked; });
     document.querySelectorAll('.rwg-back-games').forEach(link => {
       link.classList.toggle('is-disabled', locked); link.setAttribute('aria-disabled', String(locked));
+    });
+  }
+
+  function clearRankCard() {
+    document.querySelector('.rwg-leaderboard-rank-card')?.remove();
+  }
+
+  function showRankCard(position = 0, { pending = false, solitaire = false } = {}) {
+    if (solitaire) return;
+    const gameOver = document.querySelector('.rwg-game-over-layer');
+    const host = gameOver?.querySelector('.rwg-game-over-card');
+    if (!host || gameOver.hidden) return;
+    clearRankCard();
+    const rank = Math.max(0, Math.floor(Number(position) || 0));
+    const topTen = rank > 0 && rank <= 10;
+    const card = document.createElement('section');
+    card.className = `rwg-leaderboard-rank-card${topTen ? ' is-top-ten' : ''}${pending ? ' is-pending' : ''}`;
+    card.setAttribute('aria-live', 'polite');
+    const label = pending ? 'POSIZIONE IN AGGIORNAMENTO' : topTen ? 'SEI NELLA TOP TEN!' : 'POSIZIONE GLOBALE';
+    const value = pending ? '…' : rank ? `#${rank}` : '—';
+    const copy = pending ? 'Record salvato: aggiorneremo il piazzamento appena torni online.' : topTen ? 'Grande! Il tuo record brilla tra i migliori.' : 'Nuova sfida? La vetta è più vicina.';
+    card.innerHTML = `<div class="rwg-lb-rank-icon">🏆</div><div><strong>${label}</strong><span>${copy}</span></div><b>${value}</b>`;
+    host.insertBefore(card, host.querySelector('.rwg-challenge-box'));
+    track('leaderboard_rank_card_view', {
+      leaderboard_position: rank,
+      top_ten: Number(topTen),
+      rank_status: pending ? 'pending' : 'known'
     });
   }
 
@@ -206,6 +354,7 @@
     try {
       const data = await postResult(payload);
       position = Number(data.current?.position || 0);
+      showRankCard(position, { solitaire });
       if (status) status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
       if (data.leaderboard) { storage.set(CACHE_KEY, JSON.stringify(data.leaderboard)); renderBoard(data.leaderboard); }
       track('post_score', {
@@ -223,6 +372,7 @@
       }
       delivery = 'queue';
       const queueSize = queueResult(payload);
+      showRankCard(0, { pending: true, solitaire });
       track('leaderboard_submit_queued', { queue_size: queueSize, outcome: payload.outcome, automatic: Number(automatic) });
       if (status) status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
     }
@@ -283,8 +433,8 @@
     });
   }
 
-  window.addEventListener('rwg:game-session-start', () => { pendingGameOverDetail = null; startNewRun(); });
-  window.addEventListener('rwg:game-over-summary', event => { pendingGameOverDetail = event.detail || {}; });
+  window.addEventListener('rwg:game-session-start', () => { pendingGameOverDetail = null; clearRankCard(); startNewRun(); });
+  window.addEventListener('rwg:game-over-summary', event => { clearRankCard(); pendingGameOverDetail = event.detail || {}; });
   window.addEventListener('rwg:game-over-revealed', () => {
     if (!pendingGameOverDetail) return;
     const detail = pendingGameOverDetail;
@@ -299,6 +449,14 @@
   }, true);
 
   mountIntroBoard();
+  mountPauseBoard();
+  new MutationObserver(syncPauseBoardVisibility).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(syncPauseBoardVisibility).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  if (pauseBtn) new MutationObserver(syncPauseBoardVisibility).observe(pauseBtn, { childList: true, characterData: true, subtree: true });
+  window.addEventListener('rwg:game-over-revealed', syncPauseBoardVisibility);
+  window.addEventListener('rwg:session-restored', syncPauseBoardVisibility);
+  window.addEventListener('rwg:session-declined', syncPauseBoardVisibility);
+  queueMicrotask(syncPauseBoardVisibility);
   loadBoard();
   retryQueue();
   getRunId();

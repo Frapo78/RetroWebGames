@@ -377,6 +377,10 @@ A new game owns one run id. Credit Continue updates that same run and records `c
 
 The nickname prompt is first-use-only and lives as a modal above the shared Game Over (or above the successful Solitario completion). Once a valid nickname exists in local storage or is recovered for the same anonymous browser from the API, subsequent results submit silently and automatically. Do not put the prompt back inside the Game Over card and do not ask for the same saved name after every run.
 
+Leaderboard visibility is a shared platform concern. The home MUST show a live Top 3 directly below every game card. Every game MUST keep the full Top 10 in its intro when mountable and MUST show the compact Top 3 above the playfield while the shared unfinished-run question is open or the game is explicitly paused (`#pauseBtn` displays `▶`). The compact panel must stay visible on 320 px phones without covering the resume actions. Do not add game-local leaderboard markup.
+
+After a live Game Over submission, the summary MUST show a compact global-rank card. Positions 1–10 use the gold `is-top-ten` treatment and the message `SEI NELLA TOP TEN!`; lower positions use the standard treatment. An offline queued submission shows a pending-position variant rather than inventing a rank. Nicknames and rank-card copy remain excluded from Analytics.
+
 The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
 
 Leaderboard Analytics uses GA4 recommended `post_score` only after server acceptance. Funnel events may contain low-cardinality status flags and numeric aggregate/result fields, but MUST NOT contain nickname, device/profile ID, run ID, free-form server messages or other user-entered content.

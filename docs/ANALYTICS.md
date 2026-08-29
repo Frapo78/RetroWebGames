@@ -51,12 +51,16 @@ Useful controls are grouped under `game_control` (Undo, Hint, New Deal, calibrat
 Leaderboard funnel:
 
 - `leaderboard_view` — intro Top 10 loaded from network or cache, with row count and anonymous personal-rank flags;
+- `leaderboard_home_top3` — aggregate home load result across all game podiums, with network/cache/error counts;
+- `leaderboard_home_retry` — manual refresh of one home podium, identified only by the low-cardinality game slug;
+- `leaderboard_pause_view` — compact in-game podium became visible for a resume prompt or explicit pause;
 - `leaderboard_retry` — manual refresh requested;
 - `leaderboard_load_error` — neither network nor cached ranking was available;
 - `leaderboard_entry_view` — first-use coin-op name prompt shown; the entered name is never sent;
 - `leaderboard_auto_submit_start` — a later result started silent submission with the locally saved nickname;
 - `leaderboard_auto_submit` — silent submission completed live or entered the offline queue;
 - `leaderboard_name_saved` — first nickname choice completed live or entered the offline queue, without sending the name;
+- `leaderboard_rank_card_view` — Game Over position card displayed, with numeric position, Top Ten flag and known/pending status;
 - `leaderboard_submit_error` — local nickname-format or server-validation rejection, never the entered value;
 - `leaderboard_submit_queued` — result stored for a later retry;
 - `leaderboard_queue_flush` — aggregate delivered/remaining counts after a retry pass;
