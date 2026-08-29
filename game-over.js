@@ -10,7 +10,9 @@
   if (!overlay || !startBtn) return;
 
   const canonical = document.querySelector('link[rel="canonical"]')?.href || window.location.href;
-  const gameName = (document.title.split('—')[0] || 'RetroWebGames').trim();
+  const gameName = (document.body.dataset.rwgGameName || document.querySelector('#overlay h1')?.textContent || 'RetroWebGames')
+    .replace(/\s+/g, ' ')
+    .trim();
   const gameSlug = new URL(canonical, window.location.href).pathname.split('/').filter(Boolean).pop() || 'game';
   const HOME_URL = 'https://www.retrowebgames.it/';
   const q = encodeURIComponent;
@@ -425,6 +427,7 @@
       intro.hidden = true;
       intro.classList.remove('is-active', 'is-exiting');
       layer.classList.remove('is-revealing');
+      window.dispatchEvent(new CustomEvent('rwg:game-over-revealed'));
     }, 1000);
   };
 

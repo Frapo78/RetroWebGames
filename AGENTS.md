@@ -19,7 +19,7 @@ If a requested change intentionally changes an invariant below, update the share
 
 Every game page MUST:
 
-1. use `<body data-rwg-game="true">`;
+1. use `<body data-rwg-game="true" data-rwg-game-name="Short Game Name">`, where the second attribute is the short player-facing identity and never the SEO title;
 2. load its own runtime/modules before shared bootstrap;
 3. expose a complete `window.RWGResumeAdapter` before `../../game-hud.js` loads;
 4. load `../../game-hud.js`;
@@ -64,6 +64,8 @@ Shared `game-over.js` MUST retain:
 - `Continua con 1`;
 - `Nuova partita`;
 - `Scegli un altro gioco`.
+
+The Game Over heading MUST use `data-rwg-game-name`, never the SEO-oriented document title. The shared leaderboard asks for a valid nickname in a separate modal above Game Over only when no valid nickname is stored; after that first choice, every later result is submitted automatically with the saved nickname and no repeated prompt. Games MUST NOT implement local name prompts.
 
 MutationObserver-based terminal detection is compatibility fallback only. Explicit lifecycle events remain authoritative.
 
@@ -316,7 +318,7 @@ On the FraPoVPS host, visual/browser testing MUST first use the canonical `/apps
 A new game is incomplete until it:
 
 1. lives under `games/<slug>/`;
-2. uses `data-rwg-game="true"`;
+2. uses `data-rwg-game="true"` and a short `data-rwg-game-name`;
 3. loads game modules, then a complete versioned `RWGResumeAdapter`, then `game-hud.js`, then `orientation.js`;
 4. uses shared Game Over when terminal;
 5. supports shared credit Continue if terminal continuation is appropriate;
@@ -372,6 +374,8 @@ Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js
 Every game intro receives its top 10 from the shared `rwg-leaderboard.js` bootstrap. Games MUST NOT create local leaderboard implementations. Terminal games submit through `rwg:game-over-summary`; successful non-Game-Over completions use `rwg:leaderboard-result` without misusing `rwg:game-ended`.
 
 A new game owns one run id. Credit Continue updates that same run and records `continueCount`; it MUST NOT create duplicate cumulative entries. New game creates a new run. Submission retries are idempotent and offline failures use the shared queue.
+
+The nickname prompt is first-use-only and lives as a modal above the shared Game Over (or above the successful Solitario completion). Once a valid nickname exists in local storage or is recovered for the same anonymous browser from the API, subsequent results submit silently and automatically. Do not put the prompt back inside the Game Over card and do not ask for the same saved name after every run.
 
 The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
 

@@ -13,9 +13,19 @@ for (const rel of ['rwg-leaderboard.js','game-hud.js','game-over.js','server/lea
 }
 const hud = read('game-hud.js'), client = read('rwg-leaderboard.js'), css = read('rwg-leaderboard.css');
 must(hud.includes('loadLeaderboard();') && hud.includes('rwg-leaderboard.js') && hud.includes('rwg-leaderboard.css'), 'game-hud must centrally bootstrap leaderboard assets');
-for (const marker of ['TOP 10 GLOBALE','INSERISCI IL TUO NOME','REGISTRA RECORD','rwg:game-over-summary','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1']) must(client.includes(marker), `leaderboard client missing ${marker}`);
+for (const marker of ['TOP 10 GLOBALE','INSERISCI IL TUO NOME','REGISTRA RECORD','rwg:game-over-summary','rwg:game-over-revealed','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1','leaderboard_auto_submit_start','leaderboard_auto_submit','leaderboard_name_saved']) must(client.includes(marker), `leaderboard client missing ${marker}`);
 must(client.includes("if (Number(row.continueCount) > 0)"), 'Continue count must be shown only when positive');
+must(client.includes('validNickname(savedNickname)') && client.includes('automatic: true'), 'saved nickname must trigger silent automatic registration');
+must(client.includes('rwg-leaderboard-name-modal') && css.includes('.rwg-leaderboard-name-modal{position:fixed'), 'first-use nickname must use a dedicated modal above Game Over');
+must(!client.includes("document.querySelector('.rwg-game-over-card')"), 'nickname form must not be embedded in the Game Over card');
 must(css.includes('@media(max-width:360px)'), 'leaderboard must retain small-phone layout');
+const gameOver = read('game-over.js');
+must(gameOver.includes('document.body.dataset.rwgGameName') && !gameOver.includes("document.title.split"), 'Game Over title must use the short game identity, never the SEO title');
+must(gameOver.includes("rwg:game-over-revealed"), 'Game Over must announce when the summary is ready for the first-use nickname modal');
+for (const rel of fs.readdirSync(path.join(root, 'games')).map(slug => `games/${slug}/index.html`).filter(rel => fs.existsSync(path.join(root, rel)))) {
+  const html = read(rel);
+  if (html.includes('data-rwg-game="true"')) must(/data-rwg-game-name="[^"]+"/.test(html), `${rel}: missing short data-rwg-game-name`);
+}
 const solitaire = read('games/solitaire/game.js');
 must(solitaire.includes("rwg:leaderboard-result"), 'Solitaire victory must emit leaderboard result');
 must(!solitaire.includes("rwg:game-ended"), 'Solitaire must not emit terminal Game Over');

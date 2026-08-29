@@ -154,6 +154,7 @@ Game engine responsibilities:
 Shared Game Over owns:
 
 - animated GAME OVER intro;
+- the short game identity from `data-rwg-game-name`, never the SEO page title;
 - metrics;
 - achievements;
 - sharing;
@@ -255,5 +256,7 @@ Game lifecycle → rwg-leaderboard.js → /api/leaderboards/v1/
 ```
 
 `game-hud.js` centrally boots the client. Shared Game Over emits normalized statistics; Solitario emits the successful-completion event directly. One run id spans credit Continue and unfinished-session resume, while a true new game starts a new id. The top 10 contains runs, and a current-device row outside the top 10 reports that anonymous player's best run.
+
+On the first completed result without a stored nickname, the leaderboard presents its own coin-op modal above the terminal summary. A valid name is persisted locally; all later results use it automatically without reopening the prompt. Network failures still enter the idempotent offline queue.
 
 The service is same-origin, rate-limited and idempotent. Browser telemetry remains untrusted input and is bounded/normalized before storage. Credentials and database state remain outside the public repository. See `LEADERBOARDS.md`.

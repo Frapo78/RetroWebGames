@@ -49,7 +49,7 @@ must(hub.includes('/rwg-analytics.js'), 'Hub must load centralized rwg-analytics
 must(avatar.includes('/rwg-analytics.js'), 'Avatar page must load centralized rwg-analytics.js');
 must(pwaInstall.includes("'pwa_install_cta'"), 'PWA install CTAs must report their low-cardinality outcome');
 const leaderboard = read('rwg-leaderboard.js');
-for (const marker of ["track('leaderboard_view'", "track('leaderboard_retry'", "track('leaderboard_entry_view'", "track('leaderboard_submit_error'", "track('leaderboard_submit_queued'", "track('leaderboard_queue_flush'", "track('post_score'"]) {
+for (const marker of ["track('leaderboard_view'", "track('leaderboard_retry'", "track('leaderboard_entry_view'", "track('leaderboard_auto_submit_start'", "'leaderboard_auto_submit'", "'leaderboard_name_saved'", "track('leaderboard_submit_error'", "track('leaderboard_submit_queued'", "track('leaderboard_queue_flush'", "track('post_score'"]) {
   must(leaderboard.includes(marker), `Leaderboard analytics missing required marker: ${marker}`);
 }
 must(leaderboard.includes("window.addEventListener('rwg:analytics-ready'"), 'Leaderboard events must survive late Analytics bootstrap');

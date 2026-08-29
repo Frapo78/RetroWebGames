@@ -15,6 +15,7 @@
   let latestBoard = null;
   let submitting = false;
   let retryingQueue = false;
+  let pendingGameOverDetail = null;
 
   function track(name, params = {}) {
     const send = () => window.RWGAnalytics?.track?.(name, params);
@@ -35,7 +36,7 @@
   const startNewRun = () => storage.set(RUN_KEY, uuid());
   const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
   const readJson = (key, fallback) => { try { return JSON.parse(storage.get(key, '')) || fallback; } catch (_) { return fallback; } };
-  const gameLabel = () => (document.title.split('—')[0] || gameSlug).trim();
+  const gameLabel = () => (document.body.dataset.rwgGameName || gameSlug).trim();
 
   function makeBoard() {
     const section = document.createElement('section');
@@ -191,68 +192,105 @@
     } finally { retryingQueue = false; }
   }
 
+  const normalizeNickname = value => String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ');
+  const validNickname = value => /^[\p{L}\p{N}_ -]{3,12}$/u.test(value);
+
+  async function submitRegistration(payload, { section = null, input = null, button = null, status = null, solitaire = false, automatic = false } = {}) {
+    if (submitting) return;
+    submitting = true;
+    if (input) input.disabled = true;
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'REGISTRAZIONE…';
+    let delivery = 'live';
+    let position = 0;
+    try {
+      const data = await postResult(payload);
+      position = Number(data.current?.position || 0);
+      if (status) status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
+      if (data.leaderboard) { storage.set(CACHE_KEY, JSON.stringify(data.leaderboard)); renderBoard(data.leaderboard); }
+      track('post_score', {
+        score: Number(payload.score || 0), level: Number(payload.level || 0),
+        leaderboard_position: position, continues: Number(payload.continueCount || 0), delivery
+      });
+    } catch (error) {
+      if (error.validation) {
+        track('leaderboard_submit_error', { error_type: 'server_validation', automatic: Number(automatic) });
+        if (status) status.textContent = error.message || 'DATI NON VALIDI';
+        if (input) input.disabled = false;
+        if (button) button.disabled = false;
+        submitting = false;
+        return;
+      }
+      delivery = 'queue';
+      const queueSize = queueResult(payload);
+      track('leaderboard_submit_queued', { queue_size: queueSize, outcome: payload.outcome, automatic: Number(automatic) });
+      if (status) status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
+    }
+    track(automatic ? 'leaderboard_auto_submit' : 'leaderboard_name_saved', {
+      outcome: payload.outcome, solitaire: Number(Boolean(solitaire)), delivery, leaderboard_position: position
+    });
+    section?.classList.add('is-registered');
+    setGameOverLocked(false);
+    submitting = false;
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug } }));
+    if (section) setTimeout(() => section.remove(), 450);
+  }
+
   function showRegistration(detail, solitaire = false) {
     document.querySelector('.rwg-leaderboard-entry')?.remove();
     const payload = normalizeResult(detail);
+    const savedNickname = normalizeNickname(storage.get(NAME_KEY));
+    if (validNickname(savedNickname)) {
+      payload.nickname = savedNickname;
+      track('leaderboard_auto_submit_start', { outcome: payload.outcome, solitaire: Number(Boolean(solitaire)) });
+      submitRegistration(payload, { solitaire, automatic: true });
+      return;
+    }
+
     const section = document.createElement('section');
-    section.className = `rwg-leaderboard-entry${solitaire ? ' is-solitaire' : ''}`;
+    section.className = `rwg-leaderboard-entry rwg-leaderboard-name-modal${solitaire ? ' is-solitaire' : ''}`;
+    section.setAttribute('role', 'dialog');
+    section.setAttribute('aria-modal', 'true');
+    section.setAttribute('aria-labelledby', 'rwgLeaderboardNameTitle');
     section.innerHTML = `
       <div class="rwg-lb-entry-kicker">🏆 HIGH SCORE</div>
-      <h3>INSERISCI IL TUO NOME</h3>
-      <p>Registra questa partita nella classifica globale.</p>
+      <h3 id="rwgLeaderboardNameTitle">INSERISCI IL TUO NOME</h3>
+      <p>Firma il record: dalle prossime partite faremo tutto noi.</p>
       <form novalidate>
         <input name="nickname" minlength="3" maxlength="12" autocomplete="nickname" spellcheck="false" aria-label="Nickname arcade" placeholder="IL TUO NOME" required>
         <button type="submit">REGISTRA RECORD</button>
       </form>
       <div class="rwg-lb-entry-status" aria-live="polite"></div>`;
-    const host = solitaire ? document.body : document.querySelector('.rwg-game-over-card');
-    const before = solitaire ? null : host?.querySelector('.rwg-challenge-box');
-    if (!host) return;
-    if (before) host.insertBefore(section, before); else host.appendChild(section);
+    document.body.appendChild(section);
     const input = section.querySelector('input');
+    const button = section.querySelector('button');
     const status = section.querySelector('.rwg-lb-entry-status');
-    input.value = storage.get(NAME_KEY);
-    track('leaderboard_entry_view', { outcome: payload.outcome, name_prefilled: Number(Boolean(input.value)), solitaire: Number(Boolean(solitaire)) });
+    track('leaderboard_entry_view', { outcome: payload.outcome, name_prefilled: 0, solitaire: Number(Boolean(solitaire)) });
     setGameOverLocked(true);
-    setTimeout(() => input.focus({ preventScroll: true }), solitaire ? 150 : 2300);
+    setTimeout(() => input.focus({ preventScroll: true }), 180);
 
     section.querySelector('form').addEventListener('submit', async event => {
       event.preventDefault();
       if (submitting) return;
-      const nickname = input.value.normalize('NFC').trim().replace(/\s+/g, ' ');
-      if (!/^[\p{L}\p{N}_ -]{3,12}$/u.test(nickname)) {
+      const nickname = normalizeNickname(input.value);
+      if (!validNickname(nickname)) {
         status.textContent = 'USA 3–12 LETTERE, NUMERI, SPAZI, - O _';
         track('leaderboard_submit_error', { error_type: 'nickname_format' });
         input.focus(); return;
       }
-      submitting = true; input.disabled = true; section.querySelector('button').disabled = true; status.textContent = 'REGISTRAZIONE…';
       payload.nickname = nickname; storage.set(NAME_KEY, nickname);
-      try {
-        const data = await postResult(payload);
-        status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
-        if (data.leaderboard) { storage.set(CACHE_KEY, JSON.stringify(data.leaderboard)); renderBoard(data.leaderboard); }
-        track('post_score', {
-          score: Number(payload.score || 0), level: Number(payload.level || 0),
-          leaderboard_position: Number(data.current?.position || 0), continues: Number(payload.continueCount || 0), delivery: 'live'
-        });
-      } catch (error) {
-        if (error.validation) {
-          status.textContent = error.message || 'DATI NON VALIDI';
-          track('leaderboard_submit_error', { error_type: 'server_validation' });
-          input.disabled = false; section.querySelector('button').disabled = false; submitting = false; return;
-        }
-        const queueSize = queueResult(payload);
-        track('leaderboard_submit_queued', { queue_size: queueSize, outcome: payload.outcome });
-        status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
-      }
-      section.classList.add('is-registered'); setGameOverLocked(false); submitting = false;
-      window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug } }));
-      if (solitaire) setTimeout(() => section.remove(), 1100);
+      submitRegistration(payload, { section, input, button, status, solitaire, automatic: false });
     });
   }
 
-  window.addEventListener('rwg:game-session-start', startNewRun);
-  window.addEventListener('rwg:game-over-summary', event => showRegistration(event.detail || {}, false));
+  window.addEventListener('rwg:game-session-start', () => { pendingGameOverDetail = null; startNewRun(); });
+  window.addEventListener('rwg:game-over-summary', event => { pendingGameOverDetail = event.detail || {}; });
+  window.addEventListener('rwg:game-over-revealed', () => {
+    if (!pendingGameOverDetail) return;
+    const detail = pendingGameOverDetail;
+    pendingGameOverDetail = null;
+    showRegistration(detail, false);
+  });
   window.addEventListener('rwg:leaderboard-result', event => showRegistration(event.detail || {}, true));
   window.addEventListener('online', () => { retryQueue(); loadBoard(); });
   document.addEventListener('click', event => {

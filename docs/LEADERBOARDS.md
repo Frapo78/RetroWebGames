@@ -13,11 +13,11 @@ RetroWebGames exposes one server-backed global leaderboard per game. The gamepla
 
 A credit Continue remains part of the same run. A later Game Over updates that run and its `continueCount`; the UI displays `CONTINUE ×N` only for positive values. A deliberate new game creates a new run and therefore a new leaderboard entry.
 
-The nickname is 3–12 Unicode letters/numbers plus spaces, `_` or `-`. It is stored locally for prefill and server-side as the player's latest name. Historical runs keep their nickname snapshot.
+The nickname is 3–12 Unicode letters/numbers plus spaces, `_` or `-`. The first completed result without a valid saved name opens a dedicated coin-op modal above the shared Game Over; the form is no longer embedded in the summary card. The accepted name is stored locally and server-side as the player's latest name. Every later result from that browser is registered automatically with the saved name, without showing the modal again. Historical runs keep their nickname snapshot.
 
-Registration is required before the Game Over actions. A network failure queues the complete result locally and unlocks the actions, so an API outage cannot trap gameplay. The server's unique run id makes retries safe.
+Only the first-name choice blocks the Game Over actions. Automatic later submissions run without interrupting the player. A network failure queues the complete result locally and unlocks the first-use modal, so an API outage cannot trap gameplay. The server's unique run id makes retries safe.
 
-Analytics measures this funnel through the shared RWG layer. A successful live or queued delivery emits GA4 recommended `post_score`; views, retry, prompt, validation, offline queue and aggregate flush outcomes use dedicated low-cardinality events. Nickname, player/device identifiers, run id and free-form messages never enter Analytics. See `docs/ANALYTICS.md`.
+Analytics measures this funnel through the shared RWG layer. A successful live or queued delivery emits GA4 recommended `post_score`; views, retry, first-use prompt, automatic submission, validation, offline queue and aggregate flush outcomes use dedicated low-cardinality events. Nickname, player/device identifiers, run id and free-form messages never enter Analytics. See `docs/ANALYTICS.md`.
 
 ## API
 
@@ -65,7 +65,7 @@ node scripts/validate-leaderboards.mjs
 node scripts/validate-contracts.mjs
 ```
 
-Browser smoke tests must cover every intro, successful submission, invalid nickname, API-offline queue/retry, personal position outside the top 10, Continue update and Solitario victory at 320×568 and larger viewports.
+Browser smoke tests must cover every intro, first-use overlay, invalid nickname, automatic later submission without a prompt, API-offline queue/retry, personal position outside the top 10, Continue update and Solitario victory at 320×568 and larger viewports. Game Over headings must show only each short game name.
 
 Operational guardrail: do not add `MemoryDenyWriteExecute=true` to `rwg-leaderboard.service`. It is incompatible with the Node/V8 JIT on this VPS and causes an immediate `SIGTRAP`; the service remains protected by the other systemd sandbox directives and its loopback-only listener.
 
