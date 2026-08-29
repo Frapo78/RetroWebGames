@@ -178,9 +178,17 @@ Current profile state is stored locally under `rwg.profile.v1` and contains a ps
 
 This is a prototype persistence layer, not payment security. Future paid credits require server authority and an append-only/idempotent ledger.
 
-## Avatar
+## Avatar / player identity
 
-`rwg-avatar.js` renders the shared avatar identity and `/avatar/` is the editor. Games consume shared identity instead of maintaining copies.
+`rwg-avatar.js` / `rwg-avatar.css` are the authoritative shared player-identity renderer and `/avatar/` is the only editor. Games consume this shared identity and must never maintain local avatar copies.
+
+The current avatar schema is v2 and is built around a scalable SVG **stickman / arcade-player skeleton**. Outfit and gear are presentation layers over that structural body, so the silhouette stays readable both in the large editor preview and in the compact badge beside credits.
+
+The v2 loadout keeps body/face/hair/outfit colors and adds independent `eyewear`, `headgear`, `emblem` and `aura` slots. `rwg.avatar.v1:<fingerprint>` is migrated automatically into `rwg.avatar.v2:<fingerprint>` rather than resetting an existing player's appearance.
+
+The editor is a gaming loadout configurator with Corpo, Testa, Outfit and Gear tabs, live preview, drag-to-rotate, random loadout, undo of unsaved changes and explicit Save. Draft changes must not mutate the stored shared avatar before Save.
+
+See `AVATAR.md` and run `node scripts/validate-avatar.mjs` after avatar changes.
 
 ## Social metadata and intro sharing
 

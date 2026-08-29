@@ -168,6 +168,34 @@ For every discovered game it requires a versioned, compatible `RWGResumeAdapter`
 
 `scripts/validate-contracts.mjs` invokes `scripts/validate-session.mjs`.
 
+## 4B. Avatar / player identity — SHARED AND REGRESSION-CRITICAL
+
+The avatar is shared platform infrastructure.
+
+Authoritative files:
+
+- `rwg-avatar.js` / `rwg-avatar.css` — schema, normalization and shared renderer;
+- `avatar/index.html`, `avatar/avatar-editor.js`, `avatar/avatar-editor.css` — the only editor;
+- `docs/AVATAR.md` — detailed source of truth;
+- `scripts/validate-avatar.mjs` — regression guard.
+
+Current schema is **v2**. The base character MUST remain a scalable SVG stickman / arcade-player skeleton with clothing and gear layered on top. Do not regress to the old independent CSS block-doll torso/arms/legs and do not create game-local avatar renderers.
+
+Both renderer modes are mandatory:
+
+- `full` for editor/player identity;
+- `mini` for the compact badge beside credits.
+
+Changes to the shared renderer MUST preserve both modes.
+
+Current independent gear slots are `eyewear`, `headgear`, `emblem` and `aura`. Do not collapse them back into the legacy combined `accessory` field.
+
+Existing v1 users MUST migrate without losing their avatar. The v1 combined accessory maps glasses/visor to `eyewear`, cap/headphones to `headgear`, while new gear fields receive safe defaults. Do not remove that migration path without an explicit migration strategy.
+
+The editor uses four gaming loadout tabs: Corpo, Testa, Outfit and Gear. Unsaved draft changes MUST NOT mutate the globally stored avatar until explicit Save.
+
+Run `node scripts/validate-avatar.mjs` after any avatar renderer/editor/schema change. The repository-wide validator invokes it automatically.
+
 ## 5. Star Swarm source of truth
 
 Authoritative files:
