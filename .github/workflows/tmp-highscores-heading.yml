@@ -1,0 +1,46 @@
+name: highscores-fallback-migration
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-highscores-heading.yml'
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Update fallback heading
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('rwg-leaderboard.js')
+          s=p.read_text()
+          s=s.replace('🏆 TOP 10 GLOBALE','🏆 HIGH SCORES')
+          s=s.replace('Classifica globale ${gameLabel()}','High Scores ${gameLabel()}')
+          p.write_text(s)
+          p=Path('scripts/validate-leaderboards.mjs')
+          s=p.read_text()
+          s=s.replace("['TOP 10 GLOBALE','TOP 3 GLOBALE'", "['HIGH SCORES','TOP 3 GLOBALE'")
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          node --check rwg-leaderboard.js
+          node --check rwg-leaderboard-infinite.js
+          node scripts/validate-leaderboards.mjs
+          node scripts/validate-contracts.mjs
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "Fra"
+          git config user.email "40823974+Frapo78@users.noreply.github.com"
+          rm -f .github/workflows/tmp-highscores-heading.yml
+          git add rwg-leaderboard.js scripts/validate-leaderboards.mjs .github/workflows/tmp-highscores-heading.yml
+          git commit -m "fix(leaderboard): rename intro board to High Scores"
+          git push origin main
