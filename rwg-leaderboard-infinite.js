@@ -44,7 +44,8 @@
     if (!overlay || !panel || !overlay.classList.contains('visible')) return;
 
     const overlayStyle = getComputedStyle(overlay);
-    const usableHeight = Math.max(0, overlay.clientHeight - px(overlayStyle.paddingTop) - px(overlayStyle.paddingBottom));
+    const viewportHeight = Math.min(overlay.clientHeight, window.visualViewport?.height || overlay.clientHeight);
+    const usableHeight = Math.max(0, viewportHeight - px(overlayStyle.paddingTop) - px(overlayStyle.paddingBottom));
     const boardHeight = board.getBoundingClientRect().height || INTRO_BOARD_MIN_PX;
     const panelHeight = panel.getBoundingClientRect().height;
     const nonBoardHeight = Math.max(0, panelHeight - boardHeight);
