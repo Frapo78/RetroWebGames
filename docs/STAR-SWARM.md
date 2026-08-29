@@ -22,7 +22,6 @@ This document is the gameplay source of truth for Star Swarm. Keep it synchroniz
 
 `scripts/validate-contracts.mjs` executes the campaign and boss configuration in an isolated VM. It rejects duplicate signatures in levels 1–100, a changed 10-level boss cadence, fewer or more than ten base bosses, or duplicated boss name, shape, AI or attack identities.
 
-
 ## Inter-wave continuity — CRITICAL
 
 Ordinary wave completion must be visually and mechanically continuous. The short `wave → transition → next wave/boss` interval is **not a pause** and must not freeze the simulation.
@@ -58,6 +57,23 @@ Ten base bosses:
 10. Omega Swarm
 
 Bosses differ in visuals, movement AI and attack patterns. Boss HP scales again in Overdrive.
+
+### Iron Manta balance guardrail
+
+Iron Manta, the fourth boss, keeps its mine identity but its projectile density is deliberately lower than the original implementation:
+
+- each attack launches exactly 2 mines rather than 3;
+- each mine explodes into 5 radial projectiles rather than 8, so a mine volley produces 10 radial projectiles instead of 24;
+- the additional aimed triad fires every third mine attack rather than every second;
+- its attack delay multiplier is `1.18`, making mine volleys approximately 18% less frequent than the generic cadence would otherwise produce.
+
+Do not restore the old 3 × 8 mine wall without an explicit balance decision.
+
+### Boss Shield milestones
+
+Starting with boss 4, every completed 10% segment of boss max HP removed releases one guaranteed Shield pickup. The ten thresholds are 10%, 20%, …, 100%; a large hit that crosses more than one threshold releases one Shield for each crossed segment.
+
+These guaranteed boss rewards are independent of the ordinary random Shield drop cap. They remain normal falling power-ups, so the inter-wave continuity contract also applies to a Shield released by the final blow at 100% damage.
 
 ## Enemy durability tiers
 
@@ -143,11 +159,11 @@ An unshielded damaging hit that costs a life applies:
 - Tractor Beam cancelled;
 - normal respawn invulnerability.
 
-A shielded hit consumes Shield and does not lose a life or downgrade Weapon/POWER.
+A shielded hit consumes exactly one Shield layer and does not lose a life or downgrade Weapon/POWER. Any remaining Shield layers stay active.
 
 ## Power-up economy
 
-Drop limits are per level and reset when a new wave begins.
+Ordinary random drop limits are per level and reset when a new wave begins. Guaranteed boss Shield milestones are an explicit exception to the ordinary random Shield cap.
 
 ### Rapid Fire
 
@@ -186,9 +202,23 @@ POWER is the pickup whose frequency was intentionally reduced while being expand
 
 ### Shield
 
-- max 1 drop per level;
-- stores one-hit protection;
-- a new shield pickup while shielded refreshes/replaces the single protection rather than stacking multiple shields.
+- ordinary random enemies can release max 1 random Shield per level;
+- Shield protection stacks from `0..3` layers;
+- every Shield pickup adds exactly one missing layer, capped at 3;
+- a damaging hit consumes exactly one layer, after which another Shield pickup can restore that layer;
+- layer 1 is the original cyan ring (`#65e7ff`) at the original radius;
+- layer 2 is larger and uses the intermediate cyan/yellow color `#b2e6b6`;
+- layer 3 is the largest and uses yellow `#ffe66d`;
+- from boss 4 onward the guaranteed 10%-HP Shield rewards are not limited by the one-random-Shield-per-level cap.
+
+### 1UP — extra life
+
+- random normal-enemy pickup;
+- base probability is `0.45%` per eligible kill before the elite multiplier;
+- at most one 1UP may be released in a level;
+- after a 1UP is released, another cannot be released until at least 5 level numbers later;
+- the cooldown is based on release, not collection, so ignoring or missing a falling 1UP does not permit an immediate replacement;
+- collecting it adds one life, capped at 9 lives.
 
 ## Wingmen
 
@@ -199,6 +229,14 @@ POWER is the pickup whose frequency was intentionally reduced while being expand
 - shoot single basic bolts;
 - vulnerable to enemy bullets and ramming;
 - persist across ordinary level transitions until destroyed.
+
+## Resumable state
+
+The current Star Swarm resume adapter is version 2 with compatibility token `star-swarm-state-v2-campaign100-boss10-weapon8-power20-shield3-1up5`.
+
+The snapshot must preserve and validate the Shield layer count `0..3`, pending `1UP` power-ups, the per-level 1UP counter and `lastOneUpLevel`, in addition to the existing campaign/boss identity and gameplay state. Mine projectiles persist their bounded explosion fragment count. Version-1 Star Swarm snapshots are intentionally incompatible with these new gameplay semantics and must be discarded by the shared session layer.
+
+Run `node scripts/validate-star-swarm-balance.mjs` after changes to Star Swarm bosses, Shield, 1UP or related drop rules. Repository-wide `node scripts/validate-contracts.mjs` remains mandatory.
 
 ## Terminal Game Over
 
