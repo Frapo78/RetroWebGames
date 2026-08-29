@@ -8,8 +8,10 @@ const integer = (value, min = 0, max = 2_000_000_000) => {
 
 export function normalizeLeaderboardPage(query = {}, defaults = {}) {
   const defaultLimit = integer(defaults.limit ?? 10, 1, 50);
-  const limit = integer(query.limit ?? defaultLimit, 1, 50);
-  const offset = integer(query.offset ?? 0, 0, 2_000_000_000);
+  const rawLimit = Number(query.limit);
+  const rawOffset = Number(query.offset);
+  const limit = Number.isFinite(rawLimit) ? integer(rawLimit, 1, 50) : defaultLimit;
+  const offset = Number.isFinite(rawOffset) ? integer(rawOffset, 0, 2_000_000_000) : 0;
   return { limit, offset };
 }
 
