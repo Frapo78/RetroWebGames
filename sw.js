@@ -5,6 +5,7 @@ const CORE_ASSETS = [
   '/hub.css',
   '/brand.css',
   '/hub-games.css',
+  '/hub-partners.css',
   '/hub-share.css',
   '/pwa-install.css',
   '/pwa-install.js',

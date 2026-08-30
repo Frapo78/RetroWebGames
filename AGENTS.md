@@ -395,6 +395,10 @@ The home install UI is centralized in `pwa-install.js` and `pwa-install.css`. Ke
 
 Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js` contract: `data-rwg-src`, explicit width/height, `loading="lazy"` and `decoding="async"`. Responsive sources use `data-rwg-srcset` and `data-rwg-sizes`. Reuse the same module in future sections instead of creating page-local observers. Dynamic markup is covered by its MutationObserver or `RWGLazyImages.observe(root)`. Run `node scripts/validate-lazy-images.mjs`.
 
+## Partner-sites contract
+
+The home `Siti Partner` section uses reusable `.partner-site-card` markup and `hub-partners.css`. Partner images are locally hosted under `assets/partners/`, use the shared lazy-image contract and document their provenance in `docs/PARTNERS.md`. External cards require HTTPS plus `target="_blank"` and `rel="external noopener noreferrer"`. Run `node scripts/validate-partners.mjs` after adding or changing a partner.
+
 
 ## SEO/GEO contract — REQUIRED
 
