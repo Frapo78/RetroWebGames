@@ -3,6 +3,31 @@
 
   if (!document.body || !document.body.hasAttribute('data-rwg-game')) return;
 
+  const selfSrc = document.currentScript?.src;
+  if (selfSrc) {
+    const base = new URL('.', selfSrc);
+    if (!document.querySelector('link[data-rwg-controls-style]')) {
+      const controlsStyle = document.createElement('link');
+      controlsStyle.rel = 'stylesheet';
+      controlsStyle.href = new URL('rwg-controls.css', base).href;
+      controlsStyle.dataset.rwgControlsStyle = 'true';
+      document.head.appendChild(controlsStyle);
+    }
+    if (!document.querySelector('link[data-rwg-vjoy-style]')) {
+      const joystickStyle = document.createElement('link');
+      joystickStyle.rel = 'stylesheet';
+      joystickStyle.href = new URL('rwg-virtual-joystick.css', base).href;
+      joystickStyle.dataset.rwgVjoyStyle = 'true';
+      document.head.appendChild(joystickStyle);
+    }
+    if (!window.RWGVirtualJoystick && !document.querySelector('script[data-rwg-vjoy-script]')) {
+      const joystickScript = document.createElement('script');
+      joystickScript.src = new URL('rwg-virtual-joystick.js', base).href;
+      joystickScript.dataset.rwgVjoyScript = 'true';
+      document.body.appendChild(joystickScript);
+    }
+  }
+
   const touchCapable = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
   const mobileLike = window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const shortestSide = Math.min(screen.width || innerWidth, screen.height || innerHeight);
