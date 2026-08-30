@@ -5,6 +5,8 @@ PROJECT=/projects/RWG
 APP="$PROJECT/server/leaderboards"
 ENV_DIR=/etc/rwg
 ENV_FILE="$ENV_DIR/leaderboard.env"
+RUNTIME_DIR=/var/lib/rwg-leaderboard
+RUNTIME_APP="$RUNTIME_DIR/app"
 UNIT=/etc/systemd/system/rwg-leaderboard.service
 SNIPPET=/etc/nginx/snippets/rwg-leaderboards.conf
 VHOST=/etc/nginx/sites-available/retrowebgames.it.conf
@@ -25,7 +27,7 @@ wait_for_health() {
   return 1
 }
 
-for path in "$APP/package-lock.json" "$APP/schema.sql" "$PROJECT/ops/rwg-leaderboard.service" "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$VHOST"; do
+for path in "$APP/package.json" "$APP/package-lock.json" "$APP/schema.sql" "$PROJECT/ops/rwg-leaderboard.service" "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$VHOST"; do
   [[ -f "$path" ]] || { echo "Manca $path" >&2; exit 1; }
 done
 install -d -o root -g root -m 0700 "$BACKUP"
@@ -58,6 +60,18 @@ mysql --protocol=socket --execute="CREATE DATABASE IF NOT EXISTS rwg_leaderboard
 mysql --protocol=tcp -h 127.0.0.1 -u "$RWG_DB_USER" -p"$RWG_DB_PASSWORD" "$RWG_DB_NAME" < "$APP/schema.sql"
 
 runuser -u fra -- npm --prefix "$APP" ci --omit=dev --ignore-scripts
+
+# The Git checkout is deploy-writable and must never be a privileged service's
+# executable path. Build a private, root-owned runtime copy before switching.
+RUNTIME_STAGE="${RUNTIME_DIR}/app.next.${STAMP}"
+RUNTIME_PREVIOUS="${RUNTIME_DIR}/app.previous.${STAMP}"
+install -d -o root -g site_rwg -m 0750 "$RUNTIME_DIR"
+rm -rf -- "$RUNTIME_STAGE"
+install -d -o root -g site_rwg -m 0750 "$RUNTIME_STAGE"
+rsync -a --delete "$APP/" "$RUNTIME_STAGE/"
+chown -R root:site_rwg "$RUNTIME_STAGE"
+find "$RUNTIME_STAGE" -type d -exec chmod 0750 {} +
+find "$RUNTIME_STAGE" -type f -exec chmod 0640 {} +
 install -o root -g root -m 0644 "$PROJECT/ops/rwg-leaderboard.service" "$UNIT"
 install -o root -g root -m 0644 "$PROJECT/ops/rwg-leaderboards.nginx.conf" "$SNIPPET"
 if ! grep -qF 'include /etc/nginx/snippets/rwg-leaderboards.conf;' "$VHOST"; then
@@ -65,8 +79,16 @@ if ! grep -qF 'include /etc/nginx/snippets/rwg-leaderboards.conf;' "$VHOST"; the
 fi
 systemctl daemon-reload
 systemctl enable rwg-leaderboard.service
-systemctl restart rwg-leaderboard.service
-wait_for_health http://127.0.0.1:3112/health "Health locale leaderboard"
+[[ ! -e "$RUNTIME_APP" ]] || mv "$RUNTIME_APP" "$RUNTIME_PREVIOUS"
+mv "$RUNTIME_STAGE" "$RUNTIME_APP"
+if ! systemctl restart rwg-leaderboard.service || ! wait_for_health http://127.0.0.1:3112/health "Health locale leaderboard"; then
+  echo "Avvio runtime leaderboard non riuscito: ripristino runtime precedente." >&2
+  rm -rf -- "$RUNTIME_APP"
+  [[ ! -e "$RUNTIME_PREVIOUS" ]] || mv "$RUNTIME_PREVIOUS" "$RUNTIME_APP"
+  systemctl restart rwg-leaderboard.service || true
+  exit 1
+fi
+rm -rf -- "$RUNTIME_PREVIOUS"
 nginx -t
 systemctl reload nginx
 wait_for_health https://www.retrowebgames.it/api/leaderboards/v1/health "Health pubblica leaderboard"

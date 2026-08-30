@@ -7,9 +7,11 @@ Requires=mariadb.service
 Type=simple
 User=site_rwg
 Group=site_rwg
-WorkingDirectory=/projects/RWG/server/leaderboards
+# Never execute the service from /projects: that checkout is intentionally
+# writable by the deploy workflow. The installer stages a root-owned copy here.
+WorkingDirectory=/var/lib/rwg-leaderboard/app
 EnvironmentFile=/etc/rwg/leaderboard.env
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node /var/lib/rwg-leaderboard/app/server.js
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true

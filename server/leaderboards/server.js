@@ -13,7 +13,9 @@ const pool = mysql.createPool({
   connectionLimit: 8, charset: 'utf8mb4', timezone: 'Z', decimalNumbers: true
 });
 const app = Fastify({ logger: true, trustProxy: '127.0.0.1', bodyLimit: 64 * 1024 });
-await app.register(rateLimit, { max: 90, timeWindow: '1 minute', keyGenerator: request => `${request.ip}:${request.cookies?.rwg_player || ''}` });
+// The reverse proxy is trusted only on loopback; rate-limit on the resolved
+// client IP rather than an attacker-controlled, rotating cookie value.
+await app.register(rateLimit, { max: 90, timeWindow: '1 minute', keyGenerator: request => request.ip });
 
 function cookies(header = '') {
   return Object.fromEntries(header.split(';').map(part => part.trim().split('=').map(decodeURIComponent)).filter(pair => pair.length === 2));
@@ -25,7 +27,10 @@ function playerFor(request, reply) {
   return current;
 }
 function checkOrigin(request, reply, done) {
-  if (request.method === 'POST' && request.headers.origin && request.headers.origin !== productionOrigin) {
+  // JSON POSTs from the browser always carry Origin. Requiring the canonical
+  // origin makes the same-origin contract explicit instead of relying only on
+  // CORS preflight behavior.
+  if (request.method === 'POST' && request.headers.origin !== productionOrigin) {
     reply.code(403).send({ message: 'Origine non autorizzata.' }); return;
   }
   done();

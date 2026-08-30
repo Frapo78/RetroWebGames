@@ -420,6 +420,8 @@ After a live Game Over submission, the summary MUST show a compact global-rank c
 
 The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
 
+The leaderboard systemd process MUST execute only from `/var/lib/rwg-leaderboard/app`, a root-owned runtime copy created atomically by `ops/install-rwg-leaderboards.sh`; it must never execute JavaScript directly from the deploy-writable `/projects/RWG` checkout. Preserve loopback-only binding, loopback-only `trustProxy`, IP-based rate limiting, strict canonical-Origin checks for POST and the current systemd hardening. Run `node scripts/validate-security.mjs` after any publication, API, service or installer change.
+
 Leaderboard Analytics uses GA4 recommended `post_score` only after server acceptance. Funnel events may contain low-cardinality status flags and numeric aggregate/result fields, but MUST NOT contain nickname, device/profile ID, run ID, free-form server messages or other user-entered content.
 
 Leaderboard systemd hardening MUST NOT set `MemoryDenyWriteExecute=true`: Node/V8 needs executable JIT pages and otherwise terminates with `SIGTRAP` before binding the API port. Preserve the remaining unit hardening and the loopback-only listener.
