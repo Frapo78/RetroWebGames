@@ -25,6 +25,7 @@
       hp:Math.round(src.hp*scale),
       damageScale:1+index*.075+cycle*.18,
       attackScale:(1+index*.055+cycle*.13)*(src.attackCadence??1),
+      shieldDropEvery:ordinal>=4?.10:0,
       title:cycle?`${src.name} // OVERDRIVE ${cycle}`:src.name
     };
   }
