@@ -26,6 +26,19 @@
       joystickScript.dataset.rwgVjoyScript = 'true';
       document.body.appendChild(joystickScript);
     }
+    if (!document.querySelector('link[data-rwg-pause-style]')) {
+      const pauseStyle = document.createElement('link');
+      pauseStyle.rel = 'stylesheet';
+      pauseStyle.href = new URL('rwg-pause-menu.css', base).href;
+      pauseStyle.dataset.rwgPauseStyle = 'true';
+      document.head.appendChild(pauseStyle);
+    }
+    if (!window.RWGPauseMenu && !document.querySelector('script[data-rwg-pause-script]')) {
+      const pauseScript = document.createElement('script');
+      pauseScript.src = new URL('rwg-pause-menu.js', base).href;
+      pauseScript.dataset.rwgPauseScript = 'true';
+      document.body.appendChild(pauseScript);
+    }
   }
 
   const touchCapable = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
