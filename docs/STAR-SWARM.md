@@ -59,6 +59,8 @@ Ten base bosses:
 
 Bosses differ in visuals, movement AI and attack patterns. Boss HP scales again in Overdrive.
 
+Iron Manta is intentionally less projectile-dense than the default boss progression would make it: its boss definition applies an `attackCadence` multiplier of `0.78` to the generated `attackScale`. At level 40 this yields an effective attack scale of about `0.909` instead of `1.165`, while leaving HP, movement identity and mine attack pattern unchanged.
+
 ## Enemy durability tiers
 
 Normal enemies are separated visually and mechanically into five durability families:
