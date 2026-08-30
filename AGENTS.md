@@ -158,6 +158,15 @@ Game-specific documentation may define mechanics, content, physics, rendering an
 
 For Solitario specifically, `games/solitaire/pause-overlay.js` must remain a compatibility no-op while referenced. Do not restore its old local pause implementation.
 
+### Star Swarm offensive axes — CRITICAL
+
+Do not conflate these two systems.
+
+- **Weapon Upgrade** controls firing pattern/type progression and has exactly **8 firing forms**: SINGLE FIRE, DOUBLE FIRE, TRIPLE DIAGONAL FIRE, 4 FIRE LINEAR, FIREBALLS 3 WAY, LASER, 3 WAY LASERS and 5 WAY LASERS.
+- **POWER** controls per-projectile damage strength. POWER range: **1..20**, with twenty projectile colors and independent progression from Weapon.
+
+Life loss without Shield reduces Weapon by two forms and POWER by two levels. Lasers continue through normal enemies and each laser projectile damages a given target at most once unless the mechanic is intentionally redesigned together with documentation and validators. Detailed campaign, boss and drop-rate invariants remain authoritative in `docs/STAR-SWARM.md`.
+
 ## 6. Rendering and performance
 
 Current architecture intentionally uses JavaScript + Canvas 2D for arcade games and DOM/CSS where appropriate for Solitario.
