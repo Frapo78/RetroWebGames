@@ -105,6 +105,13 @@ body[data-rwg-game-name="Block Drop"] #hud > #pauseBtn {
   min-height: 40px !important;
   align-self: center;
 }
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host {
+  height: 116px !important;
+  bottom: calc(env(safe-area-inset-bottom) + 7px) !important;
+}
+body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage {
+  bottom: calc(env(safe-area-inset-bottom) + 132px) !important;
+}
 
 body[data-rwg-game] .rwg-vjoy-host .rwg-vjoy-action,
 body[data-rwg-game] #boostBtn {
@@ -121,7 +128,8 @@ body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host {
   align-items: center !important;
   gap: 18px !important;
 }
-body[data-rwg-game-name="Neon Snake"] #boostBtn { width: 100% !important; min-height: 58px !important; }
+body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host > .rwg-vjoy { grid-column: 1; grid-row: 1; }
+body[data-rwg-game-name="Neon Snake"] #boostBtn { grid-column: 2; grid-row: 1; width: 100% !important; min-height: 58px !important; }
 body[data-rwg-game-name="Maze Munch"] #controls.rwg-vjoy-host { display: grid !important; place-items: center !important; }
 
 body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled .sensor-help { min-height: 22px; }
@@ -143,4 +151,6 @@ body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap { max-height: ca
   body[data-rwg-game] { --rwg-control-size: 36px; }
   body[data-rwg-game] #topbar { min-height: 38px !important; }
   body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap { max-height: calc(100dvh - 205px) !important; }
+  body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host { height: 100px !important; }
+  body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage { bottom: calc(env(safe-area-inset-bottom) + 116px) !important; }
 }
