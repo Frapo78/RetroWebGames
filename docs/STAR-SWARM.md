@@ -22,7 +22,6 @@ This document is the gameplay source of truth for Star Swarm. Keep it synchroniz
 
 `scripts/validate-contracts.mjs` executes the campaign and boss configuration in an isolated VM. It rejects duplicate signatures in levels 1–100, a changed 10-level boss cadence, fewer or more than ten base bosses, or duplicated boss name, shape, AI or attack identities.
 
-
 ## Inter-wave continuity — CRITICAL
 
 Ordinary wave completion must be visually and mechanically continuous. The short `wave → transition → next wave/boss` interval is **not a pause** and must not freeze the simulation.
@@ -60,6 +59,8 @@ Ten base bosses:
 Bosses differ in visuals, movement AI and attack patterns. Boss HP scales again in Overdrive.
 
 Iron Manta is intentionally less projectile-dense than the default boss progression would make it: its boss definition applies an `attackCadence` multiplier of `0.78` to the generated `attackScale`. At level 40 this yields an effective attack scale of about `0.909` instead of `1.165`, while leaving HP, movement identity and mine attack pattern unchanged.
+
+Starting with boss 4, the boss configuration exposes `shieldDropEvery: 0.10`. During the fight the runtime tracks cumulative HP loss and releases one guaranteed Shield pickup whenever another 10% of maximum boss energy has been removed. Bosses 1–3 do not grant these threshold drops. The rule continues in Overdrive. These boss-generated Shield pickups are guaranteed rewards and therefore do **not** consume or obey the normal random Shield-drop cap for the level.
 
 ## Enemy durability tiers
 
@@ -149,7 +150,7 @@ A shielded hit consumes exactly one Shield layer and does not lose a life or dow
 
 ## Power-up economy
 
-Drop limits are per level and reset when a new wave begins.
+Drop limits are per level and reset when a new wave begins unless explicitly described otherwise.
 
 ### Rapid Fire
 
@@ -189,6 +190,7 @@ POWER is the pickup whose frequency was intentionally reduced while being expand
 ### Shield
 
 - normal enemy drops remain capped at max 1 Shield drop per level;
+- boss 4+ additionally release guaranteed Shield pickups at each 10% maximum-HP threshold crossed, independently of the normal random cap;
 - Shield protection stacks from `0` to `3` layers;
 - collecting a Shield adds exactly one layer, capped at 3;
 - a damaging hit consumes exactly one layer, so protection degrades `3 → 2 → 1 → 0`;
@@ -197,9 +199,19 @@ POWER is the pickup whose frequency was intentionally reduced while being expand
 - the third and outermost layer is larger again and yellow;
 - HUD and pickup feedback expose the current count as `SHIELD n/3`.
 
+### 1UP
+
+- new random life bonus dropped by normal enemies;
+- base eligible-kill probability: about `0.45%` before elite multiplier;
+- at most one 1UP may drop during the same level;
+- after a 1UP drop, another one cannot drop until at least five level numbers have elapsed (`next eligible level >= last drop level + 5`);
+- collecting a 1UP adds exactly one life, capped at 9 lives;
+- if already at the 9-life cap, the pickup converts to a score bonus instead of increasing lives;
+- the drop cooldown is run state, not a per-level counter, and must survive resume/restore.
+
 ## Resume / persistence
 
-The Star Swarm resume schema is version `2` after the stacked-Shield change. Persisted `player.shield` values must be integers in the inclusive range `0..3`. The adapter compatibility string must identify the v2 Shield-3 state contract so older v1 snapshots are rejected safely instead of being reinterpreted under the new semantics.
+The Star Swarm resume schema is version `3` after the boss-threshold Shield and 1UP changes. Persisted `player.shield` values must be integers in the inclusive range `0..3`. The state also persists the last level that generated a 1UP, the per-level `oneup` drop count, and the active boss `shieldDropIndex` so restoring a boss fight cannot duplicate already-earned 10% Shield rewards. The adapter compatibility string must identify the v3 contract so older v1/v2 snapshots are rejected safely instead of being reinterpreted under the new semantics.
 
 ## Wingmen
 
