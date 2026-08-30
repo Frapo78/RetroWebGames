@@ -136,6 +136,16 @@
     });
   };
 
+  const syncHelp = gameSlug => {
+    const hint = document.querySelector('.gesture-hint');
+    if (hint && gameSlug === 'maze-munch') hint.textContent = 'Usa il joystick, scorri sul labirinto oppure usa frecce / WASD. Raccogli tutti i punti e attiva i surge nodes.';
+    if (hint && gameSlug === 'neon-snake') hint.textContent = 'Joystick, swipe o frecce / WASD per muoverti. Tieni premuto TURBO per andare a velocità doppia.';
+    if (gameSlug === 'neon-tilt') {
+      const fallback = document.querySelector('.sensor-help span:last-child');
+      if (fallback) fallback.textContent = 'Joystick e frecce restano sempre disponibili.';
+    }
+  };
+
   const autoMount = () => {
     if (!document.body?.hasAttribute('data-rwg-game') || document.documentElement.dataset.rwgVjoyMounted === 'true') return;
     const gameSlug = slug();
@@ -171,6 +181,7 @@
       document.documentElement.dataset.rwgVjoyMounted = 'true';
       document.body.classList.add('rwg-vjoy-enabled');
       window.RWGVirtualJoystickInstance = instance;
+      syncHelp(gameSlug);
     }
   };
 
