@@ -24,22 +24,63 @@ Every game page MUST:
 3. expose a complete `window.RWGResumeAdapter` before `../../game-hud.js` loads;
 4. load `../../game-hud.js`;
 5. load `../../orientation.js` after the HUD;
-6. use shared profile/wallet/game-over/session/orientation infrastructure instead of local copies.
+6. use shared profile/wallet/game-over/session/pause/orientation infrastructure instead of local copies.
 
-Shared root services:
+Shared root services include:
 
 - `rwg-profile.js` / `rwg-profile.css` — anonymous profile, local prototype wallet, credits, statistics;
 - `rwg-avatar.js` / `rwg-avatar.css` — avatar identity;
 - `rwg-session.js` / `rwg-session.css` — mandatory unfinished-run autosave, validation, lifecycle flush and resume prompt;
+- `rwg-pause-menu.js` / `rwg-pause-menu.css` — **mandatory shared pause UI, active-play timing, double-confirm run termination and interrupted-run leaderboard eligibility**;
 - `game-hud.js` / `game-hud.css` — shared navigation/bootstrap;
 - `game-over.js` / `game-over.css` — terminal GAME OVER, metrics, achievements, sharing and credit Continue;
 - `orientation.js` / `orientation.css` — portrait guard and resume countdown.
 
-Game-local code may expose only the game-specific persistence adapter. It MUST NOT own the `localStorage` session namespace, autosave scheduler, lifecycle flush listeners or resume modal.
+Game-local code may expose game-specific state/adapters and the actual pause state transition. It MUST NOT own the `localStorage` session namespace, autosave scheduler, lifecycle flush listeners, resume modal, pause overlay, pause termination confirmation flow, pause active-time eligibility logic or a pause-specific leaderboard submission path.
 
-`game-hud.js` automatically boots `rwg-session.js` and `rwg-session.css` for every game page. A game must not duplicate those shared assets in its page.
+`game-hud.js` automatically boots shared platform infrastructure. A game must not duplicate shared assets in its page.
 
-Intermediate overlays such as pause, tutorial, level-clear or Star Swarm boss-clear are allowed. They MUST NOT replace terminal shared Game Over.
+Tutorial, level-clear and boss-clear overlays may remain game-specific because they represent game mechanics. **Pause is no longer in that category.** A local pause overlay is forbidden. `games/solitaire/pause-overlay.js` is a legacy no-op shim, not a pattern to copy.
+
+### 2A. Shared pause contract — CRITICAL AND MANDATORY
+
+Before any pause-related modification or before adding a game, agents MUST read `docs/PAUSE-MENU.md`. That document is the detailed source of truth.
+
+Every current and future game MUST:
+
+- expose a usable `#pauseBtn` whose paused state is externally observable as `▶` and/or aria-label `Riprendi`;
+- keep `RWGResumeAdapter.isInProgress()` true during a legitimate pause;
+- let the shared pause component own pause presentation;
+- let the shared component resume through the game's existing pause transition rather than mutating private engine state;
+- use the centralized 45-second active-play minimum for manually terminated-run leaderboard eligibility;
+- have an explicit centralized per-game score threshold for interrupted-run eligibility;
+- preserve the two-stage `TERMINA PARTITA` confirmation;
+- preserve `RWGSession`, shared leaderboard and Game Over contracts.
+
+When adding a future game, the agent MUST add an appropriate score threshold to the centralized pause policy and update `docs/PAUSE-MENU.md`. Do not copy thresholds into the game runtime.
+
+When a requested pause feature is useful across games, implement it in `rwg-pause-menu.js` / `.css`. Do not create a local shortcut because it is faster.
+
+Forbidden regressions include:
+
+- game-local pause modal/overlay/CSS;
+- one-click destructive termination;
+- native `window.confirm()` as a replacement for the shared double-confirm flow;
+- game-local active-time counters for interruption eligibility;
+- direct leaderboard API calls from pause/game code;
+- clearing `rwg.session.v2:*` merely because a run is paused;
+- using shared Game Over as the ordinary pause screen.
+
+After pause-related work run at minimum:
+
+```bash
+node scripts/validate-shared-pause.mjs
+node scripts/validate-session.mjs
+node scripts/validate-leaderboards.mjs
+node scripts/validate-contracts.mjs
+```
+
+Also run the target game's specialized validator when present and perform browser smoke tests described in `docs/PAUSE-MENU.md`.
 
 ## 3. Game-over contract — CRITICAL
 
@@ -55,17 +96,7 @@ When a run truly ends, a game engine MUST:
 - listen to `rwg:continue-game` and resume the interrupted run after a successful credit Continue;
 - let normal new-game flow fully reset runtime state.
 
-Shared `game-over.js` MUST retain:
-
-- full-screen animated `GAME OVER` intro;
-- compact statistics;
-- achievements;
-- SVG share actions;
-- `Continua con 1`;
-- `Nuova partita`;
-- `Scegli un altro gioco`.
-
-The Game Over heading MUST use `data-rwg-game-name`, never the SEO-oriented document title. The shared leaderboard asks for a valid nickname in a separate modal above Game Over only when no valid nickname is stored; after that first choice, every later result is submitted automatically with the saved nickname and no repeated prompt. Games MUST NOT implement local name prompts.
+Shared `game-over.js` MUST retain its centralized GAME OVER presentation, statistics, achievements, sharing, credit Continue, replay and game-selection actions. Games MUST NOT implement local nickname prompts or terminal substitutes.
 
 MutationObserver-based terminal detection is compatibility fallback only. Explicit lifecycle events remain authoritative.
 
@@ -87,24 +118,9 @@ Never scatter wallet mutations through game engines. Use `RWGContinueProvider` /
 
 `RWGSession` handles browser/app closure, reload, background discard and deliberate navigation away. This resume is free and MUST NOT debit credits or dispatch `rwg:continue-game`.
 
-Shared `rwg-session.js` owns:
+Shared `rwg-session.js` owns storage namespace `rwg.session.v2:<game-id>`, envelope/schema validation, adapter compatibility, dirty-save debounce, heartbeat, lifecycle checkpoints, snapshot-size guards, redundant-write suppression, resume UI and terminal clearing.
 
-- storage namespace `rwg.session.v2:<game-id>`;
-- platform envelope schema `2`;
-- exact adapter-version matching;
-- exact adapter `compatibility` token matching;
-- semantic payload validation through `adapter.validate()`;
-- automatic deletion of obsolete `rwg.session.v1:*` snapshots;
-- dirty-save debounce: currently 750 ms;
-- idle-friendly heartbeat: currently 5 seconds;
-- forced lifecycle checkpoints on hidden/pagehide/beforeunload/freeze/navigation;
-- snapshot-size guard;
-- redundant-write suppression;
-- shared modal **“Vuoi continuare la partita precedente?”**;
-- `No` red on the left and `Sì` green on the right;
-- automatic terminal clearing on `rwg:game-ended` / `rwg:session-completed`.
-
-Every game MUST expose a non-empty adapter before `game-hud.js`:
+Every game MUST expose before `game-hud.js`:
 
 ```js
 window.RWGResumeAdapter = Object.freeze({
@@ -120,316 +136,65 @@ window.RWGResumeAdapter = Object.freeze({
 });
 ```
 
-Required semantics:
+`isInProgress()` must remain true for meaningful unfinished progress, including legitimate pause/intermission states. Persist authoritative logical state only; never write storage once per animation frame. See `docs/SESSION-PERSISTENCE.md`.
 
-- `isInProgress()` returns true whenever unfinished progress should survive leaving/reload, including legitimate pause/intermission states.
-- `serialize()` returns compact JSON-serializable authoritative logical state.
-- `validate()` rejects corrupt, impossible or currently incompatible state.
-- `restore()` reconstructs the exact logical run and returns false on failure.
-- `startFresh()` starts a real new run after the user chooses No.
-- `compatibility` MUST change whenever engine/content/state semantics make old snapshots unsafe.
-
-### Automatic invalidation rules
-
-A snapshot is restorable only when all of these match the current runtime:
-
-1. platform envelope schema;
-2. game id;
-3. adapter version;
-4. adapter compatibility token;
-5. semantic `validate(payload, envelope)`.
-
-If any check fails, remove the snapshot and start safely rather than attempting best-effort mutation.
-
-For deterministic content, validate content identity too. Existing examples:
-
-- Bubble Burst validates deterministic layout signature;
-- Star Swarm validates campaign signature and boss identity;
-- Solitario validates canonical 52-card state and Klondike semantics;
-- fixed-grid games validate dimensions, coordinates and entity/object domains.
-
-### Autosave performance rules
-
-- NEVER write storage once per animation frame.
-- Call `markDirty()` on meaningful discrete logical mutations.
-- Continuous simulations use the shared 5-second heartbeat for position/velocity continuity.
-- Persist authoritative logical state only.
-- Do not persist Canvas caches, particles, starfields, trails, DOM nodes, AudioContext, pointer objects or rebuildable decoration.
-- Large Undo/history rings require explicit storage/performance justification.
-- Forced lifecycle writes may be synchronous because they are rare and protect progress.
-
-See `docs/SESSION-PERSISTENCE.md` for the full source of truth.
-
-### Future-game enforcement
-
-`scripts/validate-session.mjs` dynamically discovers every `games/*/index.html` with `data-rwg-game="true"`. It does NOT rely on a manually maintained list.
-
-For every discovered game it requires a versioned, compatible `RWGResumeAdapter` loaded before `game-hud.js`. Therefore adding a future game without autosave/resume MUST fail validation automatically.
-
-`scripts/validate-contracts.mjs` invokes `scripts/validate-session.mjs`.
+`scripts/validate-session.mjs` dynamically discovers every game and rejects future games without this contract.
 
 ## 4B. Avatar / player identity — SHARED AND REGRESSION-CRITICAL
 
-The avatar is shared platform infrastructure.
+`rwg-avatar.js` / `.css`, `/avatar/`, `docs/AVATAR.md` and `scripts/validate-avatar.mjs` are authoritative. Do not create game-local avatar renderers or remove migration compatibility.
 
-Authoritative files:
+## 5. Game-specific sources of truth
 
-- `rwg-avatar.js` / `rwg-avatar.css` — schema, normalization and shared renderer;
-- `avatar/index.html`, `avatar/avatar-editor.js`, `avatar/avatar-editor.css` — the only editor;
-- `docs/AVATAR.md` — detailed source of truth;
-- `scripts/validate-avatar.mjs` — regression guard.
+Before modifying a game, read its dedicated documentation when present. Important current contracts include:
 
-Current schema is **v2**. The base character MUST remain a scalable SVG stickman / arcade-player skeleton with clothing and gear layered on top. Do not regress to the old independent CSS block-doll torso/arms/legs and do not create game-local avatar renderers.
+- `docs/STAR-SWARM.md`;
+- `docs/BUBBLE-BURST.md`;
+- `docs/SOLITAIRE.md`;
+- `docs/PRISM-BREAKER.md`;
+- `docs/NEON-SNAKE.md`.
 
-Both renderer modes are mandatory:
+Game-specific documentation may define mechanics, content, physics, rendering and semantic snapshot validation. It cannot override shared pause/session/Game Over/leaderboard contracts unless the platform documentation and validators are intentionally changed in the same work.
 
-- `full` for editor/player identity;
-- `mini` for the compact badge beside credits.
+For Solitario specifically, `games/solitaire/pause-overlay.js` must remain a compatibility no-op while referenced. Do not restore its old local pause implementation.
 
-Changes to the shared renderer MUST preserve both modes.
-
-Current independent gear slots are `eyewear`, `headgear`, `emblem` and `aura`. Do not collapse them back into the legacy combined `accessory` field.
-
-Existing v1 users MUST migrate without losing their avatar. The v1 combined accessory maps glasses/visor to `eyewear`, cap/headphones to `headgear`, while new gear fields receive safe defaults. Do not remove that migration path without an explicit migration strategy.
-
-The editor uses four gaming loadout tabs: Corpo, Testa, Outfit and Gear. Unsaved draft changes MUST NOT mutate the globally stored avatar until explicit Save.
-
-Run `node scripts/validate-avatar.mjs` after any avatar renderer/editor/schema change. The repository-wide validator invokes it automatically.
-
-## 5. Star Swarm source of truth
-
-Authoritative files:
-
-- `games/star-swarm/engine.js` — runtime;
-- `games/star-swarm/campaign.js` — formations/entry choreography;
-- `games/star-swarm/bosses.js` — boss roster/config;
-- `docs/STAR-SWARM.md` — detailed contract.
-
-The obsolete root `/game.js` MUST remain absent.
-
-### Campaign invariants
-
-- At least 100 campaign levels.
-- First 100 campaign signatures are distinct.
-- Boss stages: 10, 20, …, 100.
-- Ten distinct base bosses with different forms, AI and attacks.
-- Boss defeat uses an intermediate boss-clear, not terminal Game Over.
-- Boss 100 completes the base campaign and may continue into Overdrive.
-
-### Offensive axes — CRITICAL semantic distinction
-
-Do not conflate these two systems.
-
-- **Weapon Upgrade** = firing pattern/type progression.
-- **POWER** = per-projectile damage-strength progression.
-
-Weapon progression has exactly **8 firing forms**:
-
-1. SINGLE FIRE
-2. DOUBLE FIRE
-3. TRIPLE DIAGONAL FIRE
-4. 4 FIRE LINEAR
-5. FIREBALLS 3 WAY
-6. LASER
-7. 3 WAY LASERS
-8. 5 WAY LASERS
-
-Weapon coefficient rises modestly, approximately ×1.00 → ×1.21.
-
-POWER range: **1..20**. POWER remains the main damage axis, approximately 1.00 → 10.00 base damage, with 20 projectile colors.
-
-Life loss without Shield: Weapon -2 forms, POWER -2 levels. Lasers continue through normal enemies and each laser projectile damages a given target at most once unless intentionally redesigned.
-
-Drop invariants:
-
-- Weapon Upgrade baseline remains approximately 0.86% commander/type-2 and 0.49% ordinary before elite multiplier.
-- POWER baseline remains approximately 1.0% before elite multiplier, max two per level.
-- Shield max one per level.
-- Tractor Beam max one eligible drop every two levels.
-
-## 6. Bubble Burst source of truth
-
-Authoritative files:
-
-- `games/bubble-burst/levels.js` — deterministic catalogue;
-- `games/bubble-burst/game.js` — runtime;
-- `docs/BUBBLE-BURST.md` — detailed contract.
-
-Core invariants:
-
-- exactly 200 deterministic base layout signatures;
-- every layout has complexity-derived `optimalSeconds`;
-- green timer through optimal time, orange through 3.5× optimal, red after;
-- green clear +50%, orange +25%, red +0%;
-- intermediate level-clear is not terminal Game Over;
-- level-1 ceiling pressure begins no earlier than 60 s, current target 65 s;
-- Armor from level 8, Star from 18, Prism from 35;
-- Bomb from level 10 capped around 3%, Color Wipe from 22 capped around 2%;
-- every fifth consecutive popping shot awards one deferred Bomb without overwriting a rare queued shot;
-- collision/aim hot paths use local `nearbyBubbles()` lookup;
-- launched shot speed remains 3× baseline with distance sub-stepping;
-- cached bubble/chibi/background rendering remains in place;
-- no `queue.shift()` regression in graph traversal.
-
-Bubble resumable state MUST preserve and validate `boardMeta.signature`, grid, current/next shot, pressure state, level timer/baseline and intermediate level-clear state when applicable.
-
-Run `node scripts/validate-bubble-burst.mjs` after Bubble changes.
-
-## 7. Solitario source of truth
-
-Authoritative files:
-
-- `games/solitaire/variants.js` — rules registry;
-- `games/solitaire/card-art.js` — card rendering;
-- `games/solitaire/auto-move.js` — cyclic double-tap destination resolver;
-- `games/solitaire/auto-finish.js` — pure obstruction-free finish planner;
-- `games/solitaire/game.js` — gameplay and logical snapshot implementation;
-- `games/solitaire/session-adapter.js` — current persistence compatibility/version wrapper;
-- `docs/SOLITAIRE.md` — detailed contract.
-
-Current game is classic Klondike draw-one:
-
-- one 52-card deck;
-- seven tableau columns;
-- four foundations;
-- alternating descending tableau;
-- King-only empty tableau;
-- same-suit ascending foundations;
-- Undo history up to current runtime limit;
-- classic/essential card styles, essential default; every Essential face keeps only its upper-left suit and upper-right rank at size `43.125`, centres its second rank at `y=90`, and uses a clipped full-card suit watermark at size `176`, `y=88`, opacity `.045` and blur `2.2px`. The lower-right suit must not return, and the two Essential `10` labels must preserve the same typeface and proportional fitting.
-- Double tap uses foundation-first then left-to-right tableau ordering, cycles alternative legal destinations by card ID and commits exclusively through `performMove()`; the 210 ms FLIP animation must never become game-state authority.
-- Auto-finish may start only after its pure planner proves that all 52 unique cards can reach foundations with no stock or face-down/blocked remainder. It must commit through `performMove()`, freeze interaction/time, defer win detection until all 118 ms moves finish, then show fireworks before the 1.45 s victory fade. A face-up but obstructed hand must not trigger it.
-- The in-game Solitario `NUOVA` control must ask for explicit confirmation before abandoning an active deal. Its compact centered dialog freezes timer, board input, hints and auto-finish; cancel/backdrop/Escape preserve the exact hand, and only confirm may clear progress and deal again. Intro and completed-hand new-game actions remain direct.
-
-### Resumable-hand invariants
-
-- Logical snapshot includes variant, stock, waste, foundations, tableau, moves, score and elapsed time.
-- Undo history is not persisted unless explicitly reviewed.
-- Validation requires exactly 52 unique canonical cards and legal visibility/foundation structure.
-- Resuming MUST NOT increment the deal counter.
-- Win clears the unfinished snapshot.
-- Every move, stock draw/recycle and Undo marks the session dirty.
-- Current persistence wrapper exposes adapter version 2 and compatibility `solitaire-klondike-state-v2-52cards-draw1`.
-- Shared session bootstrap comes only from `game-hud.js`; do not re-add page-local `../../rwg-session.js` or CSS.
-
-Run `node scripts/validate-solitaire.mjs` after Solitario changes.
-
-## 7A. Neon Snake speed contract
-
-Neon Snake starts at `1000 ms` per cell and uses the gradual `0.965` per-level interval factor with a `170 ms` unboosted floor. The old `154-(level-1)*9` curve must not return. `TURBO ×2` is strictly press-and-hold: pointer/Shift release, cancel/lost capture, pause, background, blur, Game Over, Continue, restore and new game must clear it. Turbo is transient and never persisted. Combo and temporary-orb windows scale from the unboosted step interval so the accessible pace does not make them unreachable.
-
-Run `node scripts/validate-neon-snake.mjs` after Neon Snake changes.
-
-## 8. Rendering and performance
+## 6. Rendering and performance
 
 Current architecture intentionally uses JavaScript + Canvas 2D for arcade games and DOM/CSS where appropriate for Solitario.
 
 Do not port whole games to WebAssembly without measured evidence. WASM is justified only for isolated numeric hot loops after profiling. Keep Canvas, DOM, Pointer Events, Device Orientation, Web Audio and storage in JavaScript. See `docs/WASM-EVALUATION.md`.
 
-## 9. Regression guardrail workflow
+## 7. Regression guardrail workflow
 
-Before a change is considered complete, run:
+Before a change is considered complete:
+
+1. read `AGENTS.md`, `docs/ARCHITECTURE.md` and all source-of-truth docs for the affected shared/game systems;
+2. inspect existing shared implementations before adding code;
+3. prefer extending shared components over local duplication;
+4. update documentation and validators whenever a contract changes;
+5. run repository-wide and relevant specialized validators locally;
+6. perform browser/device smoke tests for behavior static validators cannot prove.
+
+Do not introduce GitHub Actions as a substitute for required local validation.
+
+Core validation entrypoint:
 
 ```bash
 node scripts/validate-contracts.mjs
 ```
 
-The repository-wide validator checks every JavaScript file with `node --check` and invokes specialized validators, including mandatory session coverage.
+Pause-related work additionally requires `node scripts/validate-shared-pause.mjs`.
 
-When relevant also run directly:
+## 8. Documentation authority map
 
-```bash
-node scripts/validate-session.mjs
-node scripts/validate-bubble-burst.mjs
-node scripts/validate-solitaire.mjs
-```
+Agents should resolve uncertainty from these documents before inventing behavior:
 
-Do not weaken a validator merely to make a failing implementation pass. If a validator is brittle because it depends on formatting rather than semantics, make the assertion semantic while preserving the invariant.
+- `docs/ARCHITECTURE.md` — platform ownership/lifecycle;
+- `docs/PAUSE-MENU.md` — **authoritative pause, active-time, termination and interrupted-run contract**;
+- `docs/SESSION-PERSISTENCE.md` — unfinished-run storage/resume;
+- `docs/LEADERBOARDS.md` — global ranking/submission;
+- `docs/SHARED-HUD-CONTROLS.md` — shared HUD/control placement;
+- `docs/AVATAR.md` — player identity;
+- game-specific docs — gameplay invariants.
 
-Static validation does not replace browser smoke testing. Changed games must be tested for start, pause/resume, terminal flow, free unfinished-run resume, No/fresh-start behavior, one-credit Continue where applicable, sharing and mobile orientation.
-
-On the FraPoVPS host, visual/browser testing MUST first use the canonical `/apps/preview-tools` bundle (`preview-tools-doctor`, `preview-playwright`, `preview-node`). Do not infer that Chromium/Playwright is unavailable from the project `PATH` or local `node_modules`, and do not install another copy in the repository.
-
-## 10. Adding a new game
-
-A new game is incomplete until it:
-
-1. lives under `games/<slug>/`;
-2. uses `data-rwg-game="true"` and a short `data-rwg-game-name`;
-3. loads game modules, then a complete versioned `RWGResumeAdapter`, then `game-hud.js`, then `orientation.js`;
-4. uses shared Game Over when terminal;
-5. supports shared credit Continue if terminal continuation is appropriate;
-6. saves/restores unfinished progress through `RWGSession`;
-7. validates corrupt/incompatible snapshots and exposes a meaningful compatibility token;
-8. passes `node scripts/validate-contracts.mjs`;
-9. passes runtime smoke tests for resume Yes/No and stale-snapshot invalidation;
-10. is added to human-facing README/home navigation as appropriate.
-
-The autosave/resume requirement is permanent platform infrastructure, not a per-game feature flag.
-
-
-## Social sharing contract — REQUIRED
-
-Every current and future public page must expose static Open Graph + Twitter/X metadata; social crawlers must not rely on JavaScript. The global fallback is `assets/social/retrowebgames-cover-1280.jpg`. Future game-specific covers belong under `assets/social/games/<slug>.jpg` and may override only that game's image metadata. Keep absolute production HTTPS URLs and `twitter:card=summary_large_image`. See `docs/SOCIAL-SHARING.md` and run `node scripts/validate-social-sharing.mjs`.
-
-The social validator inventory must cover home, every standalone public page (currently `/avatar/`) and every game page. Adding a public HTML route without validator discovery is a regression.
-
-
-## Analytics contract — CRITICAL
-
-- GA4 is centralized in `rwg-analytics.js` with measurement ID `G-ZSWLC4L8GW`.
-- Games inherit Analytics through mandatory `game-hud.js`; do not embed Google tag snippets in game engines/pages.
-- Hub/avatar load the same shared module directly.
-- Common funnel events (start, resume, Continue, level, end, engagement, exit, share, install) belong in the shared module.
-- Never send email, names, browser/profile fingerprints, payment identifiers, saved-game payloads or free-form user content to Analytics.
-- Any future game must remain measurable through shared lifecycle/HUD contracts; new marketing-relevant semantics should be exposed centrally rather than by duplicating GA code.
-- See `docs/ANALYTICS.md` and `scripts/validate-analytics.mjs`.
-
-
-## PWA install contract — REQUIRED
-
-The home install UI is centralized in `pwa-install.js` and `pwa-install.css`. Keep the 2-second first-visit notice one-time via `rwg.pwa.install.notice.v1`, retain the persistent card after the game list, hide both in standalone mode, and never pretend iOS supports a programmable install prompt: detect iPhone/iPadOS, hide install buttons and show Share → Add to Home Screen guidance directly. All Chromium install CTAs must consume the same deferred `beforeinstallprompt`; do not call it from duplicated handlers. Keep `sw.js` root-scoped and network-first so online deploys are not masked by stale cache. The home wordmark must remain complete on a transparent safety canvas and render with `object-fit: contain`, centered positioning, visible overflow and a page gutter. Run `node scripts/validate-pwa-install.mjs`.
-
-
-## Lazy-image contract — REQUIRED
-
-Home images must never regain an eager `src`. Use the shared `rwg-lazy-images.js` contract: `data-rwg-src`, explicit width/height, `loading="lazy"` and `decoding="async"`. Responsive sources use `data-rwg-srcset` and `data-rwg-sizes`. Reuse the same module in future sections instead of creating page-local observers. Dynamic markup is covered by its MutationObserver or `RWGLazyImages.observe(root)`. Run `node scripts/validate-lazy-images.mjs`.
-
-## Partner-sites contract
-
-The home `Siti Partner` section uses reusable `.partner-site-card` markup and `hub-partners.css`. Partner images are locally hosted under `assets/partners/`, use the shared lazy-image contract and document their provenance in `docs/PARTNERS.md`. External cards require HTTPS plus `target="_blank"` and `rel="external noopener noreferrer"`. Run `node scripts/validate-partners.mjs` after adding or changing a partner.
-
-
-## SEO/GEO contract — REQUIRED
-
-- `scripts/seo-catalog.mjs` is the only search-facing game catalog. Add every future game there and regenerate with `node scripts/apply-seo.mjs`.
-- Public landing pages require unique people-first title/description, canonical HTTPS, preview-capable robots directives, `og:locale=it_IT` and truthful static JSON-LD.
-- Home owns `WebSite` identity and the complete nine-game `ItemList`; each game owns `VideoGame`, `WebPage` and `BreadcrumbList` nodes.
-- `/avatar/` remains `noindex,follow` and must not enter the sitemap unless it becomes a substantive public landing page.
-- Regenerate `sitemap.xml` with `node scripts/generate-sitemap.mjs`; keep only canonical indexable routes and truthful Git-derived `lastmod` dates. Do not add ignored `priority` or `changefreq` fields.
-- Never add hidden keyword copy, doorway pages, fabricated review/rating data, obsolete `meta keywords` or an unsupported `llms.txt` shortcut.
-- Run `node scripts/validate-seo-geo.mjs`; it is also mandatory through `validate-contracts.mjs`. See `docs/SEO-GEO.md`.
-
-## Global leaderboard contract — CRITICAL
-
-Every game intro receives its top 10 from the shared `rwg-leaderboard.js` bootstrap. Games MUST NOT create local leaderboard implementations. Terminal games submit through `rwg:game-over-summary`; successful non-Game-Over completions use `rwg:leaderboard-result` without misusing `rwg:game-ended`.
-
-A new game owns one run id. Credit Continue updates that same run and records `continueCount`; it MUST NOT create duplicate cumulative entries. New game creates a new run. Submission retries are idempotent and offline failures use the shared queue.
-
-The nickname prompt is first-use-only and lives as a modal above the shared Game Over (or above the successful Solitario completion). Once a valid nickname exists in local storage or is recovered for the same anonymous browser from the API, subsequent results submit silently and automatically. Do not put the prompt back inside the Game Over card and do not ask for the same saved name after every run.
-
-Leaderboard visibility is a shared platform concern. The home MUST show a live Top 3 directly below every game card. Every game MUST keep the full Top 10 in its intro when mountable and MUST show the compact Top 3 above the playfield while the shared unfinished-run question is open or the game is explicitly paused (`#pauseBtn` displays `▶`). The compact panel must stay visible on 320 px phones without covering the resume actions. Do not add game-local leaderboard markup.
-
-After a live Game Over submission, the summary MUST show a compact global-rank card. Positions 1–10 use the gold `is-top-ten` treatment and the message `SEI NELLA TOP TEN!`; lower positions use the standard treatment. An offline queued submission shows a pending-position variant rather than inventing a rank. Nicknames and rank-card copy remain excluded from Analytics.
-
-The ranking API is best-effort for a client-side game, not cheat-proof authority. Never expose database credentials, store raw IP addresses in leaderboard tables, send nicknames to Analytics, or weaken server validation/rate limits. See `docs/LEADERBOARDS.md` and run `node scripts/validate-leaderboards.mjs`.
-
-The leaderboard systemd process MUST execute only from `/var/lib/rwg-leaderboard/app`, a root-owned runtime copy created atomically by `ops/install-rwg-leaderboards.sh`; it must never execute JavaScript directly from the deploy-writable `/projects/RWG` checkout. Preserve loopback-only binding, loopback-only `trustProxy`, IP-based rate limiting, strict canonical-Origin checks for POST and the current systemd hardening. Run `node scripts/validate-security.mjs` after any publication, API, service or installer change.
-
-Leaderboard Analytics uses GA4 recommended `post_score` only after server acceptance. Funnel events may contain low-cardinality status flags and numeric aggregate/result fields, but MUST NOT contain nickname, device/profile ID, run ID, free-form server messages or other user-entered content.
-
-Leaderboard systemd hardening MUST NOT set `MemoryDenyWriteExecute=true`: Node/V8 needs executable JIT pages and otherwise terminates with `SIGTRAP` before binding the API port. Preserve the remaining unit hardening and the loopback-only listener.
-
-RWG operational installers MUST NOT use `/dev/stdin` as the source argument to `install`. It can be unavailable/non-installable in the VPS privileged execution context and abort after partial provisioning. Keep configuration in versioned real files or create private state atomically with a temporary file plus rename; validate the real service, port and HTTP response after installation.
-
-An Nginx reload is asynchronous with respect to worker replacement. Public health checks after `systemctl reload nginx` MUST retry for a bounded interval instead of treating the first transient old-worker response as the final deploy result.
+If code and these docs disagree, do not silently choose whichever is easier. Investigate the discrepancy and bring code, docs and validators back to one explicit contract.
