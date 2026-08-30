@@ -82,7 +82,11 @@ body[data-rwg-game-name="Solitario"] #gameControls {
   gap: 6px !important;
   align-items: stretch !important;
 }
-body[data-rwg-game-name="Solitario"] #gameControls .rwg-game-tools { align-self: stretch; }
+body[data-rwg-game-name="Solitario"] #gameControls .rwg-game-tools { grid-column: 1; align-self: stretch; }
+body[data-rwg-game-name="Solitario"] #gameControls #pauseBtn { grid-column: 2; }
+body[data-rwg-game-name="Solitario"] #gameControls #undoBtn { grid-column: 3; }
+body[data-rwg-game-name="Solitario"] #gameControls #hintBtn { grid-column: 4; }
+body[data-rwg-game-name="Solitario"] #gameControls #newDealBtn { grid-column: 5; }
 body[data-rwg-game-name="Solitario"] #gameControls .tool-btn span { display: inline !important; font-size: 7px; }
 
 body[data-rwg-game-name="Block Drop"] #hud:has(> .rwg-game-tools) {
