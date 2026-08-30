@@ -65,10 +65,12 @@
     directionFor(x, y, active) {
       if (!active || Math.hypot(x, y) < this.deadZone) return null;
       const horizontal = Math.abs(x) >= Math.abs(y);
-      const candidates = horizontal
-        ? [x < 0 ? 'left' : 'right', y < 0 ? 'up' : 'down']
-        : [y < 0 ? 'up' : 'down', x < 0 ? 'left' : 'right'];
-      return candidates.find(direction => this.allowed.has(direction)) || null;
+      const primary = horizontal ? (x < 0 ? 'left' : 'right') : (y < 0 ? 'up' : 'down');
+      if (this.allowed.has(primary)) return primary;
+      const secondaryMagnitude = horizontal ? Math.abs(y) : Math.abs(x);
+      if (secondaryMagnitude < this.deadZone) return null;
+      const secondary = horizontal ? (y < 0 ? 'up' : 'down') : (x < 0 ? 'left' : 'right');
+      return this.allowed.has(secondary) ? secondary : null;
     }
 
     updateFromPointer(event, active) {
