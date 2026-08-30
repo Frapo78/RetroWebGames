@@ -22,7 +22,8 @@ must(source.includes("terminalReason: 'new-deal'"), 'Solitaire: abandoned termin
 must(source.includes('window.RWGLeaderboard.getRunId()'), 'Solitaire: abandoned submission must bind to the current leaderboard run id');
 must(source.includes("window.addEventListener('rwg:leaderboard-registered', onRegistered)"), 'Solitaire: restart must wait for shared leaderboard registration');
 must(source.includes("registeredEvent.detail?.gameSlug !== 'solitaire' || registeredEvent.detail?.runId !== runId"), 'Solitaire: unrelated leaderboard registration events must not unlock the restart');
-must(source.indexOf("window.dispatchEvent(new CustomEvent('rwg:leaderboard-result'") < source.indexOf('finishRestart();'), 'Solitaire: result submission must happen before the fresh-hand restart');
+must(source.includes("window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: abandonedResult(state) }))"), 'Solitaire: abandoned result must use the shared leaderboard result contract');
+must(source.includes("window.removeEventListener('rwg:leaderboard-registered', onRegistered);\n      finishRestart();"), 'Solitaire: fresh-hand restart must happen only after the matching registration callback');
 must(source.includes('event.stopImmediatePropagation();'), 'Solitaire: original confirmation handler must be held until score registration completes');
 
 if (failures.length) {
