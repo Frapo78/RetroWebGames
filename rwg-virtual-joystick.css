@@ -11,6 +11,10 @@
   min-height: 116px;
 }
 
+.rwg-vjoy-host > .dpad {
+  display: none !important;
+}
+
 .rwg-vjoy-host-actions {
   display: grid !important;
   grid-template-columns: minmax(100px, 124px) minmax(72px, 1fr) !important;
