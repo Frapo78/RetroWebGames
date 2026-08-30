@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import vm from 'node:vm';
 
 const root = process.cwd();
 const failures = [];
@@ -27,6 +28,21 @@ must(engine.includes('drops.shield<1'), 'Star Swarm: normal random Shield drops 
 must(docs.includes('Shield protection stacks from `0` to `3` layers'), 'Star Swarm docs: stacked Shield contract missing');
 must(docs.includes('resume schema is version `2`'), 'Star Swarm docs: resume v2 contract missing');
 must(bosses.includes("name:'IRON MANTA'") && bosses.includes('attackCadence:.78'), 'Star Swarm: Iron Manta cadence balance must remain active');
+must(bosses.includes('shieldDropEvery:ordinal>=4?.10:0'), 'Star Swarm: boss Shield threshold contract must be declared from boss 4 onward');
+
+const sandbox = { window: {} };
+vm.createContext(sandbox);
+vm.runInContext(bosses, sandbox, { filename: 'bosses.js' });
+const getBoss = sandbox.window.StarSwarmBosses?.getBoss;
+must(Boolean(getBoss), 'Star Swarm: boss module must expose getBoss');
+if (getBoss) {
+  must(getBoss(10).shieldDropEvery === 0, 'Star Swarm: boss 1 must not grant threshold Shield drops');
+  must(getBoss(20).shieldDropEvery === 0, 'Star Swarm: boss 2 must not grant threshold Shield drops');
+  must(getBoss(30).shieldDropEvery === 0, 'Star Swarm: boss 3 must not grant threshold Shield drops');
+  must(getBoss(40).shieldDropEvery === .10, 'Star Swarm: boss 4 must grant a Shield every 10% HP lost');
+  must(getBoss(100).shieldDropEvery === .10, 'Star Swarm: boss 10 must retain 10% Shield thresholds');
+  must(getBoss(110).shieldDropEvery === .10, 'Star Swarm: Overdrive bosses must retain 10% Shield thresholds');
+}
 
 if (failures.length) {
   console.error(`\nStar Swarm validation FAILED (${failures.length})\n`);
@@ -40,3 +56,4 @@ console.log('  ✓ Shield stacks 0..3 and loses one layer per damaging hit');
 console.log('  ✓ three Shield visuals and HUD counter are guarded');
 console.log('  ✓ resume v2 rejects incompatible Shield state');
 console.log('  ✓ normal Shield drop cap and Iron Manta cadence balance remain intact');
+console.log('  ✓ boss 1-3 have no threshold Shield drops; boss 4+ expose 10% thresholds');
