@@ -145,7 +145,7 @@ An unshielded damaging hit that costs a life applies:
 - Tractor Beam cancelled;
 - normal respawn invulnerability.
 
-A shielded hit consumes Shield and does not lose a life or downgrade Weapon/POWER.
+A shielded hit consumes exactly one Shield layer and does not lose a life or downgrade Weapon/POWER.
 
 ## Power-up economy
 
@@ -188,9 +188,18 @@ POWER is the pickup whose frequency was intentionally reduced while being expand
 
 ### Shield
 
-- max 1 drop per level;
-- stores one-hit protection;
-- a new shield pickup while shielded refreshes/replaces the single protection rather than stacking multiple shields.
+- normal enemy drops remain capped at max 1 Shield drop per level;
+- Shield protection stacks from `0` to `3` layers;
+- collecting a Shield adds exactly one layer, capped at 3;
+- a damaging hit consumes exactly one layer, so protection degrades `3 → 2 → 1 → 0`;
+- the innermost layer preserves the original cyan appearance and radius;
+- the second layer is larger and uses an intermediate cyan/yellow color;
+- the third and outermost layer is larger again and yellow;
+- HUD and pickup feedback expose the current count as `SHIELD n/3`.
+
+## Resume / persistence
+
+The Star Swarm resume schema is version `2` after the stacked-Shield change. Persisted `player.shield` values must be integers in the inclusive range `0..3`. The adapter compatibility string must identify the v2 Shield-3 state contract so older v1 snapshots are rejected safely instead of being reinterpreted under the new semantics.
 
 ## Wingmen
 
