@@ -310,9 +310,13 @@
 
   const selfSrc = document.currentScript?.src;
   if (selfSrc && !document.querySelector('link[data-rwg-avatar-style]')) {
+    const source = new URL(selfSrc);
+    const version = source.searchParams.get('v') || '';
+    const styleUrl = new URL('rwg-avatar.css', new URL('.', source));
+    if (version) styleUrl.searchParams.set('v', version);
     const style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = new URL('rwg-avatar.css', new URL('.', selfSrc)).href;
+    style.href = styleUrl.href;
     style.dataset.rwgAvatarStyle = 'true';
     document.head.appendChild(style);
   }

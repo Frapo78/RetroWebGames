@@ -422,10 +422,14 @@
 
   const selfSrc = document.currentScript?.src;
   if (selfSrc && !document.querySelector('link[data-rwg-profile-style]')) {
-    const base = new URL('.', selfSrc);
+    const source = new URL(selfSrc);
+    const base = new URL('.', source);
+    const version = source.searchParams.get('v') || '';
+    const styleUrl = new URL('rwg-profile.css', base);
+    if (version) styleUrl.searchParams.set('v', version);
     const style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = new URL('rwg-profile.css', base).href;
+    style.href = styleUrl.href;
     style.dataset.rwgProfileStyle = 'true';
     document.head.appendChild(style);
   }
