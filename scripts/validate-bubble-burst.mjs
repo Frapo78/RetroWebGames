@@ -107,8 +107,16 @@ matches(game, /levelElapsed\s*\+=\s*dt/, 'Gameplay timer must advance from activ
 matches(game, /levelStartScore\s*=\s*score/, 'Per-level score baseline missing');
 matches(game, /function\s+completeLevel\s*\(/, 'Intermediate level-complete calculation phase missing');
 matches(game, /levelClearTitleEl\.textContent\s*=\s*`LIVELLO \$\{level\} COMPLETATO!`/, 'Level-clear title must identify completed level');
-matches(game, /Math\.round\(\s*levelPoints\s*\*\s*bonusRate\s*\)/, 'Completion bonus must use level points');
-matches(game, /levelClearReadyAt\s*=\s*performance\.now\(\)\s*\+\s*2200/, 'Level-clear presentation must remain readable before tap');
+matches(game, /Math\.round\(\s*levelPoints\s*\*\s*bonusRate\s*\)/, "Completion bonus must use level points");
+const celebrationMs = Number(game.match(/LEVEL_CLEAR_CELEBRATION_MS\s*=\s*([0-9.]+)/)?.[1]);
+must(celebrationMs === 2000, "Level-clear celebration must last 2000ms before summary; found " + celebrationMs);
+matches(game, /function\s+drawLevelClearCelebration\s*\(/, "Dedicated Canvas level-clear celebration missing");
+matches(game, /function\s+drawStarEye\s*\(/, "Operator star-eye celebration overlay missing");
+matches(game, /function\s+drawHeartEye\s*\(/, "Loader heart-eye celebration overlay missing");
+const jumpBlock = game.match(/const\s+LEVEL_CLEAR_JUMP_FRAMES[\s\S]*?const\s+CREW_EYES/)?.[0] || "";
+must((jumpBlock.match(/Object\.freeze\(\[/g) || []).length >= 14, "Both characters require seven manga jump keyframes");
+must(game.includes("showLevelClearPanel()") && game.includes("levelClearPanelShown"), "Summary must remain hidden until celebration completes");
+matches(game, /levelClearReadyAt\s*=\s*levelClearCelebrationStartedAt\s*\+\s*LEVEL_CLEAR_CELEBRATION_MS\s*\+\s*2200/, "Level-clear summary must remain readable after the two-second celebration");
 matches(game, /function\s+startNextLevel\s*\(/, 'Level-clear tap path missing');
 matches(game, /function\s+registerPoppingShot\s*\(/, 'Consecutive-pop reward function missing');
 matches(game, /if\s*\(\s*!popped\s*\)\s*\{\s*poppingShotStreak\s*=\s*0\s*;\s*return\s*;\s*\}/, 'Non-popping shot must reset streak');

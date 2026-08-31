@@ -176,7 +176,10 @@ Bubble Burst includes two original manga-chibi operators derived from the visual
 - large expressive pupils remain procedural and track upward toward the first predicted wall bounce, otherwise the first attach/ceiling impact, with the current upward aim as fallback;
 - `predictAimTrajectory()` is shared by the dotted preview and `predictAimFocusPoint()`, preventing visual disagreement;
 - the right loader remains beside the next-bubble preview without covering the launcher or playfield;
-- release query `20260831.5` protects both atlases and `game.js` from stale mobile caches.
+- release query `20260831.5` protects both atlases from stale mobile caches; the Bubble Burst runtime is independently versioned in the page.
+- a successful level clear first runs a dedicated 2-second Canvas celebration, then reveals the existing score/time/bonus summary: the arcade title zooms and rotates into place while both cached joy sprites perform seven-keyframe manga jumps;
+- each jump is interpolated on every `requestAnimationFrame` with squash/stretch and alternating airborne poses; the operator receives star eyes and the loader heart eyes as lightweight procedural overlays, without extra textures, DOM mutation or per-frame image allocation;
+- resumed sessions already saved on the level-clear screen open the summary directly and do not replay or block on the celebration.
 
 ## Shared lifecycle
 

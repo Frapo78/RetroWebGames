@@ -194,7 +194,7 @@ Do not port whole games to WebAssembly without measured evidence. WASM is justif
 
 ### Bubble Burst launcher crew
 
-Bubble Burst launcher characters are raster atlases aligned with the social-cover identity. Preserve the four emotional poses, decoded-image cache, shared trajectory-driven pupils and transform-only breathing/reaction animation. Do not restore procedural character bodies, allocate canvases/images per frame or duplicate aim prediction for eye tracking.
+Bubble Burst launcher characters are raster atlases aligned with the social-cover identity. Preserve the four emotional poses, decoded-image cache, shared trajectory-driven pupils and transform-only breathing/reaction animation. A successful level clear must retain the 2-second pre-summary Canvas celebration, at least five interpolated manga-jump keyframes per character, and the star/heart eye overlays; restored level-clear sessions open the summary directly. Do not restore procedural character bodies, allocate canvases/images per frame or duplicate aim prediction for eye tracking.
 
 ## 7. Regression guardrail workflow
 
