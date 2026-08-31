@@ -24,7 +24,7 @@ Every game follows the same hierarchy:
 3. **Game-specific status/actions** — examples: sensor state/calibration, Solitario Undo/Hint/New Deal, Neon Snake Turbo, Block Drop Rotate/Drop.
 4. **Movement control** — shared virtual joystick where directional input is required.
 
-The common-control dock is now visually independent from local `#hud`, `#topbar` and `#gameControls` containers. Common controls may remain as DOM children of those legacy containers for compatibility, but `rwg-controls.css` removes them from local layout and pins them to one shared bottom rail.
+The common-control dock is visually independent from local `#hud`, `#topbar` and `#gameControls` containers. Common controls may remain as DOM children of those legacy containers for compatibility, but `rwg-controls.css` removes them from local layout and pins them to one shared bottom rail.
 
 Games MUST NOT reposition Home, Share, Audio, Pause, Credits or Avatar locally. Any platform-wide placement change belongs in the shared layer.
 
@@ -45,6 +45,19 @@ Properties:
 - game-specific controls and joysticks must live above the reserved dock region;
 - profile modules may still mount Credits/Avatar into legacy containers, but shared CSS places them in the dock visually;
 - empty legacy topbars must not continue reserving a second visible controls row.
+
+### Availability during pause — mandatory
+
+The common dock **MUST remain visible and interactive while the game is paused** through the shared pause menu.
+
+In particular:
+
+- **Home/Games must always remain reachable while paused**, so the user can leave the game intentionally without first resuming gameplay;
+- Share, Audio, Pause/Resume, Credits and Avatar remain available as global/system controls;
+- the shared pause overlay must not visually or interactively suppress the common dock;
+- game-specific movement/actions may remain inactive while paused because they belong to gameplay, not global navigation.
+
+The dock may be hidden on genuinely modal non-gameplay surfaces such as the initial start overlay, the saved-session resume prompt, terminal Game Over and completed/win screens. Ordinary pause is explicitly **not** one of those dock-hiding states.
 
 Do not create a second common toolbar above/below the dock. Do not mix game-specific actions into the common dock merely to save space.
 
@@ -106,10 +119,11 @@ When changing HUD/controls:
 
 1. identify whether an element is KPI, common system control, game-specific action or movement;
 2. never place a common system control in a game-specific row;
-3. never implement a new direction pad if `RWGVirtualJoystick` applies;
-4. if a shared dock collision occurs, adjust shared reserve/adaptation first;
-5. if the simulation itself occupies reserved UI space, adjust the game playfield bounds rather than raising z-index and hiding the bug;
-6. update this document and `scripts/validate-shared-controls.mjs` whenever the shared contract changes.
+3. never hide the common dock during ordinary pause;
+4. never implement a new direction pad if `RWGVirtualJoystick` applies;
+5. if a shared dock collision occurs, adjust shared reserve/adaptation first;
+6. if the simulation itself occupies reserved UI space, adjust the game playfield bounds rather than raising z-index and hiding the bug;
+7. update this document and `scripts/validate-shared-controls.mjs` whenever the shared contract changes.
 
 ## Validation
 
@@ -127,6 +141,8 @@ Browser smoke tests must cover every game at least at 320×568, 390×844 and des
 Verify:
 
 - Home/Share always left, Audio/Pause center, Credits/Avatar right;
+- common dock remains visible and interactive during shared pause;
+- Home/Games works from the pause state;
 - no common controls remain visually stranded in KPI/topbar/game-specific rows;
 - no duplicate common toolbar;
 - Share tray opens upward and is reachable;
