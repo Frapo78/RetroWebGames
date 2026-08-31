@@ -18,6 +18,7 @@
   let modal = null;
   let promptOpen = false;
   let lastPayloadJson = '';
+  let terminalSuppressed = false;
 
   const safeId = value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
   const storageKeyFor = gameId => `${STORAGE_PREFIX}${safeId(gameId)}`;
@@ -77,7 +78,7 @@
   }
 
   function serializeEnvelope(reason = 'autosave') {
-    if (!adapter || !isInProgress()) return null;
+    if (terminalSuppressed || !adapter || !isInProgress()) return null;
     try {
       const payload = adapter.serialize();
       if (!payload || typeof payload !== 'object') return null;
@@ -99,7 +100,7 @@
   function saveNow(reason = 'manual') {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (!adapter || !isInProgress()) return false;
+    if (terminalSuppressed || !adapter || !isInProgress()) return false;
     const envelope = serializeEnvelope(reason);
     if (!envelope) return false;
     let payloadJson = '';
@@ -124,7 +125,7 @@
   }
 
   function scheduleSave(reason = 'dirty') {
-    if (!adapter || !isInProgress()) return;
+    if (terminalSuppressed || !adapter || !isInProgress()) return;
     dirty = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveNow(reason), DIRTY_DEBOUNCE_MS);
@@ -136,6 +137,16 @@
     dirty = false;
     lastPayloadJson = '';
     if (adapter) storageRemove(currentKey());
+  }
+
+  function terminate(reason = 'terminal') {
+    terminalSuppressed = true;
+    clearSaved();
+    return { reason, gameId: adapter?.id || '' };
+  }
+
+  function beginRun() {
+    terminalSuppressed = false;
   }
 
   function ensureModal() {
@@ -167,6 +178,7 @@
   }
 
   function startFresh() {
+    beginRun();
     try { adapter?.startFresh?.(); } catch (_) {}
   }
 
@@ -202,6 +214,7 @@
         window.dispatchEvent(new CustomEvent('rwg:session-restore-failed', { detail: { gameId: adapter.id } }));
         return;
       }
+      beginRun();
       hidePrompt();
       dirty = true;
       saveNow('resumed');
@@ -212,7 +225,7 @@
   }
 
   function runHeartbeat() {
-    if (document.hidden || !isInProgress()) return;
+    if (terminalSuppressed || document.hidden || !isInProgress()) return;
     const checkpoint = () => saveNow('heartbeat');
     if ('requestIdleCallback' in window) window.requestIdleCallback(checkpoint, { timeout: 900 });
     else setTimeout(checkpoint, 0);
@@ -229,6 +242,7 @@
     }
 
     adapter = { ...nextAdapter, id, version, compatibility };
+    beginRun();
     discardLegacy(id);
     clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(runHeartbeat, HEARTBEAT_MS);
@@ -244,7 +258,7 @@
   }
 
   function forceLifecycleSave(reason) {
-    if (promptOpen) return;
+    if (terminalSuppressed || promptOpen) return;
     saveNow(reason);
   }
 
@@ -261,8 +275,9 @@
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     forceLifecycleSave('navigation');
   }, true);
-  window.addEventListener('rwg:game-ended', clearSaved);
-  window.addEventListener('rwg:session-completed', clearSaved);
+  window.addEventListener('rwg:game-ended', event => terminate(event.detail?.terminalReason || 'game-ended'));
+  window.addEventListener('rwg:session-completed', event => terminate(event.detail?.terminalReason || 'session-completed'));
+  window.addEventListener('rwg:game-session-start', beginRun);
 
   window.RWGSession = Object.freeze({
     register,
@@ -270,8 +285,11 @@
     checkpoint: saveNow,
     saveNow,
     clear: clearSaved,
+    terminate,
+    beginRun,
     hasSaved: () => Boolean(readSaved()),
     storageKey: () => currentKey(),
+    isTerminalSuppressed: () => terminalSuppressed,
     config: Object.freeze({ dirtyDebounceMs: DIRTY_DEBOUNCE_MS, heartbeatMs: HEARTBEAT_MS, maxSnapshotBytes: MAX_SNAPSHOT_BYTES, envelopeSchema: ENVELOPE_SCHEMA })
   });
 
