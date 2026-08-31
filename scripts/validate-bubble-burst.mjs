@@ -19,11 +19,17 @@ for (const rel of ['games/bubble-burst/levels.js','games/bubble-burst/game.js'])
 
 const html = read('games/bubble-burst/index.html');
 must(html.includes('<script src="levels.js"></script>'), 'Bubble Burst must load levels.js');
-must(html.includes('<script src="game.js"></script>'), 'Bubble Burst must load game.js');
+must(/<script src="game\.js(?:\?v=[^"]+)?"><\/script>/.test(html), 'Bubble Burst must load its optionally cache-versioned game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
 must(html.includes('class="rwg-intro-leaderboard-slot"') && !html.includes('la struttura scende verso la linea di pericolo'), 'Intro caption must be replaced by the shared High Scores slot');
 must(html.includes('id="levelTimer"'), 'Dedicated level timer missing');
+for (const asset of ['assets/sprites/bubble-burst/operator-sheet.png','assets/sprites/bubble-burst/loader-sheet.png']) {
+  const png = fs.readFileSync(path.join(root, asset));
+  must(png.length > 100_000 && png.toString('ascii', 1, 4) === 'PNG', `Crew sprite invalid or unexpectedly tiny: ${asset}`);
+  must(png.readUInt32BE(16) === 1024 && png.readUInt32BE(20) === 512, `Crew sprite sheet must remain 1024x512: ${asset}`);
+  must(html.includes(`../../${asset}?v=20260831.5`), `Crew sprite must be preloaded with release version: ${asset}`);
+}
 for (const id of ['levelClear','levelClearTitle','clearPoints','clearTime','clearBonus','clearTotal']) must(html.includes(`id="${id}"`), `Level-clear UI missing #${id}`);
 must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Intermediate arcade level-clear presentation missing');
 
@@ -55,10 +61,16 @@ matches(game, /Math\.ceil\(\s*distance\s*\/\s*Math\.max\(\s*4\s*,\s*R\s*\*\s*\.7
 matches(game, /function\s+drawMovingBubble\s*\(/, 'Moving-bubble renderer missing');
 matches(game, /globalCompositeOperation\s*=\s*['"]lighter['"]/, 'Projectile trail must retain additive rendering');
 matches(game, /const\s+bubbleSprites\s*=\s*new\s+Map\s*\(/, 'Bubble sprite cache missing');
-matches(game, /const\s+mangaChibiSprites\s*=\s*new\s+Map\s*\(/, 'Manga chibi sprite cache missing');
-matches(game, /function\s+makeMangaChibiSprite\s*\(/, 'Manga chibi base renderer missing');
+matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
+matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');
+matches(game, /new\s+Image\s*\(\s*\)/, 'Crew sprite preload missing');
+must(!game.includes('makeMangaChibiSprite') && !game.includes('mangaChibiSprites'), 'Procedural crew renderer must not return');
 matches(game, /function\s+drawMangaChibiCrew\s*\(/, 'Manga crew renderer missing');
 matches(game, /function\s+drawTrackedEyes\s*\(/, 'Dynamic eye tracking missing');
+for (const mood of ["'joy'", "'fear'", "'sad'"]) must(game.includes(`setCrewMood(${mood}`), `Crew reaction missing: ${mood}`);
+matches(game, /Math\.sin\(now\s*\*\s*\.0035/, 'Continuous breathing animation missing');
+matches(game, /crewSheetsReady\s*===\s*2/, 'Renderer must avoid drawing undecoded crew sheets');
+matches(game, /image\.decode\(\)\.then/, 'Crew atlases must be decoded before first raster draw');
 matches(game, /function\s+predictAimTrajectory\s*\(/, 'Aim trajectory predictor missing');
 matches(game, /function\s+predictAimFocusPoint\s*\(/, 'Aim focus predictor missing');
 must(game.includes('traceAim(aimPrediction)') && game.includes('predictAimFocusPoint(aimPrediction)'), 'Aim preview and crew gaze must share one prediction');

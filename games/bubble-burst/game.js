@@ -39,6 +39,7 @@
   let currentShot = { kind: SHOT_NORMAL, color: PALETTE[0] };
   let nextShot = { kind: SHOT_NORMAL, color: PALETTE[1] };
   let moving = null, banner = '', bannerTime = 0, operatorPulse = 0;
+  let crewMood = 'idle', crewMoodTime = 0;
   let poppingShotStreak = 0, rewardBombsPending = 0;
   let boardMeta = null, backgroundCache = null, audio = null;
   let pressureRows = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
@@ -50,12 +51,31 @@
   const particles = [];
   const falling = [];
   const bubbleSprites = new Map();
-  const mangaChibiSprites = new Map();
+  const CREW_POSES = Object.freeze({ idle: 0, joy: 1, fear: 2, sad: 3 });
+  const CREW_EYES = Object.freeze({
+    operator: Object.freeze({
+      idle: [[146, 236], [204, 219]], joy: [[116, 225], [180, 210]],
+      fear: [[108, 233], [172, 220]], sad: [[83, 260], [147, 247]]
+    }),
+    loader: Object.freeze({
+      idle: [[104, 229], [163, 240]], joy: [[106, 228], [170, 214]],
+      fear: [[100, 234], [163, 223]], sad: [[80, 260], [143, 248]]
+    })
+  });
+  const crewSheets = Object.create(null);
+  let crewSheetsReady = 0;
   let lastAimFocus = { x: launcherX, y: TOP };
 
   const key = (r, c) => `${r},${c}`;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const markSessionDirty = reason => window.RWGSession?.markDirty?.(reason);
+  for (const role of ['operator', 'loader']) {
+    const image = new Image(); image.decoding = 'async'; let ready = false;
+    const markReady = () => { if (!ready && image.naturalWidth) { ready = true; crewSheetsReady++; } };
+    image.src = `../../assets/sprites/bubble-burst/${role}-sheet.png?v=20260831.5`;
+    image.decode().then(markReady, () => image.complete ? markReady() : image.addEventListener('load', markReady, { once: true }));
+    crewSheets[role] = image;
+  }
   const pressureIntervalFor = lvl => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)));
   const pressureStepFor = lvl => Math.min(PRESSURE_MAX_ROWS, PRESSURE_START_ROWS + Math.max(0, lvl - 1) * PRESSURE_ROW_GROWTH);
   const ceilingY = () => TOP + pressureRows * ROW_H;
@@ -243,7 +263,7 @@
 
   function resetGame() {
     score = 0; level = 1; misses = 0; missLimit = 5; moving = null; aiming = false;
-    particles.length = 0; falling.length = 0; operatorPulse = 0; poppingShotStreak = 0; rewardBombsPending = 0;
+    particles.length = 0; falling.length = 0; operatorPulse = 0; crewMood = 'idle'; crewMoodTime = 0; poppingShotStreak = 0; rewardBombsPending = 0;
     hideLevelClear(); resetPressure(); spawnBoard(); resetLevelMetrics();
     currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     banner = `LIVELLO 001 • ${boardMeta.name}`; bannerTime = 1.6; updateHud();
@@ -339,6 +359,7 @@
 
   function completeLevel() {
     if (levelClearActive || !running) return;
+    setCrewMood('joy', 2.2);
     const clearAward = 700 + Math.min(2300, (level + 1) * 22); score += clearAward;
     const levelPoints = Math.max(0, score - levelStartScore), bonusRate = levelBonusRate(), bonusPoints = Math.round(levelPoints * bonusRate), levelTotal = levelPoints + bonusPoints; score += bonusPoints; updateHud();
     levelClearActive = true; paused = true; aiming = false; moving = null; levelClearReadyAt = performance.now() + 2200;
@@ -357,20 +378,20 @@
 
   function resolveNormalShot(cell) {
     const matches = component(cell.r, cell.c, grid.get(key(cell.r, cell.c))?.color);
-    if (matches.length >= 3) { const removed = removeCells(matches, 35, false), dropped = dropDisconnected(); score += Math.max(0, matches.length - 3) * 15; tone(640, .09, 'triangle', .04, 280); if (dropped) tone(330, .14, 'sine', .035, -110); registerPoppingShot(removed > 0); finishResolution({ resetMisses: removed > 0 || matches.length >= 3 }); }
-    else { registerPoppingShot(false); misses++; tone(210, .04, 'square', .018, -35); if (misses >= missLimit) addPenaltyRow(); if (!grid.size) completeLevel(); else { reconcileQueue(); updateHud(); checkDanger(); markSessionDirty('miss'); } }
+    if (matches.length >= 3) { const removed = removeCells(matches, 35, false), dropped = dropDisconnected(); setCrewMood('joy', dropped ? 1.35 : .9); score += Math.max(0, matches.length - 3) * 15; tone(640, .09, 'triangle', .04, 280); if (dropped) tone(330, .14, 'sine', .035, -110); registerPoppingShot(removed > 0); finishResolution({ resetMisses: removed > 0 || matches.length >= 3 }); }
+    else { setCrewMood('sad', 1.05); registerPoppingShot(false); misses++; tone(210, .04, 'square', .018, -35); if (misses >= missLimit) addPenaltyRow(); if (!grid.size) completeLevel(); else { reconcileQueue(); updateHud(); checkDanger(); markSessionDirty('miss'); } }
   }
 
   function resolveBomb(hit) {
     const hp = hit ? cellPos(hit.r, hit.c) : { x: moving.x, y: moving.y }, radius = CELL * 1.55, cells = [];
     for (const b of nearbyBubbles(hp.x, hp.y, 2)) { const p = cellPos(b.r, b.c); if ((p.x - hp.x) ** 2 + (p.y - hp.y) ** 2 <= radius * radius) cells.push([b.r, b.c]); }
-    moving = null; const removed = removeCells(cells, 48, true), dropped = dropDisconnected(); burst(hp.x, hp.y, '#ff934f', 34, 260); tone(110, .14, 'sawtooth', .05, 420); navigator.vibrate?.([22, 18, 35]); if (dropped) score += dropped * 18; registerPoppingShot(removed > 0); finishResolution();
+    moving = null; const removed = removeCells(cells, 48, true), dropped = dropDisconnected(); setCrewMood(removed > 0 ? 'joy' : 'sad', removed > 0 ? 1.25 : .9); burst(hp.x, hp.y, '#ff934f', 34, 260); tone(110, .14, 'sawtooth', .05, 420); navigator.vibrate?.([22, 18, 35]); if (dropped) score += dropped * 18; registerPoppingShot(removed > 0); finishResolution();
   }
 
   function resolveColorClear(hit) {
     const targetColor = hit?.color || moving.color || pickColor(), cells = []; for (const b of grid.values()) if (b.color === targetColor) cells.push([b.r, b.c]);
     const x = hit ? cellPos(hit.r, hit.c).x : moving.x, y = hit ? cellPos(hit.r, hit.c).y : moving.y; moving = null;
-    const removed = removeCells(cells, 42, true), dropped = dropDisconnected(); score += removed * 8; burst(x, y, targetColor, 30, 230); tone(980, .14, 'triangle', .045, -450); navigator.vibrate?.([12, 12, 12]); if (dropped) score += dropped * 18; registerPoppingShot(removed > 0); finishResolution();
+    const removed = removeCells(cells, 42, true), dropped = dropDisconnected(); setCrewMood(removed > 0 ? 'joy' : 'sad', removed > 0 ? 1.25 : .9); score += removed * 8; burst(x, y, targetColor, 30, 230); tone(980, .14, 'triangle', .045, -450); navigator.vibrate?.([12, 12, 12]); if (dropped) score += dropped * 18; registerPoppingShot(removed > 0); finishResolution();
   }
 
   function attachNormal() {
@@ -390,7 +411,7 @@
   }
 
   function applyPressureDrop() {
-    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressurePulse = .85; banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
+    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressurePulse = .85; setCrewMood('fear', 1.3); banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
   }
   function updatePressure(dt) { pressureElapsed += dt; pressurePulse = Math.max(0, pressurePulse - dt); if (pressureElapsed >= pressureInterval) pressureDue = true; if (pressureDue && !moving) applyPressureDrop(); }
 
@@ -418,7 +439,7 @@
 
   function update(dt) {
     if (!running || paused || levelClearActive) return; levelElapsed += dt; updateLevelTimer(); updateMoving(dt); if (!running || paused || levelClearActive) return; updatePressure(dt); if (!running || paused || levelClearActive) return;
-    bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt);
+    bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt); crewMoodTime = Math.max(0, crewMoodTime - dt);
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.pow(.08, dt); p.vy *= Math.pow(.08, dt); p.life -= dt; if (p.life <= 0) particles.splice(i, 1); }
     for (let i = falling.length - 1; i >= 0; i--) { const b = falling[i]; b.vy += 720 * dt; b.x += b.vx * dt; b.y += b.vy * dt; if (b.y > H + R * 3) falling.splice(i, 1); }
   }
@@ -446,24 +467,50 @@
 
   function roundedRectPath(g, x, y, w, h, radius) { const r = Math.min(radius, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r); g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath(); }
 
-  function makeMangaChibiSprite(role, pose = 'idle') {
-    const cacheKey = role + '|' + pose; if (mangaChibiSprites.has(cacheKey)) return mangaChibiSprites.get(cacheKey);
-    const c = document.createElement('canvas'); c.width = 180; c.height = 220; const g = c.getContext('2d');
-    const operator = role === 'operator', hairTop = operator ? '#ff76d7' : '#7deeff', hairDeep = operator ? '#7b285f' : '#176b99', suitTop = operator ? '#7ff2ff' : '#ffe88a', suitDeep = operator ? '#167ca2' : '#b26d23', accent = operator ? '#ffe66d' : '#7cffb2', skin = '#ffd9c5', ink = '#172039';
-    g.fillStyle = 'rgba(0,0,0,.34)'; g.beginPath(); g.ellipse(90,207,48,9,0,0,Math.PI*2); g.fill();
-    if (!operator) { const tail=g.createLinearGradient(122,35,160,93);tail.addColorStop(0,hairTop);tail.addColorStop(1,hairDeep);g.fillStyle=tail;g.beginPath();g.moveTo(124,42);g.bezierCurveTo(171,42,166,91,137,101);g.bezierCurveTo(151,73,125,69,124,42);g.fill();g.fillStyle=accent;g.beginPath();g.arc(135,51,9,0,Math.PI*2);g.fill(); }
-    g.strokeStyle=ink;g.lineWidth=11;g.lineCap='round';g.beginPath();g.moveTo(72,174);g.lineTo(67,197);g.moveTo(108,174);g.lineTo(113,197);g.stroke();g.strokeStyle=operator?'#d8f8ff':'#fff0b8';g.lineWidth=8;g.beginPath();g.moveTo(67,197);g.lineTo(56,202);g.moveTo(113,197);g.lineTo(124,202);g.stroke();
-    const suit=g.createLinearGradient(55,116,126,191);suit.addColorStop(0,suitTop);suit.addColorStop(1,suitDeep);g.fillStyle=suit;roundedRectPath(g,52,111,76,75,24);g.fill();g.strokeStyle='rgba(255,255,255,.58)';g.lineWidth=3;g.stroke();g.fillStyle='#101a34';g.beginPath();g.moveTo(77,112);g.lineTo(90,132);g.lineTo(103,112);g.closePath();g.fill();g.fillStyle=accent;g.beginPath();g.arc(90,143,10,0,Math.PI*2);g.fill();g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=2;g.stroke();g.fillStyle='#182342';roundedRectPath(g,70,165,40,14,7);g.fill();
-    g.lineCap='round';g.lineWidth=17;g.strokeStyle=suitTop;if(operator){const recoil=pose==='fire'?7:0;g.beginPath();g.moveTo(58,130);g.lineTo(35,151+recoil);g.moveTo(122,130);g.lineTo(140,145-recoil);g.stroke();g.strokeStyle=skin;g.lineWidth=12;g.beginPath();g.moveTo(35,151+recoil);g.lineTo(46,158+recoil);g.moveTo(140,145-recoil);g.lineTo(132,155-recoil);g.stroke();}else{g.beginPath();g.moveTo(58,132);g.lineTo(43,156);g.moveTo(122,132);g.lineTo(133,156);g.stroke();g.strokeStyle=skin;g.lineWidth=12;g.beginPath();g.moveTo(43,156);g.lineTo(64,164);g.moveTo(133,156);g.lineTo(112,164);g.stroke();g.fillStyle='#8fa8c1';roundedRectPath(g,48,160,84,10,5);g.fill();g.strokeStyle='#dff7ff';g.lineWidth=2;g.stroke();}
-    const hairBack=g.createLinearGradient(46,16,138,111);hairBack.addColorStop(0,hairTop);hairBack.addColorStop(1,hairDeep);g.fillStyle=hairBack;g.beginPath();g.ellipse(90,66,54,57,0,0,Math.PI*2);g.fill();g.fillStyle=skin;g.beginPath();g.ellipse(90,73,45,43,0,0,Math.PI*2);g.fill();g.strokeStyle='rgba(94,47,61,.24)';g.lineWidth=2;g.stroke();g.fillStyle='rgba(255,113,145,.2)';g.beginPath();g.ellipse(56,89,10,5,0,0,Math.PI*2);g.ellipse(124,89,10,5,0,0,Math.PI*2);g.fill();g.fillStyle=hairBack;g.beginPath();g.moveTo(43,58);g.bezierCurveTo(50,8,129,3,139,55);g.bezierCurveTo(124,43,120,42,111,61);g.bezierCurveTo(98,46,88,41,78,62);g.bezierCurveTo(68,48,58,48,43,58);g.closePath();g.fill();g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=4;g.beginPath();g.moveTo(operator?57:66,29);g.quadraticCurveTo(87,14,operator?113:124,31);g.stroke();g.fillStyle=hairTop;g.beginPath();g.moveTo(operator?48:128,52);g.quadraticCurveTo(operator?31:151,68,operator?50:130,92);g.quadraticCurveTo(operator?57:122,75,operator?48:128,52);g.fill();g.strokeStyle=hairDeep;g.lineWidth=5;g.lineCap='round';g.beginPath();g.moveTo(61,48);g.lineTo(71,59);g.moveTo(88,41);g.lineTo(91,57);g.moveTo(116,47);g.lineTo(107,60);g.stroke();g.strokeStyle=ink;g.lineWidth=3;g.beginPath();g.moveTo(59,62);g.quadraticCurveTo(70,55,80,62);g.moveTo(100,62);g.quadraticCurveTo(110,55,121,62);g.stroke();g.strokeStyle='#bb6878';g.lineWidth=3;g.beginPath();if(pose==='fire'&&operator)g.arc(90,97,6,0,Math.PI*2);else{g.moveTo(84,98);g.quadraticCurveTo(90,103,97,97);}g.stroke();
-    mangaChibiSprites.set(cacheKey,c);return c;
+  function setCrewMood(mood, duration) {
+    crewMood = CREW_POSES[mood] === undefined ? 'idle' : mood;
+    crewMoodTime = Math.max(crewMoodTime, duration);
   }
-
-  function drawTrackedEyes(g,gaze,role){const iris=role==='operator'?'#7b3cff':'#087da8';for(const x of[-20,20]){g.fillStyle='#fff';g.beginPath();g.ellipse(x,75,13.5,16,0,0,Math.PI*2);g.fill();g.strokeStyle='#172039';g.lineWidth=2.5;g.stroke();const px=x+gaze.x*4.2,py=75+gaze.y*3.5;g.fillStyle=iris;g.beginPath();g.arc(px,py,7.2,0,Math.PI*2);g.fill();g.fillStyle='#10162b';g.beginPath();g.arc(px,py,3.8,0,Math.PI*2);g.fill();g.fillStyle='#fff';g.beginPath();g.arc(px-2.2,py-2.7,2.1,0,Math.PI*2);g.fill();g.strokeStyle='#172039';g.lineWidth=3;g.beginPath();g.arc(x,74,14,Math.PI*1.08,Math.PI*1.92);g.stroke();}}
+  function currentCrewMood() {
+    const remaining = pressureInterval - pressureElapsed;
+    if (crewMoodTime > 0) return crewMood;
+    return misses >= Math.max(1, missLimit - 1) || pressureDue || remaining <= 6 ? 'fear' : 'idle';
+  }
+  function drawTrackedEyes(g, gaze, role, mood) {
+    const iris = role === 'operator' ? '#7b3cff' : '#087da8';
+    const eyes = CREW_EYES[role][mood] || CREW_EYES[role].idle;
+    for (const [x, y] of eyes) {
+      const px = x - 128 + gaze.x * 9, py = y + gaze.y * 7;
+      g.fillStyle = iris; g.beginPath(); g.ellipse(px, py, 12, 14, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#10162b'; g.beginPath(); g.ellipse(px, py + 1, 6.5, 8, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(px - 3.2, py - 4.2, 3, 0, Math.PI * 2); g.fill();
+    }
+  }
   function predictAimTrajectory(){const v=aimVector();let x=launcherX+v.x*(R+20),y=launcherY+v.y*(R+20),vx=v.x,vy=v.y;const points=[{x,y}],step=13,top=ceilingY();let firstBounce=null,impact=null;for(let i=0;i<46;i++){x+=vx*step;y+=vy*step;if(x<=R){x=R;vx=Math.abs(vx);firstBounce||={x,y,type:'bounce'};}else if(x>=W-R){x=W-R;vx=-Math.abs(vx);firstBounce||={x,y,type:'bounce'};}const hit=collisionBubble(x,y),reachedTop=y<=top+R;points.push({x,y});if(hit||reachedTop){impact={x,y,type:hit?'attach':'ceiling',hit};break;}}return{points,firstBounce,impact,fallback:points[points.length-1]};}
   function predictAimFocusPoint(prediction=predictAimTrajectory()){return prediction.firstBounce||prediction.impact||prediction.fallback||{x:launcherX,y:TOP};}
-  function drawMangaChibiCharacter(role,centerX,topY,width,height,focusPoint,pose='idle'){const sprite=makeMangaChibiSprite(role,pose),eyeY=topY+height*(75/220),dx=focusPoint.x-centerX,dy=Math.min(-10,focusPoint.y-eyeY),magnitude=Math.max(1,Math.hypot(dx,dy)),gaze={x:clamp(dx/magnitude,-1,1),y:clamp(dy/magnitude,-1,-.18)},turn=gaze.x*(role==='operator'?.055:.045);ctx.save();ctx.translate(centerX,topY);ctx.rotate(turn);ctx.scale(width/180,height/220);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(sprite,-90,0);drawTrackedEyes(ctx,gaze,role);ctx.restore();}
-  function drawMangaChibiCrew(focusPoint){const sizeW=clamp(W*.145,46,62),sizeH=sizeW*(220/180),off=clamp(W*.215,66,88),phase=performance.now()*.0036,bob=Math.sin(phase)*1.15,recoil=operatorPulse>0?Math.sin((1-operatorPulse/.18)*Math.PI)*4:0,operatorX=launcherX-off,loaderX=launcherX+off,operatorTop=launcherY-sizeH*.78+bob+recoil,loaderTop=launcherY-sizeH*.78-bob;drawMangaChibiCharacter('operator',operatorX,operatorTop,sizeW,sizeH,focusPoint,operatorPulse>0?'fire':'idle');drawMangaChibiCharacter('loader',loaderX,loaderTop,sizeW,sizeH,focusPoint,'idle');drawBubble(loaderX-sizeW*.32,loaderTop+sizeH*.68,nextShot.color,R*.48,nextShot.kind,0);}
+  function drawMangaChibiCharacter(role, centerX, topY, width, height, focusPoint, mood, now) {
+    const sprite = crewSheets[role]; if (!sprite?.complete || !sprite.naturalWidth) return;
+    const eyeY = topY + height * .45, dx = focusPoint.x - centerX, dy = Math.min(-10, focusPoint.y - eyeY), magnitude = Math.max(1, Math.hypot(dx, dy));
+    const gaze = { x: clamp(dx / magnitude, -1, 1), y: clamp(dy / magnitude, -1, -.18) }, rolePhase = role === 'operator' ? 0 : Math.PI;
+    const breath = Math.sin(now * .0035 + rolePhase), joyBounce = mood === 'joy' ? Math.abs(Math.sin(now * .013 + rolePhase)) * 2.4 : 0;
+    const fearShake = mood === 'fear' ? Math.sin(now * .045 + rolePhase) * .9 : 0, sadDrop = mood === 'sad' ? 2 : 0;
+    const turn = gaze.x * (role === 'operator' ? .045 : .038), sourceX = CREW_POSES[mood] * 256;
+    ctx.save(); ctx.translate(centerX + fearShake, topY - joyBounce + sadDrop); ctx.rotate(turn + fearShake * .004);
+    ctx.scale(width / 256 * (1 - breath * .008), height / 512 * (1 + breath * .014));
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'medium';
+    ctx.drawImage(sprite, sourceX, 0, 256, 512, -128, 0, 256, 512);
+    drawTrackedEyes(ctx, gaze, role, mood); ctx.restore();
+  }
+  function drawMangaChibiCrew(focusPoint) {
+    const sizeW = clamp(W * .16, 50, 68), sizeH = sizeW * 2, off = clamp(W * .22, 68, 92), now = performance.now();
+    const breathBob = Math.sin(now * .0035) * 1.2, recoil = operatorPulse > 0 ? Math.sin((1 - operatorPulse / .18) * Math.PI) * 4 : 0, mood = currentCrewMood();
+    const operatorX = launcherX - off, loaderX = launcherX + off, operatorTop = launcherY - sizeH * .78 + breathBob + recoil, loaderTop = launcherY - sizeH * .78 - breathBob;
+    if (crewSheetsReady === 2) {
+      drawMangaChibiCharacter('operator', operatorX, operatorTop, sizeW, sizeH, focusPoint, mood, now);
+      drawMangaChibiCharacter('loader', loaderX, loaderTop, sizeW, sizeH, focusPoint, mood, now);
+    }
+    drawBubble(loaderX - sizeW * .32, loaderTop + sizeH * .68, nextShot.color, R * .48, nextShot.kind, 0);
+  }
   function traceAim(prediction){if(!prediction||!running||paused||moving||levelClearActive)return;const{points}=prediction;ctx.save();for(let i=1;i<points.length;i+=2){const p=points[i];ctx.globalAlpha=.7*(1-i/Math.max(56,points.length+10));ctx.fillStyle=currentShot.kind===SHOT_NORMAL?currentShot.color:'#ffffff';ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,Math.PI*2);ctx.fill();}ctx.restore();}
   function drawLauncher(focusPoint){drawMangaChibiCrew(focusPoint);const v=aimVector();ctx.save();ctx.translate(launcherX,launcherY);ctx.rotate(v.angle+Math.PI/2);const g=ctx.createLinearGradient(-8,0,8,0);g.addColorStop(0,'#37445f');g.addColorStop(.45,'#e7f2ff');g.addColorStop(.65,'#65e7ff');g.addColorStop(1,'#3d4c68');ctx.fillStyle=g;ctx.fillRect(-8,-43,16,45);ctx.strokeStyle='rgba(101,231,255,.5)';ctx.lineWidth=1.5;ctx.strokeRect(-8,-43,16,45);ctx.restore();ctx.fillStyle='#18233b';ctx.beginPath();ctx.arc(launcherX,launcherY+3,R+10,Math.PI,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.22)';ctx.stroke();if(!moving)drawBubble(launcherX,launcherY-5,currentShot.color,R,currentShot.kind,0);}
 

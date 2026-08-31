@@ -192,6 +192,10 @@ Current architecture intentionally uses JavaScript + Canvas 2D for arcade games 
 
 Do not port whole games to WebAssembly without measured evidence. WASM is justified only for isolated numeric hot loops after profiling. Keep Canvas, DOM, Pointer Events, Device Orientation, Web Audio and storage in JavaScript. See `docs/WASM-EVALUATION.md`.
 
+### Bubble Burst launcher crew
+
+Bubble Burst launcher characters are raster atlases aligned with the social-cover identity. Preserve the four emotional poses, decoded-image cache, shared trajectory-driven pupils and transform-only breathing/reaction animation. Do not restore procedural character bodies, allocate canvases/images per frame or duplicate aim prediction for eye tracking.
+
 ## 7. Regression guardrail workflow
 
 Before a change is considered complete:

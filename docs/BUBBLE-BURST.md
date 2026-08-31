@@ -156,7 +156,7 @@ Performance invariants:
 - pressure descent is represented as a fractional row-space ceiling offset instead of rewriting every bubble coordinate, so resize remains stable and the pressure update is O(1);
 - bubble visuals are cached to offscreen canvases by color/type/armor state instead of rebuilding radial gradients for every bubble every frame;
 - background artwork is cached and rebuilt only on resize;
-- clean manga-chibi launcher bases are cached vector Canvas sprites, while only eyes and subtle pose transforms remain dynamic;
+- the two 1024×512 RGBA character sheets are decoded once and reused; the frame loop performs only two cropped raster draws plus lightweight eye/transform work;
 - aim dots and character gaze reuse one trajectory prediction per active preview frame;
 - graph traversal uses index-based queues rather than repeated `Array.shift()`;
 - particle/falling visual counts are bounded;
@@ -167,14 +167,16 @@ WASM is not justified for the current board sizes. Reconsider only after measure
 
 ## Manga-chibi launcher crew
 
-Bubble Burst includes two original, clean manga-chibi operators drawn procedurally with Canvas 2D:
+Bubble Burst includes two original manga-chibi operators derived from the visual identity of the game cover:
 
-- the left operator manages/fires the launcher and has a subtle cached shot pose plus recoil;
-- the right loader uses a distinct silhouette/outfit and visibly supports the next-bubble preview;
-- large expressive eyes track upward toward the first predicted wall bounce, otherwise the first attach/ceiling impact, with the current upward aim as fallback;
+- `assets/sprites/bubble-burst/operator-sheet.png` and `loader-sheet.png` are original transparent raster atlases with idle, joy, fear and sadness poses;
+- both sheets are preloaded and decoded once; no per-frame sprite generation, temporary canvas or external rendering dependency is allowed;
+- continuous breathing, opposite-phase bob, subtle directional turn, fear shake, joy bounce and shot recoil use Canvas transforms around the cached sheets;
+- successful pops trigger joy, misses trigger sadness, and imminent miss/pressure danger selects fear; reactions are bounded state timers and never mutate the DOM per frame;
+- large expressive pupils remain procedural and track upward toward the first predicted wall bounce, otherwise the first attach/ceiling impact, with the current upward aim as fallback;
 - `predictAimTrajectory()` is shared by the dotted preview and `predictAimFocusPoint()`, preventing visual disagreement;
-- static body/hair/outfit artwork is cached by role/pose; only eyes, bob/recoil and a very small directional turn are drawn dynamically;
-- artwork is original project geometry with no external raster asset, library or third-party character/IP dependency.
+- the right loader remains beside the next-bubble preview without covering the launcher or playfield;
+- release query `20260831.5` protects both atlases and `game.js` from stale mobile caches.
 
 ## Shared lifecycle
 
