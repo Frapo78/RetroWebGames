@@ -1,217 +1,185 @@
 # Shared Pause Menu — AUTHORITATIVE CONTRACT
 
-## Status and scope
+## Status
 
-This document is the source of truth for pause behavior on RetroWebGames.
+This file is the source of truth for pause, resume and deliberate run termination on RetroWebGames.
 
-**MANDATORY FOR HUMANS AND AI CODING AGENTS:** before adding a game or changing pause, resume, abandon-run, session, leaderboard or orientation behavior, read this document together with `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/SESSION-PERSISTENCE.md` and `docs/LEADERBOARDS.md`.
+**Humans and AI coding agents MUST read this file before changing pause, session, abandon-run, leaderboard or orientation behavior.** Also read `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/SESSION-PERSISTENCE.md` and `docs/LEADERBOARDS.md`.
 
-Pause is platform infrastructure, not a game-local feature. Every current and future game MUST use the shared `rwg-pause-menu.js` + `rwg-pause-menu.css` implementation. An agent MUST extend the shared component when new generally useful pause behavior is requested; it MUST NOT solve the request by adding a parallel overlay inside one game.
-
-The visual reference is the former Solitario pause treatment: centered arcade panel, clear `GIOCO IN PAUSA` title, high-contrast resume action, compact current-run information and no game-specific clutter.
+Pause is platform infrastructure. Every current and future game MUST use `rwg-pause-menu.js` + `rwg-pause-menu.css`. A game-local pause overlay, timer or termination path is a regression.
 
 ## Ownership boundary
 
-The division of responsibility is strict.
+The shared pause layer owns:
 
-### Shared pause layer owns
-
-- pause overlay DOM and styling;
-- visibility of the shared pause surface;
-- current-run score/time presentation;
-- active-play timing used for interrupted-run eligibility;
-- `RIPRENDI` action presentation;
+- pause overlay DOM/CSS;
+- score/time summary shown while paused;
+- active-play timing for interrupted-run eligibility;
+- `RIPRENDI` presentation;
 - `TERMINA PARTITA` UX;
-- both termination confirmation stages;
+- both destructive confirmation stages;
 - centralized minimum-time and per-game score policy;
-- eligible interrupted-run submission through the existing leaderboard contract;
-- clearing the resumable snapshot after a confirmed termination;
+- eligible interrupted-run submission through the shared leaderboard;
+- terminal session cleanup and coordination with reload/background lifecycle;
 - coordination with Game Over, leaderboard registration and orientation pause.
 
-### Individual game runtime owns only
+The individual game owns only:
 
-- its gameplay-specific `paused`/running state;
-- the actual pause/resume state transition behind the existing `#pauseBtn`;
-- authoritative game state and `RWGResumeAdapter`;
-- score/progression values that the shared layer can read/normalize.
+- its gameplay-specific paused/running state;
+- the state transition behind `#pauseBtn`;
+- authoritative logical state and `RWGResumeAdapter`;
+- gameplay metrics consumed by shared infrastructure.
 
-A game MUST NOT own a second pause modal, a second termination flow, separate pause CSS, separate active-time eligibility logic or its own leaderboard submission path for pause termination.
+`games/solitaire/pause-overlay.js` is a legacy no-op shim, not an implementation example.
 
-`games/solitaire/pause-overlay.js` is only a legacy compatibility no-op shim. It is NOT an implementation example to copy.
+## Required integration
 
-## Required game integration
-
-Every current/future game page already participates through the normal platform bootstrap. Agents adding a game MUST preserve these requirements:
+Every game must preserve:
 
 1. `<body data-rwg-game="true" data-rwg-game-name="Short Game Name">`;
-2. a game-specific `#pauseBtn` whose paused state is externally observable as `▶` and/or aria-label `Riprendi`;
-3. a complete `window.RWGResumeAdapter` registered before `game-hud.js`;
-4. `game-hud.js` loaded normally;
-5. `orientation.js` loaded after the HUD;
-6. no direct page-local inclusion or clone of `rwg-pause-menu.js` / `.css` unless the central bootstrap contract is intentionally redesigned repository-wide.
+2. `#pauseBtn`, whose paused state is observable as `▶` and/or aria-label `Riprendi`;
+3. a complete `window.RWGResumeAdapter` before `game-hud.js`;
+4. shared bootstrap through `game-hud.js` and `orientation.js`;
+5. no page-local clone of shared pause assets.
 
-The shared pause assets are bootstrapped centrally and must work on desktop and mobile. Do not make pause depend on the handheld-only orientation branch.
+`RWGResumeAdapter.isInProgress()` MUST remain true during a legitimate pause, because pause is non-terminal until the user explicitly ends the run.
 
-## Visibility contract
+## Standard pause surface
 
-The shared menu appears only when all relevant conditions agree that a real unfinished run is paused:
+The shared menu appears only when:
 
-- `#pauseBtn` exposes paused state (`▶` or aria-label `Riprendi`);
-- the registered `RWGResumeAdapter.isInProgress()` reports an unfinished run;
-- shared Game Over is not open.
+- the game is paused;
+- the adapter reports an unfinished run;
+- Game Over is not open.
 
-The standard surface contains:
+It contains:
 
-1. short game identity;
-2. current score;
-3. accumulated active-play time;
-4. `RIPRENDI`;
-5. `TERMINA PARTITA`.
+- game identity;
+- current score;
+- accumulated active-play time;
+- `RIPRENDI`;
+- `TERMINA PARTITA`.
 
-Game-specific information may be exposed to the shared layer through normalized adapter/state metrics when genuinely useful. Do not fork the pause UI merely to display one extra metric.
-
-## Resume behavior
-
-`RIPRENDI` must delegate to the game's normal pause transition, normally through `#pauseBtn`. The shared layer must not independently mutate private engine booleans.
-
-A pause caused by the orientation guard is still a normal unfinished run. Orientation logic may invoke the same pause transition and later resume through the existing countdown, but must not create a competing pause implementation.
-
-Free reload/session restore (`RWGSession`) and one-credit Game Over Continue are separate lifecycle concepts and must remain separate from pause/resume.
+`RIPRENDI` delegates to the existing `#pauseBtn` transition. Shared code must not mutate private engine booleans.
 
 ## Active-play timer
 
-Interrupted-run eligibility uses a shared minimum of **45 seconds of active play**.
+Interrupted-run eligibility uses a common minimum of **45 seconds** of active play.
 
 The timer:
 
-- advances only while the adapter reports an in-progress run;
-- does not advance while paused;
-- does not advance while the document is hidden/backgrounded;
+- advances only while the run is in progress and not paused;
+- stops while the document is hidden/backgrounded;
 - is associated with the current leaderboard run id;
-- is persisted locally approximately every 5 seconds so reload/resume does not reset eligibility;
-- may use a larger authoritative duration already present in game state (`elapsed`, `totalTime` or an explicitly normalized equivalent);
-- must never be implemented separately in individual games.
+- is persisted approximately every 5 seconds so reload/resume does not reset it;
+- may use a larger authoritative game duration (`elapsed`, `totalTime` or normalized equivalent);
+- MUST NOT be duplicated in game runtimes.
 
-45 seconds is a platform policy intended to reject accidental starts and trivial farming while retaining legitimate short arcade runs. Change this value only in the centralized pause policy and update this document plus validators in the same change.
+## `TERMINA PARTITA`
 
-## `TERMINA PARTITA` — destructive action contract
+Termination is destructive and requires two explicit confirmations:
 
-Termination is deliberately harder to trigger than resume. One click must never destroy an unfinished run.
+1. `SÌ, TERMINA`, after explaining High Score eligibility;
+2. `CONFERMA DEFINITIVA`, clearly stating that the unfinished run will be deleted.
 
-After `TERMINA PARTITA`, the user must pass **two explicit confirmations**:
+Before final confirmation there must always be `ANNULLA`/`INDIETRO`. One-click destruction, native `window.confirm()` and direct storage deletion are forbidden.
 
-1. first confirmation: `SÌ, TERMINA`, after the UI explains whether the current result is eligible for High Scores;
-2. second confirmation: `CONFERMA DEFINITIVA`, clearly stating that the saved unfinished run will be deleted.
+## Interrupted-run High Score eligibility
 
-Before the final action there must always be an `ANNULLA`/`INDIETRO` path. Escape/back navigation supported by the component must also leave the run intact until final confirmation.
+A manually terminated run is submitted only when BOTH are true:
 
-Agents MUST NOT weaken this to a single confirm, native `window.confirm()`, immediate reload, direct `localStorage` deletion or a game-local dialog.
-
-## Interrupted-run leaderboard eligibility
-
-A manually terminated run is submitted only when **both** conditions are true:
-
-- active play time is at least 45 seconds;
-- score is strictly greater than the centralized game-specific minimum.
-
-Current thresholds:
+- active play time >= 45 seconds;
+- score is strictly greater than the game-specific threshold.
 
 | Game | Score must be > |
 | --- | ---: |
 | Block Drop | 100 |
 | Bubble Burst | 100 |
 | Maze Munch | 100 |
-| Neon Rally | 0 (therefore at least 1 point) |
+| Neon Rally | 0 |
 | Neon Snake | 100 |
 | Neon Tilt | 150 |
 | Prism Breaker | 250 |
 | Solitario | 10 |
 | Star Swarm | 500 |
 
-These thresholds are platform balancing policy. They MUST NOT be copied into game engines.
+These thresholds live in the centralized pause policy, never in game engines.
 
-### Adding a future game
+A future game must add and justify its own centralized interrupted-run threshold before it is complete.
 
-An agent adding a new game MUST explicitly add and justify its interrupted-run score threshold in the centralized pause policy before the feature is considered complete. Choose a threshold that demonstrates meaningful play for that game's score scale; do not silently inherit an arbitrary threshold from another game.
+## Leaderboard lifecycle
 
-The new game must still satisfy the common 45-second active-time floor unless the platform policy is intentionally redesigned for all games.
+Eligible termination reuses the existing shared leaderboard pipeline through `rwg:leaderboard-result` with the current run identity and normalized terminal metadata including:
 
-## Submission lifecycle
-
-Eligible interruption reuses the existing shared leaderboard pipeline. It is not a second leaderboard implementation.
-
-The pause layer emits `rwg:leaderboard-result` using the current run identity and normalized terminal metadata including:
-
-- existing run id;
 - `outcome: game-over`;
 - `terminalReason: pause-terminate`;
 - score;
-- progression/level when available;
+- progression when available;
 - active duration;
-- bounded game-specific metrics when available.
+- bounded game-specific metrics.
 
-The shared pause flow waits for the matching `rwg:leaderboard-registered` completion before final cleanup/return. This preserves the normal nickname, idempotency and offline queue behavior.
+The pause flow waits for matching `rwg:leaderboard-registered` before final cleanup. This preserves nickname entry, idempotency and offline queueing.
 
-If either eligibility threshold is not met, **no leaderboard result is emitted**. Final confirmation still abandons the unfinished run, clears its resumable state through the shared lifecycle and returns to the normal intro/fresh state.
+If score or time is below threshold, no leaderboard result is emitted; final confirmation still terminates the unfinished run.
 
-Do not call the leaderboard API directly from a game or from a new pause implementation.
+Never call the leaderboard HTTP API directly from a game or pause implementation.
 
-## Interaction with `RWGSession`
+## Terminal suppression — CRITICAL
 
-A merely paused game remains in progress and must remain resumable. Pausing MUST NOT dispatch terminal completion or clear `rwg.session.v2:<game-id>`.
+A confirmed `TERMINA PARTITA` must never reappear as **“Vuoi continuare la partita precedente?”**.
 
-Only final confirmed `TERMINA PARTITA`, true terminal Game Over, successful completion or another documented terminal lifecycle may clear unfinished-run persistence.
+The historical failure mode was:
 
-The pause component may request an immediate session checkpoint when entering pause. It must use `RWGSession` rather than creating another storage namespace for gameplay snapshots.
+1. pause termination cleared the snapshot;
+2. the page started reloading;
+3. `beforeunload`/`pagehide` observed the engine still reporting `isInProgress() === true`;
+4. the lifecycle checkpoint wrote the just-deleted snapshot again;
+5. the next page load offered the terminated run for resume.
 
-The active-time bookkeeping owned by the shared pause service is not a replacement for the game's authoritative resumable snapshot.
+`RWGSession` therefore owns a **terminal suppression** state. When `rwg:game-ended`, `rwg:session-completed` or explicit `RWGSession.terminate()` marks a run terminal:
 
-## Interaction with shared Game Over
+- pending dirty saves are cancelled;
+- the resumable snapshot is deleted;
+- heartbeat writes stop;
+- `hidden`, `pagehide`, `beforeunload`, `freeze` and navigation checkpoints MUST NOT write that run again;
+- suppression remains active through reload/unload;
+- saving is enabled again only when a genuine new run begins (`rwg:game-session-start`, adapter registration for a fresh page, or explicit shared begin-run lifecycle).
 
-Pause is non-terminal. Shared Game Over must suppress/replace pause presentation when the run truly ends.
+Do not fix this bug in Star Swarm or any other game. The protection belongs in `rwg-session.js` and applies platform-wide.
 
-Do not route ordinary pause through `RWGGameOver.open()`. Conversely, do not use the pause menu as a substitute for terminal Game Over.
+## Interaction with RWGSession
 
-A user-confirmed pause termination is a deliberate abandon-run lifecycle whose optional leaderboard registration is handled by the pause service before cleanup.
+A normal pause remains resumable and must not clear `rwg.session.v2:<game-id>`.
 
-## Interaction with leaderboard Top 3
+Only final confirmed termination, real Game Over, successful completion or another documented terminal lifecycle clears unfinished-run persistence.
 
-The leaderboard client already owns the compact Top 3 shown during resume/pause. Agents must preserve compatibility between that surface and the shared pause overlay. Do not add a game-local ranking panel to the pause menu.
+Pause may request a checkpoint through `RWGSession`, but may not create another gameplay snapshot namespace.
 
-If pause markup/visibility semantics change, verify `rwg-leaderboard.js` pause-board detection in the same change.
+## Interaction with Game Over
+
+Ordinary pause is non-terminal and must not open shared Game Over. Real terminal Game Over suppresses the pause surface.
+
+A pause-menu termination is a deliberate abandon-run lifecycle. Its optional leaderboard registration completes first, then the session becomes terminal and cannot be autosaved again.
+
+## Interaction with orientation
+
+Orientation may pause the game through the same `#pauseBtn` contract and resume with the shared countdown. It must not create another pause UI or mark the run terminal.
 
 ## AI-agent decision rules
 
-When an AI coding agent receives a pause-related request, use this decision order:
+For any pause-related request:
 
-1. **Is the requested behavior useful across games?** Implement it in `rwg-pause-menu.js` / `.css` and update shared docs/tests.
-2. **Is it only a gameplay state transition?** Keep that tiny transition in the game runtime and let the shared pause UI call it.
-3. **Does it change abandonment/high-score eligibility?** Change the centralized policy, never individual game constants.
-4. **Does it require a new metric?** Prefer exposing/normalizing authoritative state to the shared component rather than forking UI.
-5. **Does it touch persistence?** Preserve `RWGSession`; do not introduce a second gameplay snapshot system.
-6. **Does it touch terminal results?** Preserve the existing leaderboard and Game Over contracts; do not create direct API submission.
-7. **Is a local overlay being considered because it is quicker?** Stop: that violates the architecture unless the surface is a genuinely game-specific non-pause intermission such as tutorial/level-clear.
+1. if behavior is useful across games, change `rwg-pause-menu.js/.css` or the relevant shared service;
+2. keep only the game's private pause-state transition in the game runtime;
+3. change abandonment thresholds centrally;
+4. use authoritative adapter metrics rather than local UI forks;
+5. preserve `RWGSession` instead of adding storage;
+6. preserve shared leaderboard and Game Over flows;
+7. if a local pause workaround seems easier, stop and fix the shared layer.
 
-Any intentional exception requires an explicit architecture decision documented in `AGENTS.md`, `docs/ARCHITECTURE.md` and this file, plus validator changes. A silent exception is a regression.
+Any intentional exception requires updates to `AGENTS.md`, architecture docs and validators in the same change.
 
-## Files agents should inspect before modifying pause
-
-At minimum:
-
-- `AGENTS.md`;
-- `docs/PAUSE-MENU.md`;
-- `docs/ARCHITECTURE.md`;
-- `docs/SESSION-PERSISTENCE.md`;
-- `docs/LEADERBOARDS.md`;
-- `rwg-pause-menu.js`;
-- `rwg-pause-menu.css`;
-- `game-hud.js`;
-- `orientation.js`;
-- `rwg-leaderboard.js`;
-- the target game's `RWGResumeAdapter` and pause handler;
-- `scripts/validate-shared-pause.mjs`.
-
-## Required validation after pause-related work
+## Required validation
 
 Run at minimum:
 
@@ -222,57 +190,37 @@ node scripts/validate-leaderboards.mjs
 node scripts/validate-contracts.mjs
 ```
 
-Also run the target game's specialized validator when one exists.
+Also run the affected game's validator.
 
 Browser smoke tests must cover:
 
-- pause/resume in every affected game;
-- no duplicate pause overlay;
-- correct shared score/time display;
-- timer stopping during pause/background;
-- orientation-triggered pause/resume;
-- cancellation at both termination confirmation stages;
-- an interruption before 45 seconds;
-- a run above 45 seconds but below score threshold;
-- an eligible interruption with saved nickname;
-- an eligible first-ever result requiring nickname entry;
-- offline leaderboard queueing;
-- reload/resume preserving accumulated active time;
-- confirmed termination removing the resumable run;
-- Solitario using only the shared implementation;
-- Game Over suppressing pause correctly;
-- compact pause Top 3 remaining functional.
+- pause/resume;
+- cancellation at both confirm stages;
+- <45 s interruption;
+- >=45 s but below score threshold;
+- eligible termination with saved nickname;
+- first-ever eligible termination requiring nickname;
+- offline queueing;
+- reload/resume preserving active time;
+- confirmed termination followed by reload with **no resume prompt**;
+- background/unload immediately after termination with no snapshot recreation;
+- Solitario using only the shared pause UI;
+- Game Over suppression;
+- pause Top 3 compatibility.
 
-## Definition of done for a new game
-
-A new game is not pause-complete until:
-
-- it has a working `#pauseBtn` with the shared observable state;
-- its `RWGResumeAdapter.isInProgress()` remains true while legitimately paused;
-- the shared pause menu opens/resumes it without local overlay code;
-- a centralized interrupted-run score threshold has been added;
-- 45-second active-time eligibility works across reload/resume;
-- double-confirm termination works;
-- eligible termination reaches the normal leaderboard pipeline;
-- ineligible termination does not submit;
-- session cleanup is correct;
-- shared validators and browser smoke tests pass.
-
-## Regression examples — forbidden
-
-Do not reintroduce any of these patterns:
+## Forbidden regressions
 
 ```js
-// FORBIDDEN: game-local pause overlay
+// game-local pause overlay
 const pauseOverlay = document.createElement('div');
 
-// FORBIDDEN: game-local interrupted-run threshold
+// game-local interrupted score threshold
 const MIN_ABORT_SCORE = 500;
 
-// FORBIDDEN: destructive one-step termination
+// one-step destructive termination
 endButton.onclick = () => localStorage.removeItem(sessionKey);
 
-// FORBIDDEN: direct leaderboard API from game pause
+// direct leaderboard API
 fetch('/api/leaderboards/v1/runs', { method: 'POST' });
 ```
 
