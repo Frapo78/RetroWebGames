@@ -180,6 +180,7 @@ Bubble Burst includes two original manga-chibi operators derived from the visual
 - a successful level clear first runs a dedicated 2-second Canvas celebration, then reveals the existing score/time/bonus summary: the arcade title zooms and rotates into place while both cached joy sprites perform seven-keyframe manga jumps;
 - each jump is interpolated on every `requestAnimationFrame` with squash/stretch and alternating airborne poses; the operator receives star eyes and the loader heart eyes as lightweight procedural overlays, without extra textures, DOM mutation or per-frame image allocation;
 - resumed sessions already saved on the level-clear screen open the summary directly and do not replay or block on the celebration.
+- a restored level-clear intermission keeps the HUD pause control in its neutral state, so the shared pause menu cannot cover the summary or trap the player on its termination action.
 
 ## Shared lifecycle
 

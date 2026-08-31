@@ -128,6 +128,7 @@ matches(game, /function\s+applyPendingBombReward\s*\(/, 'Deferred Bomb reward lo
 matches(game, /id\s*:\s*['"]bubble-burst['"]/, 'Bubble Burst resume adapter id missing');
 matches(game, /version\s*:\s*1/, 'Bubble Burst adapter version missing');
 matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v1-layouts200-pressure2-specials1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
+matches(game, /pauseBtn\.textContent\s*=\s*paused\s*&&\s*!levelClearActive\s*\?[^:]+:[^;]+;/, "Restored level-clear intermission must not masquerade as an ordinary pause");
 matches(game, /layoutSignature\s*:\s*boardMeta\?\.signature/, 'Snapshot must persist deterministic layout signature');
 matches(game, /s\.layoutSignature\s*!==\s*meta\.signature/, 'Restore validation must reject changed level layouts');
 matches(game, /serializeResumeState\s*\(/, 'Resume serializer missing');
