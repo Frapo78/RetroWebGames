@@ -29,15 +29,11 @@ A run that has been deliberately and finally terminated MUST NOT be offered for 
 
 ## Storage envelope
 
-Namespace:
-
-`rwg.session.v2:<game-id>`
+Namespace: `rwg.session.v2:<game-id>`.
 
 Envelope schema: `2`.
 
-Stored envelope includes platform schema, game id, adapter version, compatibility token, save timestamp/reason and the game-owned logical payload.
-
-Obsolete `rwg.session.v1:*` data is discarded when an adapter registers.
+Stored envelope includes platform schema, game id, adapter version, compatibility token, save timestamp/reason and the game-owned logical payload. Obsolete `rwg.session.v1:*` data is discarded when an adapter registers.
 
 ## Adapter contract
 
@@ -68,17 +64,9 @@ Semantics:
 
 ## Automatic invalidation
 
-A snapshot is restorable only if all match:
+A snapshot is restorable only if all match: platform envelope schema, game id, adapter version, adapter compatibility token and current semantic validation. Any mismatch removes the snapshot rather than attempting an unsafe repair.
 
-1. platform envelope schema;
-2. game id;
-3. adapter version;
-4. adapter compatibility token;
-5. current semantic validation.
-
-Any mismatch removes the snapshot rather than attempting an unsafe repair.
-
-Deterministic games should also validate content identity/signature. Existing examples include Bubble Burst layout identity, Star Swarm campaign/boss identity, Solitario canonical deck semantics and Prism Breaker level/boss identity.
+Deterministic games should validate content identity/signature too. Existing examples include Bubble Burst layout identity, Star Swarm campaign/boss identity, Solitario canonical deck semantics and Prism Breaker level/boss identity.
 
 ## Autosave scheduling
 
@@ -86,7 +74,7 @@ Shared defaults:
 
 - dirty-save debounce: 750 ms;
 - heartbeat: 5 seconds;
-- idle-friendly heartbeat via `requestIdleCallback` where available;
+- `requestIdleCallback` where available;
 - lifecycle checkpoints on hidden, `pagehide`, `beforeunload`, `freeze` and same-tab navigation;
 - hard snapshot limit: 384 KiB;
 - redundant payloads are not rewritten unnecessarily.
@@ -99,43 +87,39 @@ Persist gameplay authority only: board/map state, score/progression, positions/v
 
 A terminal run must be impossible to re-save after its snapshot was cleared.
 
-This matters because browser lifecycle callbacks can run **after** application code decides to terminate and reload. Without a guard, a sequence such as this is possible:
+Without a guard this race is possible:
 
 1. user confirms `TERMINA PARTITA`;
 2. shared code deletes `rwg.session.v2:<game-id>`;
 3. reload begins while the engine still reports `isInProgress() === true`;
-4. `beforeunload` or `pagehide` calls the session checkpoint;
+4. `beforeunload` or `pagehide` performs a checkpoint;
 5. the deleted run is written again;
-6. next load incorrectly asks to resume the terminated run.
+6. the next load incorrectly asks to resume the terminated run.
 
 `RWGSession` therefore maintains a central `terminalSuppressed` state.
 
 ### Entering terminal suppression
 
-Terminal suppression is activated by:
+Suppression is activated by:
 
 - `rwg:game-ended`;
 - `rwg:session-completed`;
-- explicit `RWGSession.terminate(reason)` when shared infrastructure needs to mark a run terminal.
+- explicit `RWGSession.terminate(reason)` from shared infrastructure.
 
-When activated, the service:
-
-- clears pending save timers;
-- clears the current snapshot;
-- rejects `markDirty()`/scheduled writes;
-- rejects heartbeat writes;
-- rejects forced lifecycle writes (`hidden`, `pagehide`, `beforeunload`, `freeze`, navigation);
-- keeps suppression active through page unload.
+When active, the service clears pending timers and current snapshot, rejects dirty saves, heartbeat writes and all forced lifecycle writes, and keeps suppression active through unload/reload.
 
 ### Leaving terminal suppression
 
-Saving is re-enabled only for a genuine new/current run, through shared begin-run lifecycle such as:
+Saving is re-enabled only when gameplay becomes live again through a shared lifecycle:
 
-- `rwg:game-session-start`;
+- `rwg:game-session-start` for a genuine new run;
 - fresh adapter registration on a new page instance;
-- explicit `RWGSession.beginRun()` used by shared infrastructure.
+- `RWGSession.beginRun()` when shared infrastructure intentionally starts a run;
+- `rwg:continue-game` when one-credit Continue revives a run after Game Over.
 
-Do not reset suppression merely because the UI returns to an intro overlay. A new playable run must actually begin.
+Credit Continue deliberately keeps the same competitive leaderboard run id, but resumable persistence must become active again for the revived gameplay.
+
+Do not reset suppression merely because an intro overlay is visible. A playable run must actually begin or continue.
 
 ### Ownership rule
 
@@ -149,13 +133,9 @@ The shared Pause Menu may checkpoint the run while paused. Only the final confir
 
 ## Completion semantics
 
-`rwg-session.js` clears and suppresses further saves for:
+`rwg-session.js` clears and suppresses further saves for terminal Game Over, deliberate shared pause termination and successful non-Game-Over completion.
 
-- terminal Game Over (`rwg:game-ended`);
-- deliberate shared pause termination;
-- successful non-Game-Over completion (`rwg:session-completed`).
-
-Starting a fresh run must create/enable a new session lifecycle rather than resurrect terminal state.
+Starting a fresh run creates a new session lifecycle. Credit Continue revives the existing run and re-arms autosave without creating a new leaderboard run.
 
 Do not confuse:
 
@@ -164,25 +144,13 @@ Do not confuse:
 
 ## Current coverage
 
-All current games must expose a valid adapter:
-
-- Star Swarm;
-- Bubble Burst;
-- Block Drop;
-- Maze Munch;
-- Neon Rally;
-- Neon Snake;
-- Neon Tilt;
-- Solitario;
-- Prism Breaker.
+All current games must expose a valid adapter: Star Swarm, Bubble Burst, Block Drop, Maze Munch, Neon Rally, Neon Snake, Neon Tilt, Solitario and Prism Breaker.
 
 ## Future-game enforcement
 
 `scripts/validate-session.mjs` discovers `games/*/index.html` dynamically and requires a conforming adapter loaded before `game-hud.js`. New games without session persistence fail repository validation automatically.
 
 ## Validation
-
-Run:
 
 ```bash
 node scripts/validate-session.mjs
@@ -200,4 +168,5 @@ Runtime smoke tests must include:
 6. successful completion → reload → no stale prompt;
 7. pause menu `TERMINA PARTITA` → immediate reload → no stale prompt;
 8. pause termination followed immediately by `beforeunload/pagehide` → no snapshot recreation;
-9. corrupt/version-mismatched snapshot → safe discard.
+9. Game Over → credit Continue → background/reload → continued run is resumable;
+10. corrupt/version-mismatched snapshot → safe discard.
