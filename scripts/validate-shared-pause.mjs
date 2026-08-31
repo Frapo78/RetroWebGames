@@ -40,7 +40,8 @@ must(session.includes('function terminate('), 'RWGSession must expose an explici
 must(session.includes('terminalSuppressed || !adapter || !isInProgress()'), 'RWGSession save path must reject terminal runs');
 must(session.includes('if (terminalSuppressed || promptOpen) return;'), 'RWGSession lifecycle save must not recreate a terminated snapshot');
 must(session.includes("window.addEventListener('rwg:game-ended'"), 'RWGSession must suppress saves on terminal game-ended lifecycle');
-must(session.includes("window.addEventListener('rwg:game-session-start', beginRun)"), 'RWGSession must re-enable saving only for a new run');
+must(session.includes("window.addEventListener('rwg:game-session-start', beginRun)"), 'RWGSession must re-enable saving for a genuine new run');
+must(session.includes("window.addEventListener('rwg:continue-game', beginRun)"), 'RWGSession must re-enable saving when a credit Continue revives a terminal run');
 must(session.includes('isTerminalSuppressed'), 'RWGSession must expose terminal suppression state for debugging/validation');
 
 must(css.includes('.rwg-pause-menu') && css.includes('.rwg-pause-confirm-actions'), 'Shared pause stylesheet incomplete');
@@ -48,7 +49,7 @@ must(orientation.includes('rwg-pause-menu.css') && orientation.includes('rwg-pau
 must(orientation.indexOf('rwg-pause-menu.js') < orientation.indexOf('const touchCapable'), 'Shared pause bootstrap must run before handheld-only orientation return');
 must(solitaire.includes('Legacy compatibility shim') && !solitaire.includes('solitaire-pause-panel'), 'Solitario must not retain a local pause UI implementation');
 must(docs.includes('45 seconds') && docs.includes('CONFERMA DEFINITIVA'), 'Pause source of truth must document eligibility and double confirmation');
-must(docs.includes('late lifecycle') || docs.includes('beforeunload') || docs.includes('terminal suppression'), 'Pause docs must explain why confirmed termination cannot be autosaved again');
+must(docs.includes('beforeunload') && docs.includes('terminal suppression'), 'Pause docs must explain why confirmed termination cannot be autosaved again');
 
 if (failures.length) {
   console.error(`\nShared pause validation FAILED (${failures.length})\n`);
@@ -62,3 +63,4 @@ console.log('  ✓ one centralized pause UI for all games');
 console.log('  ✓ 45-second active-play gate and game-specific score floors');
 console.log('  ✓ double-confirmed termination and leaderboard lifecycle');
 console.log('  ✓ terminal runs cannot be resurrected by late unload autosaves');
+console.log('  ✓ credit Continue safely re-enables resumable autosave');
