@@ -18,6 +18,8 @@ The nine covers are gameplay-derived artistic reinterpretations in a dynamic 198
 
 Each game also owns a separate transparent 1200×300 RGBA PNG wordmark under `assets/brand/games/<slug>-wordmark.png`. Keeping it separate prevents later cover crops, alternate campaign art or UI reuse from depending on text baked into a particular background.
 
+Each game additionally has a text-free 9:16 artwork master under `assets/covers/games/<slug>-portrait.jpg` (1080×1920), with a 540×960 responsive derivative for the home. These vertical assets share the same gameplay-derived poster direction as the landscape OG images and can be reused for Story-style mobile sharing; they do not replace the standards-oriented 1200×630 `og:image`.
+
 ## Game intro sharing controls
 
 Every game start screen automatically receives an icon-only social row at the bottom of its intro panel through the shared platform layer:

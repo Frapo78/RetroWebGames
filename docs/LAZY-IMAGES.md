@@ -30,6 +30,12 @@ Optional responsive fields are `data-rwg-srcset` and `data-rwg-sizes`. The loade
 
 The home loads the module directly. Other public sections can reuse it by including `/rwg-lazy-images.js` and following the same markup contract.
 
+## Home game covers
+
+Every game card uses a gameplay-derived 9:16 raster cover under `assets/covers/games/`. The 1080×1920 `*-portrait.jpg` file is the reusable vertical/social master; the paired 540×960 `*-portrait-540.jpg` file is the lightweight home candidate. Markup exposes both through `data-rwg-srcset`, while the card keeps the title in semantic HTML and treats the artwork as decorative.
+
+Do not restore the former procedural thumbnail CSS or load the 1080 px source unconditionally. New games must provide both portrait sizes and use the shared lazy loader.
+
 ## Validation
 
 ```bash
@@ -37,4 +43,4 @@ node scripts/validate-lazy-images.mjs
 node scripts/validate-contracts.mjs
 ```
 
-The specialized validator inventories every home `img` and rejects eager `src`, missing lazy/async hints or missing intrinsic dimensions.
+The specialized validator inventories every home `img` and rejects eager `src`, missing lazy/async hints or missing intrinsic dimensions. It also verifies all nine responsive cover pairs and their exact JPEG dimensions.
