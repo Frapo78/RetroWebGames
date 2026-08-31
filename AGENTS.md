@@ -144,6 +144,12 @@ window.RWGResumeAdapter = Object.freeze({
 
 `rwg-avatar.js` / `.css`, `/avatar/`, `docs/AVATAR.md` and `scripts/validate-avatar.mjs` are authoritative. Do not create game-local avatar renderers or remove migration compatibility.
 
+## 4C. Game social covers and wordmarks
+
+Every game must retain both `assets/social/games/<slug>.jpg` (1200×630 JPEG) and a separate `assets/brand/games/<slug>-wordmark.png` (1200×300 transparent PNG). Game HTML must expose the dedicated cover through static Open Graph, Twitter/X and JSON-LD metadata; social crawlers must never depend on JavaScript or fall back to the generic home cover.
+
+`scripts/seo-catalog.mjs`, `scripts/apply-seo.mjs`, `docs/SOCIAL-SHARING.md` and `scripts/validate-social-sharing.mjs` form the authoritative contract. Do not delete a standalone wordmark merely because the current game UI does not render it.
+
 ## 5. Game-specific sources of truth
 
 Before modifying a game, read its dedicated documentation when present. Important current contracts include:

@@ -6,6 +6,26 @@ export const SITE = Object.freeze({
   language: 'it-IT'
 });
 
+const SOCIAL_ALTS = Object.freeze({
+  'star-swarm': 'Star Swarm — nave arcade contro uno sciame alieno al neon',
+  'bubble-burst': 'Bubble Burst — bubble shooter arcade con crew chibi e bolle al neon',
+  'block-drop': 'Block Drop — blocchi luminosi in caduta su una griglia arcade',
+  'maze-munch': 'Maze Munch — corsa arcade in un labirinto al neon',
+  'neon-rally': 'Neon Rally — sfida arcade tra paddle ed energia al neon',
+  'neon-snake': 'Neon Snake — cyber-serpente luminoso su una griglia arcade',
+  'neon-tilt': 'Neon Tilt — sfera cromata in un labirinto inclinato al neon',
+  solitaire: 'Solitario — carte francesi classiche su un tavolo verde arcade',
+  'prism-breaker': 'Prism Breaker — palla e paddle tra prismi e mattoni al neon'
+});
+
+export function getGameSocial(game) {
+  return Object.freeze({
+    image: `${SITE.origin}/assets/social/games/${game.slug}.jpg`,
+    wordmark: `/assets/brand/games/${game.slug}-wordmark.png`,
+    alt: SOCIAL_ALTS[game.slug]
+  });
+}
+
 export const GAMES = Object.freeze([
   { slug: 'star-swarm', name: 'Star Swarm', title: 'Star Swarm: videogame space shooter gratis | RetroWebGames', description: 'Gioca gratis a Star Swarm, videogame space shooter con 100 livelli, 10 boss, armi, POWER e wingmen, direttamente nel browser.', genres: ['Space shooter', 'Arcade'] },
   { slug: 'bubble-burst', name: 'Bubble Burst', title: 'Bubble Burst: bubble shooter gratis | RetroWebGames', description: 'Gioca gratis a Bubble Burst, web game bubble shooter con rimbalzi, combo, bombe e livelli originali, ottimizzato per smartphone.', genres: ['Bubble shooter', 'Puzzle'] },

@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { GAMES, SITE } from './seo-catalog.mjs';
+import { GAMES, SITE, getGameSocial } from './seo-catalog.mjs';
 
 const root = process.cwd();
 const robots = 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
@@ -45,6 +45,17 @@ function commonMeta(html, title, description, pageRobots = robots) {
   html = ensureMeta(html, '  <meta property="og:locale" content="it_IT" />', /<meta\s+property=["']og:locale["']/i);
   return html;
 }
+function gameSocialMeta(html, social) {
+  for (const key of ['og:image', 'og:image:secure_url']) html = replaceMeta(html, 'property', key, social.image);
+  html = replaceMeta(html, 'property', 'og:image:width', '1200');
+  html = replaceMeta(html, 'property', 'og:image:height', '630');
+  html = replaceMeta(html, 'property', 'og:image:alt', social.alt);
+  html = replaceMeta(html, 'name', 'twitter:image', social.image);
+  html = replaceMeta(html, 'name', 'twitter:image:width', '1200');
+  html = replaceMeta(html, 'name', 'twitter:image:height', '630');
+  html = replaceMeta(html, 'name', 'twitter:image:alt', social.alt);
+  return html;
+}
 
 const homeTitle = 'Videogame gratis e retrogame online | RetroWebGames';
 const homeDescription = 'Gioca gratis online a videogame e retrogame originali: arcade, Snake, Solitario, puzzle, shooter e web game ottimizzati per smartphone.';
@@ -73,12 +84,13 @@ write('index.html', home);
 for (const game of GAMES) {
   const rel = 'games/' + game.slug + '/index.html';
   const url = SITE.origin + '/games/' + game.slug + '/';
-  let html = commonMeta(read(rel), game.title, game.description);
-  const videoGame = { '@type': 'VideoGame', '@id': url + '#game', name: game.name, url, description: game.description, image: SITE.image, genre: game.genres, keywords: ['videogame gratis', 'web game', 'retrogame', ...game.genres], gamePlatform: ['Web browser', 'Mobile web'], playMode: 'SinglePlayer', applicationCategory: 'Game', operatingSystem: 'Qualsiasi sistema con browser moderno', inLanguage: SITE.language, isAccessibleForFree: true, publisher: { '@id': SITE.origin + '/#organization' } };
+  const social = getGameSocial(game);
+  let html = gameSocialMeta(commonMeta(read(rel), game.title, game.description), social);
+  const videoGame = { '@type': 'VideoGame', '@id': url + '#game', name: game.name, url, description: game.description, image: social.image, genre: game.genres, keywords: ['videogame gratis', 'web game', 'retrogame', ...game.genres], gamePlatform: ['Web browser', 'Mobile web'], playMode: 'SinglePlayer', applicationCategory: 'Game', operatingSystem: 'Qualsiasi sistema con browser moderno', inLanguage: SITE.language, isAccessibleForFree: true, publisher: { '@id': SITE.origin + '/#organization' } };
   if (game.alternateName) videoGame.alternateName = game.alternateName;
   html = upsertHead(html, 'rwg-seo-graph', graphMarkup([
     organizationNode(), websiteNode(),
-    { '@type': 'WebPage', '@id': url + '#webpage', url, name: game.title, description: game.description, isPartOf: { '@id': SITE.origin + '/#website' }, mainEntity: { '@id': url + '#game' }, inLanguage: SITE.language },
+    { '@type': 'WebPage', '@id': url + '#webpage', url, name: game.title, description: game.description, isPartOf: { '@id': SITE.origin + '/#website' }, mainEntity: { '@id': url + '#game' }, inLanguage: SITE.language, primaryImageOfPage: { '@type': 'ImageObject', url: social.image, width: 1200, height: 630 } },
     videoGame,
     { '@type': 'BreadcrumbList', '@id': url + '#breadcrumb', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'RetroWebGames', item: SITE.origin + '/' }, { '@type': 'ListItem', position: 2, name: game.name, item: url }] }
   ]));

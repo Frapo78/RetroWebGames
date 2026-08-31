@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { GAMES, getGameSocial } from './seo-catalog.mjs';
 
 const root=process.cwd();
 const origin='https://www.retrowebgames.it';
@@ -16,6 +17,23 @@ const standalonePages=fs.readdirSync(root,{withFileTypes:true})
 const pages=['index.html',...standalonePages,...gamePages];
 const attr=(html,key,type='property')=>html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']\\s+content=["\\\']([^"\\\']+)["\\\'][^>]*>','i'))?.[1]||'';
 const count=(html,key,type='property')=>(html.match(new RegExp('<meta\\s+'+type+'=["\\\']'+key+'["\\\']','gi'))||[]).length;
+const jpegSize=buffer=>{
+  if(buffer.readUInt16BE(0)!==0xffd8)return null;
+  let offset=2;
+  while(offset+9<buffer.length){
+    if(buffer[offset]!==0xff){offset++;continue;}
+    const marker=buffer[offset+1];
+    if(marker===0xc0||marker===0xc1||marker===0xc2)return {width:buffer.readUInt16BE(offset+7),height:buffer.readUInt16BE(offset+5)};
+    if(marker===0xd8||marker===0xd9){offset+=2;continue;}
+    const length=buffer.readUInt16BE(offset+2);
+    if(length<2)break;
+    offset+=2+length;
+  }
+  return null;
+};
+const pngInfo=buffer=>buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))?{
+  width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20),colorType:buffer[25]
+}:null;
 
 for(const rel of pages){
   const html=read(rel);
@@ -44,6 +62,31 @@ for(const rel of pages){
 }
 const home=read('index.html');
 must(attr(home,'og:image')===defaultImage,'Home must retain the global RetroWebGames social cover');
+
+must(gamePages.length===GAMES.length,'SEO catalog and discovered game page counts must match');
+for(const game of GAMES){
+  const rel='games/'+game.slug+'/index.html';
+  const html=read(rel);
+  const social=getGameSocial(game);
+  const coverRel='assets/social/games/'+game.slug+'.jpg';
+  const wordmarkRel='assets/brand/games/'+game.slug+'-wordmark.png';
+  must(attr(html,'og:image')===social.image,rel+': must use its dedicated social cover');
+  must(attr(html,'og:image:secure_url')===social.image,rel+': secure social cover mismatch');
+  must(attr(html,'twitter:image','name')===social.image,rel+': Twitter must use the dedicated social cover');
+  must(attr(html,'og:image:alt')===social.alt&&attr(html,'twitter:image:alt','name')===social.alt,rel+': game-specific social alt mismatch');
+  must(attr(html,'og:image:width')==='1200'&&attr(html,'og:image:height')==='630',rel+': dedicated social cover metadata must be 1200x630');
+  must(fs.existsSync(path.join(root,coverRel)),rel+': dedicated social cover missing');
+  must(fs.existsSync(path.join(root,wordmarkRel)),rel+': separate raster wordmark missing');
+  if(fs.existsSync(path.join(root,coverRel))){
+    const size=jpegSize(fs.readFileSync(path.join(root,coverRel)));
+    must(size?.width===1200&&size?.height===630,coverRel+': JPEG must be exactly 1200x630');
+  }
+  if(fs.existsSync(path.join(root,wordmarkRel))){
+    const info=pngInfo(fs.readFileSync(path.join(root,wordmarkRel)));
+    must(info?.width===1200&&info?.height===300,wordmarkRel+': PNG wordmark must be exactly 1200x300');
+    must(info?.colorType===4||info?.colorType===6,wordmarkRel+': PNG wordmark must retain an alpha channel');
+  }
+}
 
 // Brand wordmark contract: dedicated transparent cover-derived image, never a CSS crop.
 const brand=read('brand.css');
@@ -77,4 +120,5 @@ console.log('  ✓ '+pages.length+' pages expose static Open Graph + Twitter lar
 console.log('  ✓ every referenced social image exists under assets/social/');
 console.log('  ✓ home wordmark uses a transparent cover-derived asset with contain rendering');
 console.log('  ✓ '+gamePages.length+' game intros inherit icon-only WhatsApp/Facebook/X/Telegram/LinkedIn sharing');
-console.log('  ✓ home uses the global fallback; game pages may later use dedicated covers');
+console.log('  ✓ home uses the global fallback; all '+GAMES.length+' game pages use dedicated 1200x630 covers');
+console.log('  ✓ every game owns a separate transparent 1200x300 raster wordmark');
