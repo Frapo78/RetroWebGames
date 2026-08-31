@@ -18,12 +18,14 @@ The wording must not claim zero disk usage. The app is lightweight, but the brow
 `manifest.webmanifest` remains the source of app identity, theme and icons. `pwa-install.js` registers `sw.js` at root scope. The service worker:
 
 1. precaches the small home shell;
-2. uses the network first for same-origin GET requests;
+2. uses the network first with HTTP-cache revalidation for same-origin GET requests;
 3. refreshes cached successful responses in the background of that request;
 4. uses cached content only when the network fails;
 5. falls back to the cached home page for offline navigation.
 
 This network-first strategy avoids serving stale online deploys while providing a useful offline fallback.
+
+Game pages additionally carry a shared release query on their HUD/orientation bootstraps. The bootstraps propagate it to dynamic dependencies, preventing a browser from combining an updated page with stale control CSS or scripts. Any shared UI release must bump that query consistently across all game pages; `scripts/validate-shared-controls.mjs` enforces the contract.
 
 ## UI contracts
 

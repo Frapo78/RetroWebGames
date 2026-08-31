@@ -2,13 +2,14 @@
   'use strict';
   if(!document.body||!document.body.hasAttribute('data-rwg-game'))return;
   const selfSrc=document.currentScript?.src;
-  if(selfSrc){const base=new URL('.',selfSrc);
-    if(!window.RWGCommonDock&&!document.querySelector('script[data-rwg-common-dock-script]')){const s=document.createElement('script');s.src=new URL('rwg-common-dock.js',base).href;s.dataset.rwgCommonDockScript='true';document.body.appendChild(s);}
-    if(!document.querySelector('link[data-rwg-controls-style]')){const controlsStyle=document.createElement('link');controlsStyle.rel='stylesheet';controlsStyle.href=new URL('rwg-controls.css',base).href;controlsStyle.dataset.rwgControlsStyle='true';controlsStyle.addEventListener('load',()=>requestAnimationFrame(()=>window.dispatchEvent(new Event('resize'))),{once:true});document.head.appendChild(controlsStyle);}
-    if(!document.querySelector('link[data-rwg-vjoy-style]')){const s=document.createElement('link');s.rel='stylesheet';s.href=new URL('rwg-virtual-joystick.css',base).href;s.dataset.rwgVjoyStyle='true';document.head.appendChild(s);}
-    if(!window.RWGVirtualJoystick&&!document.querySelector('script[data-rwg-vjoy-script]')){const s=document.createElement('script');s.src=new URL('rwg-virtual-joystick.js',base).href;s.dataset.rwgVjoyScript='true';document.body.appendChild(s);}
-    if(!document.querySelector('link[data-rwg-pause-style]')){const s=document.createElement('link');s.rel='stylesheet';s.href=new URL('rwg-pause-menu.css',base).href;s.dataset.rwgPauseStyle='true';document.head.appendChild(s);}
-    if(!window.RWGPauseMenu&&!document.querySelector('script[data-rwg-pause-script]')){const s=document.createElement('script');s.src=new URL('rwg-pause-menu.js',base).href;s.dataset.rwgPauseScript='true';document.body.appendChild(s);}
+  if(selfSrc){const source=new URL(selfSrc),base=new URL('.',source),version=source.searchParams.get('v')||'';
+    const asset=name=>{const url=new URL(name,base);if(version)url.searchParams.set('v',version);return url.href;};
+    if(!window.RWGCommonDock&&!document.querySelector('script[data-rwg-common-dock-script]')){const s=document.createElement('script');s.src=asset('rwg-common-dock.js');s.dataset.rwgCommonDockScript='true';document.body.appendChild(s);}
+    if(!document.querySelector('link[data-rwg-controls-style]')){const controlsStyle=document.createElement('link');controlsStyle.rel='stylesheet';controlsStyle.href=asset('rwg-controls.css');controlsStyle.dataset.rwgControlsStyle='true';controlsStyle.addEventListener('load',()=>requestAnimationFrame(()=>window.dispatchEvent(new Event('resize'))),{once:true});document.head.appendChild(controlsStyle);}
+    if(!document.querySelector('link[data-rwg-vjoy-style]')){const s=document.createElement('link');s.rel='stylesheet';s.href=asset('rwg-virtual-joystick.css');s.dataset.rwgVjoyStyle='true';document.head.appendChild(s);}
+    if(!window.RWGVirtualJoystick&&!document.querySelector('script[data-rwg-vjoy-script]')){const s=document.createElement('script');s.src=asset('rwg-virtual-joystick.js');s.dataset.rwgVjoyScript='true';document.body.appendChild(s);}
+    if(!document.querySelector('link[data-rwg-pause-style]')){const s=document.createElement('link');s.rel='stylesheet';s.href=asset('rwg-pause-menu.css');s.dataset.rwgPauseStyle='true';document.head.appendChild(s);}
+    if(!window.RWGPauseMenu&&!document.querySelector('script[data-rwg-pause-script]')){const s=document.createElement('script');s.src=asset('rwg-pause-menu.js');s.dataset.rwgPauseScript='true';document.body.appendChild(s);}
   }
   const touchCapable=navigator.maxTouchPoints>0||window.matchMedia('(pointer: coarse)').matches,mobileLike=window.matchMedia('(pointer: coarse)').matches||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent),shortestSide=Math.min(screen.width||innerWidth,screen.height||innerHeight),handheld=touchCapable&&mobileLike&&shortestSide<=900;if(!handheld)return;
   const pauseBtn=document.getElementById('pauseBtn'),gameOverlay=document.getElementById('overlay');let orientationPaused=false,landscapeShown=false,countdownRun=0;

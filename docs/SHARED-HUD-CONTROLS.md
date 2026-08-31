@@ -106,12 +106,20 @@ The shared dock must remain visible inside the visual viewport on small iPhone/S
 Current shared adaptations include:
 
 - Block Drop stage/joystick raised above dock reserve;
-- Maze Munch and Neon Snake joystick host separated from dock;
+- Maze Munch joystick host separated from the dock;
+- Neon Snake reserves three non-overlapping vertical regions: playfield, joystick/Turbo strip and common dock; its gesture hint stays between playfield and controls;
+- Neon Rally shortens the real canvas/physics viewport above the common dock, so the player paddle can never render behind Android navigation or shared controls;
 - Neon Tilt analog host/canvas height reserves dock space;
 - Solitario local row contains only Undo/Hint/New Deal while common actions stay in the dock;
 - Prism Breaker simulation viewport reserves both KPI and common-dock space.
 
 Any future common-control exception belongs in `rwg-controls.css`, scoped by `data-rwg-game-name`. Do not solve it by editing the same common button differently in multiple game stylesheets.
+
+## Asset release versions and stale-cache prevention
+
+Every game page loads `game-hud.js` and `orientation.js` with the same explicit `?v=<release>` query. Those two bootstraps propagate the query to every shared CSS/JS asset they create dynamically. When any shared HUD/control asset changes, bump that release value in every game page in the same commit. Directly changed game-local CSS/JS must receive the same release query on that page.
+
+The service worker is network-first with forced HTTP revalidation while online, rotates its named shell cache when the caching contract changes and uses cached responses only as an offline fallback. Do not rely on a service-worker cache-name bump alone: query revisioning prevents a browser HTTP cache from assembling mixed old/new UI generations during rollout.
 
 ## AI-agent rules
 
@@ -147,6 +155,8 @@ Verify:
 - no duplicate common toolbar;
 - Share tray opens upward and is reachable;
 - joystick/game-specific actions do not collide with the dock;
+- Neon Snake playfield, gesture hint, joystick/Turbo and dock have disjoint rectangles;
+- Neon Rally arena and player paddle end above the common dock on Android-sized viewports;
 - KPI labels remain readable;
 - Prism Breaker ball/brick/paddle coordinates never pass under KPI cards;
 - Solitario game-specific controls remain usable above the dock;

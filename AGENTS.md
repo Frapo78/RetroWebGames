@@ -156,6 +156,12 @@ Every game also owns `assets/covers/games/<slug>-portrait.jpg` (1080×1920) and 
 
 `scripts/seo-catalog.mjs`, `scripts/apply-seo.mjs`, `docs/SOCIAL-SHARING.md`, `docs/LAZY-IMAGES.md`, `scripts/validate-social-sharing.mjs` and `scripts/validate-lazy-images.mjs` form the authoritative contract. Do not replace the home wordmark heading with plain text or make its accessible name empty.
 
+## 4D. Responsive dock geometry and asset revisions — REGRESSION-CRITICAL
+
+The shared bottom dock is an occupied viewport region, not a decorative overlay. Simulation canvases, gesture hints, virtual joysticks and game-specific controls must end above `--rwg-common-dock-reserve`, including Android browser/navigation insets. In particular, Neon Snake must keep playfield, hint, joystick/Turbo and dock disjoint; Neon Rally must size its actual canvas above the dock so the player paddle remains visible. Never hide a collision with z-index or paint gameplay underneath the dock.
+
+Game pages load `game-hud.js` and `orientation.js` with one matching release query. Those bootstraps propagate that query to dynamic shared dependencies. When shared UI changes, bump the query across every game page; version any directly changed local CSS/JS too. Do not rely on the service worker cache name alone, because the browser HTTP cache can otherwise produce a mixed-generation UI. `docs/SHARED-HUD-CONTROLS.md` and `scripts/validate-shared-controls.mjs` are authoritative.
+
 ## 5. Game-specific sources of truth
 
 Before modifying a game, read its dedicated documentation when present. Important current contracts include:

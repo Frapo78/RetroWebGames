@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rwg-shell-v2';
+const CACHE_NAME = 'rwg-shell-v3';
 const CORE_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -36,7 +36,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(request)
+    fetch(new Request(request, { cache: 'no-cache' }))
       .then(response => {
         if (response.ok) {
           const copy = response.clone();

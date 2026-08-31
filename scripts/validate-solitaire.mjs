@@ -194,7 +194,7 @@ must(session.includes('payloadJson === lastPayloadJson && !FORCE_WRITE_REASONS.h
 must(session.indexOf('data-rwg-resume-no>No</button>') < session.indexOf('data-rwg-resume-yes>Sì</button>'), 'Resume modal must keep No left and Sì right');
 must(sessionCss.includes('.rwg-resume-no') && sessionCss.includes('#c92f43'), 'Resume No button must remain red');
 must(sessionCss.includes('.rwg-resume-yes') && sessionCss.includes('#35cf79'), 'Resume Sì button must remain green');
-must(hud.includes('loadSession') && hud.includes("new URL('rwg-session.js', base)"), 'Shared HUD must bootstrap sessions for every game');
+must(hud.includes('loadSession') && hud.includes("asset('rwg-session.js')"), 'Shared HUD must bootstrap version-propagated sessions for every game');
 
 if (failures.length) {
   console.error(`\nSolitaire validation FAILED (${failures.length})\n`);

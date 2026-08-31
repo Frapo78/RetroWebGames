@@ -5,12 +5,19 @@
 
   const selfSrc = document.currentScript?.src;
   if (selfSrc) {
-    const base = new URL('.', selfSrc);
+    const source = new URL(selfSrc);
+    const base = new URL('.', source);
+    const version = source.searchParams.get('v') || '';
+    const asset = name => {
+      const url = new URL(name, base);
+      if (version) url.searchParams.set('v', version);
+      return url.href;
+    };
 
     const loadAnalytics = () => {
       if (window.RWGAnalytics || document.querySelector('script[data-rwg-analytics-script], script[src$="/rwg-analytics.js"]')) return;
       const script = document.createElement('script');
-      script.src = new URL('rwg-analytics.js', base).href;
+      script.src = asset('rwg-analytics.js');
       script.dataset.rwgAnalyticsScript = 'true';
       document.head.appendChild(script);
     };
@@ -19,13 +26,13 @@
       if (!document.querySelector('link[data-rwg-session-style]')) {
         const style = document.createElement('link');
         style.rel = 'stylesheet';
-        style.href = new URL('rwg-session.css', base).href;
+        style.href = asset('rwg-session.css');
         style.dataset.rwgSessionStyle = 'true';
         document.head.appendChild(style);
       }
       if (!window.RWGSession && !document.querySelector('script[data-rwg-session-script]')) {
         const script = document.createElement('script');
-        script.src = new URL('rwg-session.js', base).href;
+        script.src = asset('rwg-session.js');
         script.dataset.rwgSessionScript = 'true';
         document.body.appendChild(script);
       }
@@ -35,13 +42,13 @@
       if (!document.querySelector('link[data-rwg-intro-share-style]')) {
         const style = document.createElement('link');
         style.rel = 'stylesheet';
-        style.href = new URL('rwg-intro-share.css', base).href;
+        style.href = asset('rwg-intro-share.css');
         style.dataset.rwgIntroShareStyle = 'true';
         document.head.appendChild(style);
       }
       if (!document.querySelector('script[data-rwg-intro-share-script]')) {
         const script = document.createElement('script');
-        script.src = new URL('rwg-intro-share.js', base).href;
+        script.src = asset('rwg-intro-share.js');
         script.dataset.rwgIntroShareScript = 'true';
         document.body.appendChild(script);
       }
@@ -51,19 +58,19 @@
       if (!document.querySelector('link[data-rwg-leaderboard-style]')) {
         const style = document.createElement('link');
         style.rel = 'stylesheet';
-        style.href = new URL('rwg-leaderboard.css', base).href;
+        style.href = asset('rwg-leaderboard.css');
         style.dataset.rwgLeaderboardStyle = 'true';
         document.head.appendChild(style);
       }
       if (!window.RWGLeaderboard && !document.querySelector('script[data-rwg-leaderboard-script]')) {
         const script = document.createElement('script');
-        script.src = new URL('rwg-leaderboard.js', base).href;
+        script.src = asset('rwg-leaderboard.js');
         script.dataset.rwgLeaderboardScript = 'true';
         document.body.appendChild(script);
       }
       if (!window.RWGLeaderboardInfinite && !document.querySelector('script[data-rwg-leaderboard-infinite-script]')) {
         const script = document.createElement('script');
-        script.src = new URL('rwg-leaderboard-infinite.js', base).href;
+        script.src = asset('rwg-leaderboard-infinite.js');
         script.dataset.rwgLeaderboardInfiniteScript = 'true';
         document.body.appendChild(script);
       }
@@ -73,13 +80,13 @@
       if (!document.querySelector('link[data-rwg-game-over-style]')) {
         const style = document.createElement('link');
         style.rel = 'stylesheet';
-        style.href = new URL('game-over.css', base).href;
+        style.href = asset('game-over.css');
         style.dataset.rwgGameOverStyle = 'true';
         document.head.appendChild(style);
       }
       if (!window.RWGGameOver && !document.querySelector('script[data-rwg-game-over-script]')) {
         const script = document.createElement('script');
-        script.src = new URL('game-over.js', base).href;
+        script.src = asset('game-over.js');
         script.dataset.rwgGameOverScript = 'true';
         document.body.appendChild(script);
       }
@@ -88,7 +95,7 @@
     const loadAvatar = () => {
       if (window.RWGAvatar || document.querySelector('script[data-rwg-avatar-script], script[src$="/rwg-avatar.js"], script[src="rwg-avatar.js"]')) return;
       const script = document.createElement('script');
-      script.src = new URL('rwg-avatar.js', base).href;
+      script.src = asset('rwg-avatar.js');
       script.dataset.rwgAvatarScript = 'true';
       document.body.appendChild(script);
     };
@@ -115,7 +122,7 @@
       }
 
       const profileScript = document.createElement('script');
-      profileScript.src = new URL('rwg-profile.js', base).href;
+      profileScript.src = asset('rwg-profile.js');
       profileScript.dataset.rwgProfileScript = 'true';
       profileScript.addEventListener('load', loadExtras, { once: true });
       profileScript.addEventListener('error', loadExtras, { once: true });
