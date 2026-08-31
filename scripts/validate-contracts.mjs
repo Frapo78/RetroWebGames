@@ -75,7 +75,7 @@ must(sharedHudJs.includes('rwg-session.js') && sharedHudJs.includes('rwg-session
 
 must(!fs.existsSync(path.join(root, 'game.js')), 'Obsolete root game.js must remain deleted; Star Swarm has one authoritative engine only');
 const starHtml = read('games/star-swarm/index.html');
-must(starHtml.includes('<script src="engine.js"></script>'), 'Star Swarm must load games/star-swarm/engine.js');
+must(/<script src="engine\.js(?:\?v=[^"]+)?"><\/script>/.test(starHtml), "Star Swarm must load games/star-swarm/engine.js (optionally cache-versioned)");
 must(!starHtml.includes('<script src="../../game.js"></script>'), 'Star Swarm regression: root game.js must not be loaded');
 must(starHtml.indexOf('engine.js') < starHtml.indexOf('../../game-hud.js'), 'Star Swarm engine must load before game-hud.js');
 

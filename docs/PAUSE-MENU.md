@@ -11,6 +11,8 @@ Shared pause owns its DOM/CSS, score/time summary, active-play timing, RIPRENDI,
 Every game preserves `<body data-rwg-game="true" data-rwg-game-name="…">`, `#pauseBtn`, a complete `RWGResumeAdapter` before `game-hud.js`, and shared bootstrap. `isInProgress()` remains true during legitimate pause.
 
 ## Ordinary pause
+The local intro `#overlay` is reserved for intro and terminal states. Ordinary pause MUST NOT make it visible: that modal state hides the global dock and can make Resume unreachable on touch devices.
+
 The shared surface appears only while paused, the adapter reports unfinished progress and Game Over is closed. It is intentionally a non-modal accessibility region because the global dock remains usable outside the pause card.
 
 Home/Games, Share, Audio/Mute, Pause/Resume, Credits and Avatar remain visible and interactive above the pause veil. Movement and game-specific mechanic controls may remain unavailable. Intro, saved-session resume, terminal Game Over, completed/win screens and destructive finalization may hide/block the dock.

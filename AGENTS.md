@@ -64,6 +64,7 @@ When a requested pause feature is useful across games, implement it in `rwg-paus
 Forbidden regressions include:
 
 - game-local pause modal/overlay/CSS;
+- reusing the local intro `#overlay` as ordinary pause UI, which hides the shared dock on mobile;
 - one-click destructive termination;
 - native `window.confirm()` as a replacement for the shared double-confirm flow;
 - game-local active-time counters for interruption eligibility;
