@@ -24,6 +24,7 @@ const tilt = read('games/neon-tilt/game.js');
 const maze = read('games/maze-munch/index.html');
 const snake = read('games/neon-snake/index.html');
 const blocks = read('games/block-drop/index.html');
+const prismCss = read('games/prism-breaker/style.css');
 
 for (const marker of ['window.RWGVirtualJoystick','rwg:joystick-input','deadZone','setPointerCapture','lostpointercapture','allowed']) {
   must(joystick.includes(marker), `Shared joystick missing contract marker: ${marker}`);
@@ -36,10 +37,22 @@ must(joystick.includes("document.querySelectorAll('#controls [data-action]')"), 
 
 must(joystickCss.includes('.rwg-vjoy-legacy-direction') && joystickCss.includes('clip-path: inset(50%)'), 'Legacy direction controls must be visually replaced, not duplicated');
 must(joystickCss.includes('.rwg-vjoy-host > .dpad') && joystickCss.includes('display: none !important'), 'Legacy Neon Snake D-pad container must not consume layout space');
-must(controlsCss.includes('body[data-rwg-game-name="Solitario"] #gameControls'), 'Solitario common command row adaptation missing');
+
+for (const marker of ['--rwg-common-dock-bottom','--rwg-common-dock-reserve','body[data-rwg-game]::after','.rwg-credit-badge-inline','.rwg-avatar-link-inline']) {
+  must(controlsCss.includes(marker), `Shared common-control dock missing marker: ${marker}`);
+}
+must(controlsCss.includes('left: max(10px, calc(50% - 310px))'), 'Home/Share must anchor to the shared dock left edge');
+must(controlsCss.includes('left: calc(50% - 47px)'), 'Audio must occupy the shared dock center-left slot');
+must(controlsCss.includes('left: calc(50% + 5px)'), 'Pause must occupy the shared dock center-right slot');
+must(controlsCss.includes('bottom: calc(100% + 8px)'), 'Share tray must open upward from the bottom dock');
+must(controlsCss.includes('body[data-rwg-game-name="Solitario"] #gameControls'), 'Solitario game-specific command-row adaptation missing');
 must(controlsCss.includes('body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host'), 'Block Drop joystick/action spacing adaptation missing');
 must(controlsCss.includes('body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host'), 'Neon Snake joystick/Turbo adaptation missing');
-must(controlsCss.includes('body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap'), 'Neon Tilt canvas must reserve space for the shared analog joystick');
+must(controlsCss.includes('body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap'), 'Neon Tilt canvas must reserve space for the shared analog joystick and dock');
+
+must(prismCss.includes('top:calc(env(safe-area-inset-top) + 88px)'), 'Prism Breaker playfield must begin below KPI/boss HUD reserve');
+must(prismCss.includes('bottom:calc(env(safe-area-inset-bottom) + 62px)'), 'Prism Breaker playfield must end above the shared common dock');
+must(prismCss.includes('The physics canvas owns only the true playfield'), 'Prism Breaker HUD/playfield separation rationale missing');
 
 for (const marker of ['rwg-controls.css','rwg-virtual-joystick.css','rwg-virtual-joystick.js']) {
   must(orientation.includes(marker), `Shared controls bootstrap missing from mandatory orientation layer: ${marker}`);
@@ -52,8 +65,9 @@ must(maze.includes('data-dir="up"') && maze.includes('data-dir="left"') && maze.
 must(snake.includes('class="dpad"') && snake.includes('id="boostBtn"'), 'Neon Snake must retain legacy handler targets plus separate Turbo action');
 for (const action of ['left','right','down','rotate','drop']) must(blocks.includes(`data-action="${action}"`), `Block Drop adapter target missing: ${action}`);
 
-must(docs.includes('Metrics HUD') && docs.includes('System controls') && docs.includes('Virtual joystick'), 'Shared HUD/control source of truth is incomplete');
-must(docs.includes('Star Swarm, Bubble Burst, Neon Rally, Prism Breaker and Solitario'), 'Pointer-native games must remain explicitly outside automatic joystick mounting');
+must(docs.includes('Metrics HUD') && docs.includes('Shared common-control dock') && docs.includes('Virtual joystick'), 'Shared HUD/control source of truth is incomplete');
+must(docs.includes('Prism Breaker is the reference regression'), 'Shared HUD docs must explicitly forbid simulation under KPI overlays');
+must(docs.includes('Star Swarm, Bubble Burst, Neon Rally, Prism Breaker, Solitario'), 'Pointer-native games must remain explicitly outside automatic joystick mounting');
 
 if (failures.length) {
   console.error(`\nShared controls validation FAILED (${failures.length})\n`);
@@ -63,7 +77,8 @@ if (failures.length) {
 }
 
 console.log('Shared controls validation OK');
-console.log('  ✓ common HUD/system control styling is centralized');
-console.log('  ✓ Maze Munch, Neon Snake and Block Drop replace visible direction clusters with the shared joystick');
+console.log('  ✓ common Home/Share/Audio/Pause/Credits/Avatar dock is centralized');
+console.log('  ✓ game-specific actions remain outside the common dock');
+console.log('  ✓ Maze Munch, Neon Snake and Block Drop use the shared joystick for direction');
 console.log('  ✓ Neon Tilt consumes the shared full analog vector');
-console.log('  ✓ pointer-native games are not forced into joystick controls');
+console.log('  ✓ Prism Breaker simulation excludes KPI and common-dock regions');
