@@ -4,7 +4,7 @@
   z-index: 9400;
   display: grid;
   place-items: center;
-  padding: max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));
+  padding: max(18px,env(safe-area-inset-top)) 18px calc(max(18px,env(safe-area-inset-bottom)) + 68px);
   background: radial-gradient(circle at 50% 40%,rgba(7,22,19,.2),rgba(2,7,15,.86) 48%,rgba(1,4,10,.96));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -12,10 +12,23 @@
 .rwg-pause-menu[hidden] { display: none !important; }
 #solitairePauseOverlay { display: none !important; }
 
+/* During ordinary pause the global dock remains above the pause veil and fully interactive. */
+html.rwg-shared-pause-open body[data-rwg-game]::after { z-index: 9490; }
+html.rwg-shared-pause-open body[data-rwg-game] .rwg-game-tools,
+html.rwg-shared-pause-open body[data-rwg-game] #muteBtn,
+html.rwg-shared-pause-open body[data-rwg-game] #pauseBtn,
+html.rwg-shared-pause-open body[data-rwg-game] .rwg-credit-badge-inline,
+html.rwg-shared-pause-open body[data-rwg-game] .rwg-avatar-link-inline {
+  z-index: 9500 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
 .rwg-pause-card {
   position: relative;
   width: min(92vw,410px);
-  max-height: min(82dvh,620px);
+  max-height: min(74dvh,620px);
   overflow: auto;
   padding: 24px 22px 21px;
   border-top: 1px solid rgba(241,213,138,.3);
@@ -26,130 +39,31 @@
   box-shadow: 0 26px 80px rgba(0,0,0,.52),inset 0 1px rgba(255,255,255,.05);
   text-align: center;
 }
-.rwg-pause-card::before,.rwg-pause-card::after {
-  content:"";
-  position:absolute;
-  left:50%;
-  width:46%;
-  height:1px;
-  transform:translateX(-50%);
-  background:linear-gradient(90deg,transparent,rgba(101,231,255,.72),transparent);
-}
+.rwg-pause-card::before,.rwg-pause-card::after { content:"";position:absolute;left:50%;width:46%;height:1px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(101,231,255,.72),transparent); }
 .rwg-pause-card::before { top:0; }
-.rwg-pause-card::after {
-  bottom:0;
-  background:linear-gradient(90deg,transparent,rgba(241,213,138,.76),transparent);
-}
-.rwg-pause-kicker {
-  color:rgba(156,199,183,.78);
-  font:850 8px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.19em;
-}
-.rwg-pause-card h2 {
-  margin:8px 0 7px;
-  color:rgba(255,253,244,.94);
-  font:950 clamp(28px,8vw,44px)/.98 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.055em;
-  text-shadow:0 0 24px rgba(101,231,255,.15);
-}
-.rwg-pause-copy {
-  max-width:34ch;
-  margin:0 auto 14px;
-  color:#9eb6c7;
-  font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-}
-.rwg-pause-stats {
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:8px;
-  margin:0 auto 16px;
-}
-.rwg-pause-stats > div {
-  padding:9px 7px;
-  border:1px solid rgba(101,231,255,.13);
-  border-radius:12px;
-  background:rgba(101,231,255,.035);
-}
-.rwg-pause-stats span {
-  display:block;
-  color:#718ba0;
-  font:850 7px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.11em;
-}
-.rwg-pause-stats strong {
-  display:block;
-  margin-top:5px;
-  color:#fff4cf;
-  font:950 16px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-}
-.rwg-pause-actions {
-  display:grid;
-  grid-template-columns:1.2fr .9fr;
-  gap:9px;
-}
-.rwg-pause-actions button,.rwg-pause-confirm-actions button {
-  min-height:48px;
-  border:1px solid rgba(101,231,255,.24);
-  border-radius:14px;
-  color:#e9fbff;
-  background:linear-gradient(145deg,rgba(15,35,52,.95),rgba(5,15,29,.96));
-  font:900 9px/1.15 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.08em;
-  cursor:pointer;
-  touch-action:manipulation;
-}
-.rwg-pause-resume {
-  border-color:rgba(124,255,178,.35) !important;
-  color:#dffff0 !important;
-}
-.rwg-pause-end {
-  border-color:rgba(255,116,116,.25) !important;
-  color:#ffc6c6 !important;
-}
+.rwg-pause-card::after { bottom:0;background:linear-gradient(90deg,transparent,rgba(241,213,138,.76),transparent); }
+.rwg-pause-kicker { color:rgba(156,199,183,.78);font:850 8px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.19em; }
+.rwg-pause-card h2 { margin:8px 0 7px;color:rgba(255,253,244,.94);font:950 clamp(28px,8vw,44px)/.98 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.055em;text-shadow:0 0 24px rgba(101,231,255,.15); }
+.rwg-pause-copy { max-width:34ch;margin:0 auto 14px;color:#9eb6c7;font:700 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+.rwg-pause-stats { display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0 auto 16px; }
+.rwg-pause-stats > div { padding:9px 7px;border:1px solid rgba(101,231,255,.13);border-radius:12px;background:rgba(101,231,255,.035); }
+.rwg-pause-stats span { display:block;color:#718ba0;font:850 7px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.11em; }
+.rwg-pause-stats strong { display:block;margin-top:5px;color:#fff4cf;font:950 16px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+.rwg-pause-actions { display:grid;grid-template-columns:1.2fr .9fr;gap:9px; }
+.rwg-pause-actions button,.rwg-pause-confirm-actions button { min-height:48px;border:1px solid rgba(101,231,255,.24);border-radius:14px;color:#e9fbff;background:linear-gradient(145deg,rgba(15,35,52,.95),rgba(5,15,29,.96));font:900 9px/1.15 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.08em;cursor:pointer;touch-action:manipulation; }
+.rwg-pause-resume { border-color:rgba(124,255,178,.35) !important;color:#dffff0 !important; }
+.rwg-pause-end { border-color:rgba(255,116,116,.25) !important;color:#ffc6c6 !important; }
 .rwg-pause-actions button span { margin-left:4px; }
 .rwg-pause-confirm { padding-top:4px; }
-.rwg-pause-confirm p {
-  margin:0 0 13px;
-  color:#b9c8d5;
-  font:750 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-}
-.rwg-pause-confirm-actions {
-  display:grid;
-  grid-template-columns:1fr 1.15fr;
-  gap:9px;
-}
-.rwg-pause-confirm-actions .danger {
-  border-color:rgba(255,107,107,.38);
-  color:#ffe0e0;
-  background:linear-gradient(145deg,rgba(76,22,28,.94),rgba(31,8,13,.96));
-}
-.rwg-pause-confirm-actions .danger.strong {
-  border-color:rgba(255,96,96,.64);
-  box-shadow:0 0 20px rgba(255,80,80,.12);
-}
-.rwg-pause-finalizing {
-  padding:14px 8px;
-  color:#ffe66d !important;
-  letter-spacing:.12em;
-}
-.rwg-pause-menu button:focus-visible {
-  outline:2px solid #65e7ff;
-  outline-offset:3px;
-}
+.rwg-pause-confirm p { margin:0 0 13px;color:#b9c8d5;font:750 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+.rwg-pause-confirm-actions { display:grid;grid-template-columns:1fr 1.15fr;gap:9px; }
+.rwg-pause-confirm-actions .danger { border-color:rgba(255,107,107,.38);color:#ffe0e0;background:linear-gradient(145deg,rgba(76,22,28,.94),rgba(31,8,13,.96)); }
+.rwg-pause-confirm-actions .danger.strong { border-color:rgba(255,96,96,.64);box-shadow:0 0 20px rgba(255,80,80,.12); }
+.rwg-pause-finalizing { padding:14px 8px;color:#ffe66d !important;letter-spacing:.12em; }
+.rwg-pause-menu button:focus-visible { outline:2px solid #65e7ff;outline-offset:3px; }
 .rwg-pause-menu button:active { transform:scale(.97); }
-
 html.rwg-shared-pause-open body { overflow:hidden !important; }
 
-@media(max-width:360px) {
-  .rwg-pause-card { padding:20px 16px 17px; }
-  .rwg-pause-actions,.rwg-pause-confirm-actions { grid-template-columns:1fr; }
-}
-@media(max-height:620px) {
-  .rwg-pause-card { padding:17px 18px 15px; }
-  .rwg-pause-card h2 { font-size:28px; }
-  .rwg-pause-copy { margin-bottom:9px; }
-  .rwg-pause-stats { margin-bottom:10px; }
-}
-@media(prefers-reduced-motion:reduce) {
-  .rwg-pause-menu button { transition:none !important; }
-}
+@media(max-width:360px) { .rwg-pause-card { padding:20px 16px 17px; }.rwg-pause-actions,.rwg-pause-confirm-actions { grid-template-columns:1fr; } }
+@media(max-height:620px) { .rwg-pause-menu{padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + 62px)}.rwg-pause-card { max-height:68dvh;padding:17px 18px 15px; }.rwg-pause-card h2 { font-size:28px; }.rwg-pause-copy { margin-bottom:9px; }.rwg-pause-stats { margin-bottom:10px; } }
+@media(prefers-reduced-motion:reduce) { .rwg-pause-menu button { transition:none !important; } }
