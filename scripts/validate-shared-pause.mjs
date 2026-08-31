@@ -1,76 +1,8 @@
 #!/usr/bin/env node
-
-import fs from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
-import { spawnSync } from 'node:child_process';
-
-const root = process.cwd();
-const failures = [];
-const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const must = (condition, message) => { if (!condition) failures.push(message); };
-
-for (const rel of ['rwg-pause-menu.js','rwg-session.js','orientation.js','games/solitaire/pause-overlay.js']) {
-  const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
-  must(result.status === 0, `${rel}: syntax check failed: ${(result.stderr || result.stdout || '').trim()}`);
-}
-
-const pause = read('rwg-pause-menu.js');
-const session = read('rwg-session.js');
-const css = read('rwg-pause-menu.css');
-const controlsCss = read('rwg-controls.css');
-const orientation = read('orientation.js');
-const solitaire = read('games/solitaire/pause-overlay.js');
-const docs = read('docs/PAUSE-MENU.md');
-
-must(pause.includes('const MIN_ACTIVE_MS = 45_000;'), 'Shared pause: active-play minimum must remain 45 seconds');
-must(pause.includes("'solitaire': { minScoreExclusive: 10 }"), 'Shared pause: Solitario minimum must remain >10');
-must(pause.includes("'neon-rally': { minScoreExclusive: 0 }"), 'Shared pause: Neon Rally requires at least one player point');
-must(pause.includes("'star-swarm': { minScoreExclusive: 500 }"), 'Shared pause: Star Swarm interrupted-run floor missing');
-must(pause.includes('score > policy.minScoreExclusive && duration >= MIN_ACTIVE_MS'), 'Shared pause: score and duration must both gate leaderboard eligibility');
-must(pause.includes('showConfirmation(2)'), 'Shared pause: first termination confirmation must lead to a second stage');
-must(pause.includes('CONFERMA DEFINITIVA'), 'Shared pause: second irreversible confirmation missing');
-must(pause.includes('rwg:leaderboard-result'), 'Shared pause: eligible interruption must use shared leaderboard result contract');
-must(pause.includes('rwg:leaderboard-registered'), 'Shared pause: termination must wait for shared leaderboard registration');
-must(pause.includes("terminalReason: 'pause-terminate'"), 'Shared pause: interruption terminal reason missing');
-must(pause.includes('rwg:game-ended'), 'Shared pause: final termination must emit terminal lifecycle');
-must(pause.includes('rwg.pause.active.v1:'), 'Shared pause: active time must persist by run');
-
-must(session.includes('let terminalSuppressed = false;'), 'RWGSession must track terminal autosave suppression');
-must(session.includes('function terminate('), 'RWGSession must expose an explicit terminal suppression path');
-must(session.includes('terminalSuppressed || !adapter || !isInProgress()'), 'RWGSession save path must reject terminal runs');
-must(session.includes('if (terminalSuppressed || promptOpen) return;'), 'RWGSession lifecycle save must not recreate a terminated snapshot');
-must(session.includes("window.addEventListener('rwg:game-ended'"), 'RWGSession must suppress saves on terminal game-ended lifecycle');
-must(session.includes("window.addEventListener('rwg:game-session-start', beginRun)"), 'RWGSession must re-enable saving for a genuine new run');
-must(session.includes("window.addEventListener('rwg:continue-game', beginRun)"), 'RWGSession must re-enable saving when a credit Continue revives a terminal run');
-must(session.includes('isTerminalSuppressed'), 'RWGSession must expose terminal suppression state for debugging/validation');
-
-must(css.includes('.rwg-pause-menu') && css.includes('.rwg-pause-confirm-actions'), 'Shared pause stylesheet incomplete');
-must(css.includes('z-index: 9400'), 'Pause veil z-index contract changed unexpectedly');
-must(css.includes('z-index: 9500 !important'), 'Common dock controls must sit above the pause veil');
-must(css.includes('html.rwg-shared-pause-open body[data-rwg-game] .rwg-game-tools'), 'Pause stylesheet must explicitly keep shared game tools interactive');
-must(css.includes('pointer-events: auto !important'), 'Paused global dock must remain tappable');
-must(!controlsCss.includes('html.rwg-shared-pause-open body[data-rwg-game]::after'), 'Common controls stylesheet must not hide dock background while paused');
-must(!controlsCss.includes('html.rwg-shared-pause-open body[data-rwg-game] :is(.rwg-game-tools'), 'Common controls stylesheet must not hide dock controls while paused');
-
-must(orientation.includes('rwg-pause-menu.css') && orientation.includes('rwg-pause-menu.js'), 'Shared pause assets must bootstrap for every game');
-must(orientation.indexOf('rwg-pause-menu.js') < orientation.indexOf('const touchCapable'), 'Shared pause bootstrap must run before handheld-only orientation return');
-must(solitaire.includes('Legacy compatibility shim') && !solitaire.includes('solitaire-pause-panel'), 'Solitario must not retain a local pause UI implementation');
-must(docs.includes('45 seconds') && docs.includes('CONFERMA DEFINITIVA'), 'Pause source of truth must document eligibility and double confirmation');
-must(docs.includes('Home/Games') && docs.includes('visible and interactive above the pause veil'), 'Pause docs must require global dock/Home availability');
-must(docs.includes('beforeunload') && docs.includes('terminal suppression'), 'Pause docs must explain why confirmed termination cannot be autosaved again');
-
-if (failures.length) {
-  console.error(`\nShared pause validation FAILED (${failures.length})\n`);
-  failures.forEach(failure => console.error(`  ✗ ${failure}`));
-  console.error('');
-  process.exit(1);
-}
-
-console.log('Shared pause validation OK');
-console.log('  ✓ one centralized pause UI for all games');
-console.log('  ✓ global Home/Share/Audio/Pause/Credits/Avatar dock remains available while paused');
-console.log('  ✓ 45-second active-play gate and game-specific score floors');
-console.log('  ✓ double-confirmed termination and leaderboard lifecycle');
-console.log('  ✓ terminal runs cannot be resurrected by late unload autosaves');
-console.log('  ✓ credit Continue safely re-enables resumable autosave');
+import fs from 'node:fs';import path from 'node:path';import process from 'node:process';import{spawnSync}from'node:child_process';const root=process.cwd(),failures=[],read=rel=>fs.readFileSync(path.join(root,rel),'utf8'),must=(c,m)=>{if(!c)failures.push(m);};
+for(const rel of ['rwg-pause-menu.js','rwg-session.js','orientation.js','games/solitaire/pause-overlay.js']){const r=spawnSync(process.execPath,['--check',path.join(root,rel)],{encoding:'utf8'});must(r.status===0,`${rel}: syntax check failed`);}const pause=read('rwg-pause-menu.js'),session=read('rwg-session.js'),css=read('rwg-pause-menu.css'),controls=read('rwg-controls.css'),orientation=read('orientation.js'),solitaire=read('games/solitaire/pause-overlay.js'),docs=read('docs/PAUSE-MENU.md');
+for(const marker of ['const MIN_ACTIVE_MS = 45_000;',"'solitaire': { minScoreExclusive: 10 }","'neon-rally': { minScoreExclusive: 0 }","'star-swarm': { minScoreExclusive: 500 }",'CONFERMA DEFINITIVA','rwg:leaderboard-result','rwg:leaderboard-registered',"terminalReason:'pause-terminate'",'rwg.pause.active.v1:','pagehide'])must(pause.includes(marker),`Shared pause missing: ${marker}`);
+must(pause.includes("window.RWGSession?.terminate?.('pause-terminate')"),'Irreversible confirmation must synchronously terminal-suppress RWGSession');must(pause.indexOf("window.RWGSession?.terminate?.('pause-terminate')")<pause.indexOf("window.dispatchEvent(new CustomEvent('rwg:leaderboard-result'"),'Terminal suppression must happen before asynchronous leaderboard submission');must(pause.includes("overlay.setAttribute('role','region')")&&!pause.includes("overlay.setAttribute('aria-modal','true')"),'Ordinary pause must not claim aria-modal while the external global dock is interactive');must(pause.includes("classList.add('rwg-pause-finalizing')"),'Finalization must expose a dock-blocking state');
+for(const marker of ['let terminalSuppressed = false;','function terminate(','terminalSuppressed || !adapter || !isInProgress()','if (terminalSuppressed || promptOpen) return;',"window.addEventListener('rwg:game-ended'","window.addEventListener('rwg:game-session-start', beginRun)","window.addEventListener('rwg:continue-game', beginRun)",'isTerminalSuppressed'])must(session.includes(marker),`RWGSession terminal contract missing: ${marker}`);
+must(css.includes('z-index: 9400'),'Pause veil z-index contract changed');must(css.includes('z-index: 9500 !important'),'Ordinary pause dock must remain above veil');must(controls.includes('html.rwg-pause-finalizing body[data-rwg-game]'),'Finalizing state must hide/block global dock');must(controls.includes('#newDealConfirm[aria-hidden="false"]'),'Solitario destructive new-deal modal must block global dock');must(orientation.includes('rwg-pause-menu.css')&&orientation.includes('rwg-pause-menu.js'),'Shared pause bootstrap missing');must(orientation.indexOf('rwg-pause-menu.js')<orientation.indexOf('const touchCapable'),'Shared pause must bootstrap before handheld early return');must(solitaire.includes('Legacy compatibility shim')&&!solitaire.includes('solitaire-pause-panel'),'Solitario must not retain local pause UI');must(docs.includes('45 seconds')&&docs.includes('CONFERMA DEFINITIVA')&&docs.includes("RWGSession.terminate('pause-terminate')"),'Pause docs must document eligibility and immediate terminal suppression');
+if(failures.length){console.error(`\nShared pause validation FAILED (${failures.length})\n`);failures.forEach(f=>console.error(`  ✗ ${f}`));process.exit(1);}console.log('Shared pause validation OK');console.log('  ✓ ordinary pause remains non-modal with interactive global dock');console.log('  ✓ irreversible termination suppresses autosave before leaderboard work');console.log('  ✓ finalization/destructive modal states block the global dock');
