@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd(), failures = [];
 const read = rel => fs.existsSync(path.join(root, rel)) ? fs.readFileSync(path.join(root, rel), 'utf8') : (failures.push(`MISSING: ${rel}`), '');
 const must = (ok, message) => { if (!ok) failures.push(message); };
-for (const rel of ['rwg-leaderboard.js','rwg-leaderboard-infinite.js','game-hud.js','game-over.js','server/leaderboards/server.js','server/leaderboards/ranking.js']) {
+for (const rel of ['rwg-leaderboard.js','rwg-leaderboard-infinite.js','game-hud.js','game-over.js','server/leaderboards/server.js','server/leaderboards/ranking.js','scripts/smoke-leaderboard-pagination.mjs']) {
   const checked = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(checked.status === 0, `${rel}: syntax invalid`);
 }
@@ -67,6 +67,8 @@ const solitaire = read('games/solitaire/game.js');
 must(solitaire.includes("rwg:leaderboard-result"), 'Solitaire victory must emit leaderboard result');
 must(!solitaire.includes("rwg:game-ended"), 'Solitaire must not emit terminal Game Over');
 const schema = read('server/leaderboards/schema.sql'), server = read('server/leaderboards/server.js'), ranking = read('server/leaderboards/ranking.js'), unit = read('ops/rwg-leaderboard.service');
+const productionSmoke = read('scripts/smoke-leaderboard-pagination.mjs');
+for (const marker of ['pagination metadata missing','offset 10 repeated first-page runs','final page still reports hasMore=true','final nextOffset must equal total']) must(productionSmoke.includes(marker), 'production pagination smoke missing ' + marker);
 must(!unit.includes('MemoryDenyWriteExecute=true'), 'systemd MemoryDenyWriteExecute breaks the Node/V8 JIT');
 const installer = read('ops/install-rwg-leaderboards.sh'), nginxSnippet = read('ops/rwg-leaderboards.nginx.conf');
 must(!installer.includes('/dev/stdin'), 'installer must not use /dev/stdin as an install source');

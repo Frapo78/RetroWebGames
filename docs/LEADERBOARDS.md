@@ -130,7 +130,10 @@ sudo bash /projects/RWG/ops/install-rwg-leaderboards.sh
 systemctl status rwg-leaderboard.service
 curl -fsS http://127.0.0.1:3112/health
 curl -fsS https://www.retrowebgames.it/api/leaderboards/v1/health
+node scripts/smoke-leaderboard-pagination.mjs
 ```
+
+The production pagination smoke is mandatory after restarting the service. A health-only check is insufficient: an old Node process can remain healthy while still ignoring `offset`. The smoke verifies all games, a distinct second page where available, and a terminal page with `hasMore=false` and `nextOffset=total`.
 
 The GET endpoint already supports `limit=10&offset=N`; this UI change does not require a database migration. Restart the leaderboard service only when server code itself changes.
 
