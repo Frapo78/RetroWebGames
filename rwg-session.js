@@ -23,21 +23,10 @@
   const safeId = value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
   const storageKeyFor = gameId => `${STORAGE_PREFIX}${safeId(gameId)}`;
 
-  function storageGet(key) {
-    try { return localStorage.getItem(key); } catch (_) { return null; }
-  }
-
-  function storageSet(key, value) {
-    try { localStorage.setItem(key, value); return true; } catch (_) { return false; }
-  }
-
-  function storageRemove(key) {
-    try { localStorage.removeItem(key); } catch (_) {}
-  }
-
-  function currentKey() {
-    return adapter ? storageKeyFor(adapter.id) : '';
-  }
+  function storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+  function storageSet(key, value) { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } }
+  function storageRemove(key) { try { localStorage.removeItem(key); } catch (_) {} }
+  function currentKey() { return adapter ? storageKeyFor(adapter.id) : ''; }
 
   function discardLegacy(gameId) {
     const id = safeId(gameId);
@@ -50,15 +39,7 @@
     if (!raw) return null;
     try {
       const envelope = JSON.parse(raw);
-      if (
-        !envelope ||
-        envelope.schema !== ENVELOPE_SCHEMA ||
-        envelope.gameId !== adapter.id ||
-        envelope.adapterVersion !== adapter.version ||
-        envelope.compatibility !== adapter.compatibility ||
-        !envelope.payload ||
-        typeof envelope.payload !== 'object'
-      ) {
+      if (!envelope || envelope.schema !== ENVELOPE_SCHEMA || envelope.gameId !== adapter.id || envelope.adapterVersion !== adapter.version || envelope.compatibility !== adapter.compatibility || !envelope.payload || typeof envelope.payload !== 'object') {
         storageRemove(currentKey());
         return null;
       }
@@ -73,9 +54,7 @@
     }
   }
 
-  function isInProgress() {
-    try { return Boolean(adapter?.isInProgress?.()); } catch (_) { return false; }
-  }
+  function isInProgress() { try { return Boolean(adapter?.isInProgress?.()); } catch (_) { return false; } }
 
   function serializeEnvelope(reason = 'autosave') {
     if (terminalSuppressed || !adapter || !isInProgress()) return null;
@@ -83,18 +62,8 @@
       const payload = adapter.serialize();
       if (!payload || typeof payload !== 'object') return null;
       if (adapter.validate(payload, null) === false) return null;
-      return {
-        schema: ENVELOPE_SCHEMA,
-        gameId: adapter.id,
-        adapterVersion: adapter.version,
-        compatibility: adapter.compatibility,
-        savedAt: Date.now(),
-        reason,
-        payload
-      };
-    } catch (_) {
-      return null;
-    }
+      return { schema: ENVELOPE_SCHEMA, gameId: adapter.id, adapterVersion: adapter.version, compatibility: adapter.compatibility, savedAt: Date.now(), reason, payload };
+    } catch (_) { return null; }
   }
 
   function saveNow(reason = 'manual') {
@@ -108,9 +77,7 @@
     try {
       payloadJson = JSON.stringify(envelope.payload);
       encoded = JSON.stringify(envelope);
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
     if (encoded.length > MAX_SNAPSHOT_BYTES) return false;
     if (payloadJson === lastPayloadJson && !FORCE_WRITE_REASONS.has(reason)) {
       dirty = false;
@@ -145,9 +112,7 @@
     return { reason, gameId: adapter?.id || '' };
   }
 
-  function beginRun() {
-    terminalSuppressed = false;
-  }
+  function beginRun() { terminalSuppressed = false; }
 
   function ensureModal() {
     if (modal?.isConnected) return modal;
@@ -252,7 +217,6 @@
       requestAnimationFrame(() => showPrompt(saved));
       return true;
     }
-
     if (isInProgress()) scheduleSave('register');
     return true;
   }
@@ -262,9 +226,7 @@
     saveNow(reason);
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) forceLifecycleSave('hidden');
-  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) forceLifecycleSave('hidden'); });
   window.addEventListener('pagehide', () => forceLifecycleSave('pagehide'), { capture: true });
   window.addEventListener('beforeunload', () => forceLifecycleSave('beforeunload'), { capture: true });
   document.addEventListener('freeze', () => forceLifecycleSave('freeze'), { capture: true });
@@ -275,9 +237,11 @@
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     forceLifecycleSave('navigation');
   }, true);
+
   window.addEventListener('rwg:game-ended', event => terminate(event.detail?.terminalReason || 'game-ended'));
   window.addEventListener('rwg:session-completed', event => terminate(event.detail?.terminalReason || 'session-completed'));
   window.addEventListener('rwg:game-session-start', beginRun);
+  window.addEventListener('rwg:continue-game', beginRun);
 
   window.RWGSession = Object.freeze({
     register,
