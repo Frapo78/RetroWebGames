@@ -18,6 +18,7 @@ for (const rel of ['rwg-pause-menu.js','rwg-session.js','orientation.js','games/
 const pause = read('rwg-pause-menu.js');
 const session = read('rwg-session.js');
 const css = read('rwg-pause-menu.css');
+const controlsCss = read('rwg-controls.css');
 const orientation = read('orientation.js');
 const solitaire = read('games/solitaire/pause-overlay.js');
 const docs = read('docs/PAUSE-MENU.md');
@@ -45,10 +46,18 @@ must(session.includes("window.addEventListener('rwg:continue-game', beginRun)"),
 must(session.includes('isTerminalSuppressed'), 'RWGSession must expose terminal suppression state for debugging/validation');
 
 must(css.includes('.rwg-pause-menu') && css.includes('.rwg-pause-confirm-actions'), 'Shared pause stylesheet incomplete');
+must(css.includes('z-index: 9400'), 'Pause veil z-index contract changed unexpectedly');
+must(css.includes('z-index: 9500 !important'), 'Common dock controls must sit above the pause veil');
+must(css.includes('html.rwg-shared-pause-open body[data-rwg-game] .rwg-game-tools'), 'Pause stylesheet must explicitly keep shared game tools interactive');
+must(css.includes('pointer-events: auto !important'), 'Paused global dock must remain tappable');
+must(!controlsCss.includes('html.rwg-shared-pause-open body[data-rwg-game]::after'), 'Common controls stylesheet must not hide dock background while paused');
+must(!controlsCss.includes('html.rwg-shared-pause-open body[data-rwg-game] :is(.rwg-game-tools'), 'Common controls stylesheet must not hide dock controls while paused');
+
 must(orientation.includes('rwg-pause-menu.css') && orientation.includes('rwg-pause-menu.js'), 'Shared pause assets must bootstrap for every game');
 must(orientation.indexOf('rwg-pause-menu.js') < orientation.indexOf('const touchCapable'), 'Shared pause bootstrap must run before handheld-only orientation return');
 must(solitaire.includes('Legacy compatibility shim') && !solitaire.includes('solitaire-pause-panel'), 'Solitario must not retain a local pause UI implementation');
 must(docs.includes('45 seconds') && docs.includes('CONFERMA DEFINITIVA'), 'Pause source of truth must document eligibility and double confirmation');
+must(docs.includes('Home/Games') && docs.includes('visible and interactive above the pause veil'), 'Pause docs must require global dock/Home availability');
 must(docs.includes('beforeunload') && docs.includes('terminal suppression'), 'Pause docs must explain why confirmed termination cannot be autosaved again');
 
 if (failures.length) {
@@ -60,6 +69,7 @@ if (failures.length) {
 
 console.log('Shared pause validation OK');
 console.log('  ✓ one centralized pause UI for all games');
+console.log('  ✓ global Home/Share/Audio/Pause/Credits/Avatar dock remains available while paused');
 console.log('  ✓ 45-second active-play gate and game-specific score floors');
 console.log('  ✓ double-confirmed termination and leaderboard lifecycle');
 console.log('  ✓ terminal runs cannot be resurrected by late unload autosaves');
