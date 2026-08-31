@@ -8,8 +8,6 @@ body[data-rwg-game] {
   --rwg-common-dock-bottom: calc(env(safe-area-inset-bottom) + 8px);
   --rwg-common-dock-reserve: 60px;
 }
-
-/* KPI cards remain game-local, but share visual treatment. */
 body[data-rwg-game] :is(#hud,#solitaireHud) > :is(div,.stat) {
   border-color: rgba(101,231,255,.17) !important;
   background: linear-gradient(180deg, rgba(10,20,38,.9), rgba(5,12,27,.86)) !important;
@@ -17,202 +15,95 @@ body[data-rwg-game] :is(#hud,#solitaireHud) > :is(div,.stat) {
 }
 body[data-rwg-game] :is(#hud,#solitaireHud) span:not(.status-badge) { letter-spacing: .1em; }
 
-/* One shared visual rail behind Home / Share / Audio / Pause / Credits / Avatar. */
 body[data-rwg-game]::after {
-  content: "";
-  position: fixed;
-  z-index: 118;
-  left: 50%;
-  bottom: var(--rwg-common-dock-bottom);
-  width: min(calc(100vw - 16px), 620px);
-  height: 50px;
-  transform: translateX(-50%);
-  border: 1px solid rgba(101,231,255,.12);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(4,10,24,.76), rgba(2,6,16,.88));
-  box-shadow: 0 10px 30px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.035);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  pointer-events: none;
+  content:""; position:fixed; z-index:118; left:50%; bottom:var(--rwg-common-dock-bottom);
+  width:min(calc(100vw - 16px),620px); height:50px; transform:translateX(-50%);
+  border:1px solid rgba(101,231,255,.12); border-radius:16px;
+  background:linear-gradient(180deg,rgba(4,10,24,.76),rgba(2,6,16,.88));
+  box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); pointer-events:none;
+  transition:opacity .14s ease;
 }
-
-/* Common controls are visually detached from game-local flex/grid containers. */
 body[data-rwg-game] .rwg-game-tools {
-  position: fixed !important;
-  z-index: 122 !important;
-  left: max(10px, calc(50% - 310px));
-  bottom: calc(var(--rwg-common-dock-bottom) + 4px);
-  margin: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: var(--rwg-control-gap) !important;
+  position:fixed !important; z-index:122 !important; left:max(10px,calc(50% - 310px));
+  bottom:calc(var(--rwg-common-dock-bottom) + 4px); margin:0 !important;
+  display:inline-flex !important; align-items:center !important; gap:var(--rwg-control-gap) !important;
 }
 body[data-rwg-game] .rwg-game-tools .rwg-home-action,
 body[data-rwg-game] .rwg-game-tools .rwg-share-toggle,
 body[data-rwg-game] #muteBtn,
 body[data-rwg-game] #pauseBtn {
-  box-sizing: border-box !important;
-  width: var(--rwg-control-size) !important;
-  min-width: var(--rwg-control-size) !important;
-  height: var(--rwg-control-size) !important;
-  min-height: var(--rwg-control-size) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border: 1px solid var(--rwg-control-border) !important;
-  border-radius: 13px !important;
-  color: var(--rwg-control-text) !important;
-  background: var(--rwg-control-bg) !important;
-  box-shadow: 0 7px 20px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.06) !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  text-decoration: none !important;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-sizing:border-box !important; width:var(--rwg-control-size) !important; min-width:var(--rwg-control-size) !important;
+  height:var(--rwg-control-size) !important; min-height:var(--rwg-control-size) !important; margin:0 !important; padding:0 !important;
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  border:1px solid var(--rwg-control-border) !important; border-radius:13px !important;
+  color:var(--rwg-control-text) !important; background:var(--rwg-control-bg) !important;
+  box-shadow:0 7px 20px rgba(0,0,0,.26),inset 0 1px rgba(255,255,255,.06) !important;
+  opacity:1 !important; visibility:visible !important; text-decoration:none !important; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
 }
-body[data-rwg-game] .rwg-game-tools .rwg-tool-label { display: none !important; }
-body[data-rwg-game] .rwg-game-tools svg { width: 19px !important; height: 19px !important; }
-
-body[data-rwg-game] #muteBtn,
-body[data-rwg-game] #pauseBtn {
-  position: fixed !important;
-  z-index: 122 !important;
-  bottom: calc(var(--rwg-common-dock-bottom) + 4px);
-  top: auto !important;
-  right: auto !important;
-  font-size: 17px !important;
+body[data-rwg-game] .rwg-game-tools .rwg-tool-label { display:none !important; }
+body[data-rwg-game] .rwg-game-tools svg { width:19px !important; height:19px !important; }
+body[data-rwg-game] #muteBtn, body[data-rwg-game] #pauseBtn {
+  position:fixed !important; z-index:122 !important; bottom:calc(var(--rwg-common-dock-bottom) + 4px);
+  top:auto !important; right:auto !important; font-size:17px !important;
 }
-body[data-rwg-game] #muteBtn {
-  left: calc(50% - 47px) !important;
-  border-color: rgba(124,255,178,.24) !important;
-}
-body[data-rwg-game] #pauseBtn {
-  left: calc(50% + 5px) !important;
-  border-color: rgba(255,230,109,.3) !important;
-}
-
-/* Profile elements are also pinned to the same common rail even if their modules mounted them into a local HUD. */
+body[data-rwg-game] #muteBtn { left:calc(50% - 47px) !important; border-color:rgba(124,255,178,.24) !important; }
+body[data-rwg-game] #pauseBtn { left:calc(50% + 5px) !important; border-color:rgba(255,230,109,.3) !important; }
 body[data-rwg-game] .rwg-credit-badge-inline {
-  position: fixed !important;
-  z-index: 122 !important;
-  right: max(64px, calc(50% - 256px)) !important;
-  bottom: calc(var(--rwg-common-dock-bottom) + 4px) !important;
-  top: auto !important;
-  left: auto !important;
-  margin: 0 !important;
+  position:fixed !important; z-index:122 !important; right:max(64px,calc(50% - 256px)) !important;
+  bottom:calc(var(--rwg-common-dock-bottom) + 4px) !important; top:auto !important; left:auto !important; margin:0 !important;
 }
 body[data-rwg-game] .rwg-avatar-link-inline {
-  position: fixed !important;
-  z-index: 122 !important;
-  right: max(10px, calc(50% - 310px)) !important;
-  bottom: calc(var(--rwg-common-dock-bottom) + 3px) !important;
-  top: auto !important;
-  left: auto !important;
-  margin: 0 !important;
+  position:fixed !important; z-index:122 !important; right:max(10px,calc(50% - 310px)) !important;
+  bottom:calc(var(--rwg-common-dock-bottom) + 3px) !important; top:auto !important; left:auto !important; margin:0 !important;
+}
+body[data-rwg-game] .rwg-game-tools .rwg-share-tray { top:auto !important; bottom:calc(100% + 8px) !important; left:0 !important; transform-origin:bottom left !important; }
+body[data-rwg-game] .rwg-game-tools .rwg-share-tray[hidden] { transform:translateY(5px) scale(.96) !important; }
+body[data-rwg-game] :is(#muteBtn,#pauseBtn,.rwg-home-action,.rwg-share-toggle):focus-visible { outline:2px solid #65e7ff !important; outline-offset:2px !important; }
+
+/* Intro, resume, pause and Game Over are modal surfaces: the gameplay dock must not float above them. */
+body[data-rwg-game]:has(#overlay.visible)::after,
+html.rwg-resume-open body[data-rwg-game]::after,
+html.rwg-shared-pause-open body[data-rwg-game]::after,
+body[data-rwg-game].rwg-game-over-open::after { opacity:0; }
+body[data-rwg-game]:has(#overlay.visible) :is(.rwg-game-tools,#muteBtn,#pauseBtn,.rwg-credit-badge-inline,.rwg-avatar-link-inline),
+html.rwg-resume-open body[data-rwg-game] :is(.rwg-game-tools,#muteBtn,#pauseBtn,.rwg-credit-badge-inline,.rwg-avatar-link-inline),
+html.rwg-shared-pause-open body[data-rwg-game] :is(.rwg-game-tools,#muteBtn,#pauseBtn,.rwg-credit-badge-inline,.rwg-avatar-link-inline),
+body[data-rwg-game].rwg-game-over-open :is(.rwg-game-tools,#muteBtn,#pauseBtn,.rwg-credit-badge-inline,.rwg-avatar-link-inline) {
+  opacity:0 !important; visibility:hidden !important; pointer-events:none !important;
 }
 
-/* Share tray opens upward from the common bottom rail. */
-body[data-rwg-game] .rwg-game-tools .rwg-share-tray {
-  top: auto !important;
-  bottom: calc(100% + 8px) !important;
-  left: 0 !important;
-  transform-origin: bottom left !important;
-}
-body[data-rwg-game] .rwg-game-tools .rwg-share-tray[hidden] {
-  transform: translateY(5px) scale(.96) !important;
-}
+body[data-rwg-game] #topbar:not(:has(.sensor-status)):not(:has(#sensorStatus)):not(:has(#calibrateBtn)) { min-height:0 !important; height:0 !important; padding:0 !important; margin:0 !important; }
 
-body[data-rwg-game] :is(#muteBtn,#pauseBtn,.rwg-home-action,.rwg-share-toggle):focus-visible {
-  outline: 2px solid #65e7ff !important;
-  outline-offset: 2px !important;
-}
-
-/* Local toolbars should not reserve a second row just for controls that are now fixed in the shared dock. */
-body[data-rwg-game] #topbar:not(:has(.sensor-status)):not(:has(#sensorStatus)):not(:has(#calibrateBtn)) {
-  min-height: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Solitario: keep only game-specific actions in its local command row. */
 body[data-rwg-game-name="Solitario"] #gameControls {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(44px, 1fr)) !important;
-  gap: 8px !important;
-  align-items: stretch !important;
+  display:grid !important; grid-template-columns:repeat(3,minmax(44px,1fr)) !important; gap:8px !important; align-items:stretch !important;
+  bottom:calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 12px) !important;
 }
-body[data-rwg-game-name="Solitario"] #gameControls #undoBtn { grid-column: 1 !important; }
-body[data-rwg-game-name="Solitario"] #gameControls #hintBtn { grid-column: 2 !important; }
-body[data-rwg-game-name="Solitario"] #gameControls #newDealBtn { grid-column: 3 !important; }
-body[data-rwg-game-name="Solitario"] #gameControls .tool-btn span { display: inline !important; font-size: 7px; }
+body[data-rwg-game-name="Solitario"] #gameControls #undoBtn { grid-column:1 !important; }
+body[data-rwg-game-name="Solitario"] #gameControls #hintBtn { grid-column:2 !important; }
+body[data-rwg-game-name="Solitario"] #gameControls #newDealBtn { grid-column:3 !important; }
+body[data-rwg-game-name="Solitario"] #gameControls .tool-btn span { display:inline !important; font-size:7px; }
 
-/* Block Drop: KPI row goes back to three true metrics; shared controls no longer consume grid columns. */
-body[data-rwg-game-name="Block Drop"] #hud {
-  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
-  height: auto !important;
-}
-body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host {
-  height: 116px !important;
-  bottom: calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 7px) !important;
-}
-body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage {
-  bottom: calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 132px) !important;
-}
-
-/* Shared joystick/game-specific actions stay above the common dock. */
+body[data-rwg-game-name="Block Drop"] #hud { grid-template-columns:repeat(3,minmax(0,1fr)) !important; height:auto !important; }
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host { height:116px !important; bottom:calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 7px) !important; }
+body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage { bottom:calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 132px) !important; }
 body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host,
 body[data-rwg-game-name="Maze Munch"] #controls.rwg-vjoy-host,
-body[data-rwg-game-name="Neon Tilt"] .rwg-vjoy-external-host {
-  margin-bottom: var(--rwg-common-dock-reserve) !important;
+body[data-rwg-game-name="Neon Tilt"] .rwg-vjoy-external-host { margin-bottom:var(--rwg-common-dock-reserve) !important; }
+body[data-rwg-game] .rwg-vjoy-host .rwg-vjoy-action, body[data-rwg-game] #boostBtn {
+  border:1px solid rgba(255,255,255,.15) !important; border-radius:14px !important;
+  background:linear-gradient(180deg,rgba(20,32,61,.94),rgba(8,15,32,.94)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05),0 8px 22px rgba(0,0,0,.24) !important;
 }
+body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host { display:grid !important; grid-template-columns:minmax(100px,124px) minmax(86px,120px) !important; justify-content:center !important; align-items:center !important; gap:18px !important; }
+body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host > .rwg-vjoy { grid-column:1; grid-row:1; }
+body[data-rwg-game-name="Neon Snake"] #boostBtn { grid-column:2; grid-row:1; width:100% !important; min-height:58px !important; }
+body[data-rwg-game-name="Maze Munch"] #controls.rwg-vjoy-host { display:grid !important; place-items:center !important; }
+body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled .sensor-help { min-height:22px; }
+body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap { max-height:calc(100dvh - 304px) !important; }
 
-body[data-rwg-game] .rwg-vjoy-host .rwg-vjoy-action,
-body[data-rwg-game] #boostBtn {
-  border: 1px solid rgba(255,255,255,.15) !important;
-  border-radius: 14px !important;
-  background: linear-gradient(180deg, rgba(20,32,61,.94), rgba(8,15,32,.94)) !important;
-  box-shadow: inset 0 1px rgba(255,255,255,.05), 0 8px 22px rgba(0,0,0,.24) !important;
-}
-body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host {
-  display: grid !important;
-  grid-template-columns: minmax(100px,124px) minmax(86px,120px) !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 18px !important;
-}
-body[data-rwg-game-name="Neon Snake"] #controls.rwg-vjoy-host > .rwg-vjoy { grid-column: 1; grid-row: 1; }
-body[data-rwg-game-name="Neon Snake"] #boostBtn { grid-column: 2; grid-row: 1; width: 100% !important; min-height: 58px !important; }
-body[data-rwg-game-name="Maze Munch"] #controls.rwg-vjoy-host { display: grid !important; place-items: center !important; }
-body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled .sensor-help { min-height: 22px; }
-body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap { max-height: calc(100dvh - 304px) !important; }
-
-@media (max-width: 680px) {
-  body[data-rwg-game] { --rwg-control-size: 40px; --rwg-common-dock-reserve: 58px; }
-  body[data-rwg-game]::after { height: 48px; }
-}
-
-@media (max-width: 390px) {
-  body[data-rwg-game-name="Solitario"] #gameControls .tool-btn span { display: none !important; }
-  body[data-rwg-game-name="Solitario"] #gameControls { grid-template-columns: repeat(3, 44px) !important; justify-content: center; }
-}
-
-@media (max-width: 350px) {
-  body[data-rwg-game] { --rwg-control-size: 38px; --rwg-control-gap: 4px; }
-  body[data-rwg-game] #muteBtn { left: calc(50% - 42px) !important; }
-  body[data-rwg-game] #pauseBtn { left: calc(50% + 4px) !important; }
-}
-
-@media (max-height: 650px) {
-  body[data-rwg-game] { --rwg-control-size: 38px; --rwg-common-dock-reserve: 54px; }
-  body[data-rwg-game]::after { height: 46px; }
-  body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap { max-height: calc(100dvh - 258px) !important; }
-  body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host { height: 100px !important; }
-  body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage {
-    bottom: calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 116px) !important;
-  }
-}
+@media(max-width:680px){body[data-rwg-game]{--rwg-control-size:40px;--rwg-common-dock-reserve:58px}body[data-rwg-game]::after{height:48px}}
+@media(max-width:390px){body[data-rwg-game-name="Solitario"] #gameControls .tool-btn span{display:none !important}body[data-rwg-game-name="Solitario"] #gameControls{grid-template-columns:repeat(3,44px) !important;justify-content:center}}
+@media(max-width:350px){body[data-rwg-game]{--rwg-control-size:38px;--rwg-control-gap:4px}body[data-rwg-game] #muteBtn{left:calc(50% - 42px) !important}body[data-rwg-game] #pauseBtn{left:calc(50% + 4px) !important}}
+@media(max-height:650px){body[data-rwg-game]{--rwg-control-size:38px;--rwg-common-dock-reserve:54px}body[data-rwg-game]::after{height:46px}body[data-rwg-game-name="Neon Tilt"].rwg-vjoy-enabled #gameWrap{max-height:calc(100dvh - 258px) !important}body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host{height:100px !important}body[data-rwg-game-name="Block Drop"].rwg-vjoy-enabled #stage{bottom:calc(env(safe-area-inset-bottom) + var(--rwg-common-dock-reserve) + 116px) !important}}
