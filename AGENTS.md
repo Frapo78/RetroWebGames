@@ -163,6 +163,8 @@ The shared bottom dock is an occupied viewport region, not a decorative overlay.
 
 Game pages load `game-hud.js` and `orientation.js` with one matching release query. Those bootstraps propagate that query to dynamic shared dependencies. When shared UI changes, bump the query across every game page; version any directly changed local CSS/JS too. Do not rely on the service worker cache name alone, because the browser HTTP cache can otherwise produce a mixed-generation UI. `docs/SHARED-HUD-CONTROLS.md` and `scripts/validate-shared-controls.mjs` are authoritative.
 
+Native browser gestures are a shared gameplay invariant: outside genuine text-entry controls, every game must disable iOS text selection/loupe, WebKit touch callouts, context/drag selection, Safari gesture zoom and double-click zoom through `game-hud.js` plus `rwg-controls.css`. Never apply the block to leaderboard-name inputs or other editable fields.
+
 ## 5. Game-specific sources of truth
 
 Before modifying a game, read its dedicated documentation when present. Important current contracts include:

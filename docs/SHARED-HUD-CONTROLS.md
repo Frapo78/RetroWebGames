@@ -115,6 +115,12 @@ Current shared adaptations include:
 
 Any future common-control exception belongs in `rwg-controls.css`, scoped by `data-rwg-game-name`. Do not solve it by editing the same common button differently in multiple game stylesheets.
 
+## Native iOS input guard
+
+Every game inherits the guard from `game-hud.js` and `rwg-controls.css`. Outside real text-entry controls it disables WebKit callouts and selection, native context/drag gestures, Safari `gesturestart/change/end` zoom and double-click zoom. Canvas remains `touch-action:none`; ordinary controls use `touch-action:manipulation`.
+
+The exemption for `input`, `textarea`, `select` and editable content is mandatory: leaderboard name entry must retain caret, keyboard and text editing. All game viewport declarations carry matching minimum/maximum scale and `user-scalable=no`; all pages bump the shared bootstrap release together whenever this guard changes.
+
 ## Asset release versions and stale-cache prevention
 
 Every game page loads `game-hud.js` and `orientation.js` with the same explicit `?v=<release>` query. Those two bootstraps propagate the query to every shared CSS/JS asset they create dynamically. When any shared HUD/control asset changes, bump that release value in every game page in the same commit. Directly changed game-local CSS/JS must receive the same release query on that page.

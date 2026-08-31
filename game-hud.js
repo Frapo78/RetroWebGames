@@ -4,6 +4,15 @@
   if (!document.body || !document.body.hasAttribute('data-rwg-game')) return;
 
   const selfSrc = document.currentScript?.src;
+  const editableSelector = "input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])";
+  const isEditableTarget = target => target instanceof Element && Boolean(target.closest(editableSelector));
+  const preventNativeGameGesture = event => { if (!isEditableTarget(event.target)) event.preventDefault(); };
+  document.documentElement.classList.add("rwg-game-input-guard");
+  for (const type of ["gesturestart", "gesturechange", "gestureend", "selectstart", "dragstart", "contextmenu"]) {
+    document.addEventListener(type, preventNativeGameGesture, { capture: true, passive: false });
+  }
+  document.addEventListener("dblclick", preventNativeGameGesture, { capture: true, passive: false });
+
   if (selfSrc) {
     const source = new URL(selfSrc);
     const base = new URL('.', source);

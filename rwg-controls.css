@@ -1,4 +1,8 @@
 /* Shared in-game HUD/control ergonomics. Common system controls share one visual dock. */
+/* Native mobile gesture guard: gameplay is never selectable or callable; text-entry controls remain editable. */
+body[data-rwg-game],body[data-rwg-game] *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body[data-rwg-game] :is(input,textarea,select,[contenteditable]:not([contenteditable="false"])){-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important;touch-action:manipulation!important}
+body[data-rwg-game] canvas{touch-action:none!important}
 body[data-rwg-game]{--rwg-control-size:42px;--rwg-control-gap:6px;--rwg-control-bg:linear-gradient(145deg,rgba(15,28,55,.96),rgba(5,10,24,.96));--rwg-control-border:rgba(101,231,255,.22);--rwg-control-text:#eefcff;--rwg-common-dock-bottom:calc(env(safe-area-inset-bottom) + 8px);--rwg-common-dock-reserve:60px;--rwg-common-dock-width:min(calc(100vw - 16px),620px)}
 body[data-rwg-game-name="Neon Tilt"]{--rwg-common-dock-width:min(calc(100vw - 16px),440px)}body[data-rwg-game-name="Block Drop"]{--rwg-common-dock-width:min(calc(100vw - 16px),520px)}
 body[data-rwg-game] :is(#hud,#solitaireHud)>:is(div,.stat){border-color:rgba(101,231,255,.17)!important;background:linear-gradient(180deg,rgba(10,20,38,.9),rgba(5,12,27,.86))!important;box-shadow:inset 0 1px rgba(255,255,255,.045),0 5px 16px rgba(0,0,0,.14)!important}body[data-rwg-game] :is(#hud,#solitaireHud) span:not(.status-badge){letter-spacing:.1em}
