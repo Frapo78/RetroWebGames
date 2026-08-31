@@ -22,7 +22,7 @@ must(html.includes('<script src="levels.js"></script>'), 'Bubble Burst must load
 must(html.includes('<script src="game.js"></script>'), 'Bubble Burst must load game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
-must(html.includes('la struttura scende verso la linea di pericolo'), 'Intro must explain timed descending-board pressure');
+must(html.includes('class="rwg-intro-leaderboard-slot"') && !html.includes('la struttura scende verso la linea di pericolo'), 'Intro caption must be replaced by the shared High Scores slot');
 must(html.includes('id="levelTimer"'), 'Dedicated level timer missing');
 for (const id of ['levelClear','levelClearTitle','clearPoints','clearTime','clearBonus','clearTotal']) must(html.includes(`id="${id}"`), `Level-clear UI missing #${id}`);
 must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Intermediate arcade level-clear presentation missing');

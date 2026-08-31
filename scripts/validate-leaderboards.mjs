@@ -11,7 +11,7 @@ for (const rel of ['rwg-leaderboard.js','rwg-leaderboard-infinite.js','game-hud.
   const checked = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(checked.status === 0, `${rel}: syntax invalid`);
 }
-const hud = read('game-hud.js'), client = read('rwg-leaderboard.js'), infinite = read('rwg-leaderboard-infinite.js'), css = read('rwg-leaderboard.css');
+const hud = read('game-hud.js'), hudCss = read('game-hud.css'), client = read('rwg-leaderboard.js'), infinite = read('rwg-leaderboard-infinite.js'), css = read('rwg-leaderboard.css');
 const hub = read('index.html');
 must(hud.includes('loadLeaderboard();') && hud.includes('rwg-leaderboard.js') && hud.includes('rwg-leaderboard.css'), 'game-hud must centrally bootstrap leaderboard assets');
 must(hud.includes('rwg-leaderboard-infinite.js') && hud.includes('data-rwg-leaderboard-infinite-script'), 'game-hud must centrally bootstrap the endless intro leaderboard for every game');
@@ -25,6 +25,8 @@ must(client.includes("document.querySelectorAll('.game-card") && client.includes
 must(client.includes("classList.contains('rwg-resume-open')") && client.includes("pauseBtn?.textContent.trim() === '▶'") && css.includes('.rwg-leaderboard-pause-board{position:fixed'), 'resume and pause states must show the compact in-game Top 3');
 must(client.includes('SEI NELLA TOP TEN!') && client.includes("rank <= 10") && css.includes('.rwg-leaderboard-rank-card.is-top-ten'), 'Game Over must highlight authoritative Top Ten positions in gold');
 must(client.includes('POSIZIONE IN AGGIORNAMENTO') && client.includes('pending: true'), 'offline Game Over rank must remain explicitly pending');
+must(client.includes("panel?.querySelector('.rwg-intro-leaderboard-slot')") && client.includes('slot.replaceWith(introBoard)'), 'intro High Scores must replace the dedicated caption slot in place');
+must(hudCss.includes('.rwg-intro-runtime-copy') && hudCss.includes('clip-path: inset(50%)') && hudCss.includes('.rwg-intro-leaderboard-slot'), 'shared intro must preserve runtime status accessibly without a visible caption');
 
 for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', '?limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', '🏆 HIGH SCORES', 'SCORRI PER ALTRI HIGH SCORES']) {
   must(infinite.includes(marker), `endless intro High Scores missing ${marker}`);
@@ -55,7 +57,11 @@ must(gameOver.includes('document.body.dataset.rwgGameName') && !gameOver.include
 must(gameOver.includes("rwg:game-over-revealed"), 'Game Over must announce when the summary is ready for the first-use nickname modal');
 for (const rel of fs.readdirSync(path.join(root, 'games')).map(slug => `games/${slug}/index.html`).filter(rel => fs.existsSync(path.join(root, rel)))) {
   const html = read(rel);
-  if (html.includes('data-rwg-game="true"')) must(/data-rwg-game-name="[^"]+"/.test(html), `${rel}: missing short data-rwg-game-name`);
+  if (html.includes('data-rwg-game="true"')) {
+    must(/data-rwg-game-name="[^"]+"/.test(html), `${rel}: missing short data-rwg-game-name`);
+    must((html.match(/class="rwg-intro-leaderboard-slot"/g) || []).length === 1, `${rel}: intro must expose exactly one leaderboard slot instead of a caption`);
+    must(!/<p[^>]*(?:id="overlayText"|class="intro-copy")[^>]*>[^<]+<\/p>/.test(html), `${rel}: visible intro caption text must not return`);
+  }
 }
 const solitaire = read('games/solitaire/game.js');
 must(solitaire.includes("rwg:leaderboard-result"), 'Solitaire victory must emit leaderboard result');
@@ -76,6 +82,7 @@ must(tests.status === 0, `leaderboard tests failed: ${tests.stderr || tests.stdo
 if (failures.length) { console.error(`Leaderboard validation FAILED (${failures.length})`); failures.forEach(item => console.error(`  ✗ ${item}`)); process.exit(1); }
 console.log('Leaderboard validation OK');
 console.log('  ✓ dynamically fitted internally scrollable HIGH SCORES intro component');
+console.log('  ✓ High Scores replaces every intro caption in place while runtime status remains accessible');
 console.log('  ✓ social share row remains inside the measured intro viewport budget');
 console.log('  ✓ 10-row API paging with defensive endless-scroll completion');
 console.log('  ✓ final page detaches endless-load listeners and retry can re-enable them');

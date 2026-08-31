@@ -25,12 +25,14 @@ The home loads the same base client and stylesheet directly. It attaches a live 
 
 The ranking inside every game start screen is named **HIGH SCORES**. It is not a fixed Top 10: the first ten positions are only the first page of an endless ranking.
 
-The High Scores component must use as much useful vertical space as the current intro can safely provide. It must therefore grow on tall phones/tablets instead of remaining an artificially narrow strip, while still guaranteeing that title/description, `GIOCA`, `TORNA AL MENU`, hints and the social sharing actions remain visible inside the current visual viewport.
+The High Scores component replaces the former descriptive caption in every game intro. Each page exposes one `.rwg-intro-leaderboard-slot`; the shared client replaces it in place with the live ranking, so the board appears immediately below the cover instead of being appended after the action buttons. Game runtimes that historically write to `#overlayText` retain an empty `.rwg-intro-runtime-copy` as an accessible off-layout status node, avoiding null-reference regressions without restoring visible caption copy.
+
+The High Scores component must use as much useful vertical space as the current intro can safely provide. It must therefore grow on tall phones/tablets instead of remaining an artificially narrow strip, while still guaranteeing that the cover, `GIOCA`, `TORNA AL MENU`, game-specific compact controls, hints and the social sharing actions remain visible inside the current visual viewport.
 
 `rwg-leaderboard-infinite.js` owns this calculation centrally. It measures the intro overlay and panel at runtime and assigns `--rwg-lb-fit-height` to the shared board. The calculation:
 
 - uses the real visible viewport (`visualViewport.height` when available) and never assumes that browser chrome leaves the full layout viewport visible;
-- subtracts overlay padding and all non-leaderboard intro content;
+- subtracts overlay padding and all non-leaderboard intro content; removing the old caption therefore gives its entire former budget to the ranking;
 - reserves **54 px** for the social row until `.rwg-intro-share` has actually mounted;
 - keeps a **12 px** vertical safety budget;
 - clamps the board to a compact minimum of **64 px** and a generous maximum of **420 px**;

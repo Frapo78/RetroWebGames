@@ -150,6 +150,8 @@ Every game must retain both `assets/social/games/<slug>.jpg` (1200×630 JPEG) an
 
 The initial screen of every game must also render that same dedicated 1200×630 cover inside `h1.rwg-intro-cover-title`, with the canonical game name as the image `alt`. Keep the responsive implementation centralized in `game-hud.css`; do not restore a font-rendered local intro title.
 
+Every game intro must expose exactly one `.rwg-intro-leaderboard-slot` in place of descriptive caption copy. The shared leaderboard replaces that slot with the dynamically viewport-fitted High Scores board. Engines that retain an `#overlayText` reference must use an empty `.rwg-intro-runtime-copy` status node; never delete the node blindly or restore visible intro prose.
+
 Every game also owns `assets/covers/games/<slug>-portrait.jpg` (1080×1920) and its `-portrait-540.jpg` responsive derivative. Home cards must load these through `rwg-lazy-images.js`; do not restore procedural CSS thumbnails or eagerly download every full-size portrait. The card's semantic `h2` must render the matching wordmark through that same loader and retain the canonical game name as a non-empty image `alt`.
 
 `scripts/seo-catalog.mjs`, `scripts/apply-seo.mjs`, `docs/SOCIAL-SHARING.md`, `docs/LAZY-IMAGES.md`, `scripts/validate-social-sharing.mjs` and `scripts/validate-lazy-images.mjs` form the authoritative contract. Do not replace the home wordmark heading with plain text or make its accessible name empty.

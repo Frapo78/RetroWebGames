@@ -144,10 +144,12 @@
 
   function mountIntroBoard() {
     const panel = document.querySelector('#overlay .panel, #overlay .overlay-card, #overlay > div');
+    const slot = panel?.querySelector('.rwg-intro-leaderboard-slot');
     const menu = document.querySelector('.rwg-intro-secondary');
-    if (!panel || !menu) return;
+    if (!panel || (!slot && !menu)) return;
     introBoard = makeBoard();
-    menu.insertAdjacentElement('afterend', introBoard);
+    if (slot) slot.replaceWith(introBoard);
+    else menu.insertAdjacentElement('afterend', introBoard);
     const cached = readJson(CACHE_KEY, null);
     if (cached) renderBoard(cached, true);
   }
