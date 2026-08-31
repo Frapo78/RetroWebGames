@@ -20,6 +20,8 @@ Each game also owns a separate transparent 1200×300 RGBA PNG wordmark under `as
 
 Each game additionally has a text-free 9:16 artwork master under `assets/covers/games/<slug>-portrait.jpg` (1080×1920), with a 540×960 responsive derivative for the home. These vertical assets share the same gameplay-derived poster direction as the landscape OG images and can be reused for Story-style mobile sharing; they do not replace the standards-oriented 1200×630 `og:image`.
 
+The same dedicated 1200×630 social cover is also the visible title artwork in each game's initial screen. It remains wrapped by the semantic `h1`, whose image `alt` is the canonical game name, and `game-hud.css` constrains it responsively for short mobile viewports. Because it is above the fold, the intro cover is loaded eagerly with high fetch priority rather than delegated to the home lazy-image controller.
+
 ## Game intro sharing controls
 
 Every game start screen automatically receives an icon-only social row at the bottom of its intro panel through the shared platform layer:
@@ -44,7 +46,7 @@ This feature is inherited automatically by future games because every `data-rwg-
 
 ## Per-game cover contract
 
-For every `games/<slug>/index.html`, Open Graph, Twitter/X and JSON-LD must use the game's absolute HTTPS cover URL. Both social dimensions are 1200×630, both alt fields describe the actual artwork, and the matching standalone wordmark must exist. The home card must render that wordmark through the shared lazy-image controller.
+For every `games/<slug>/index.html`, Open Graph, Twitter/X and JSON-LD must use the game's absolute HTTPS cover URL. Both social dimensions are 1200×630, both alt fields describe the actual artwork, and the matching standalone wordmark must exist. The home card must render that wordmark through the shared lazy-image controller, while the initial game screen must render the dedicated cover inside its accessible `h1`.
 
 The intro share buttons automatically use the same game's canonical link, so no per-game JavaScript change is required when a dedicated cover is introduced.
 

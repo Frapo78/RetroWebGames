@@ -77,6 +77,8 @@ for(const game of GAMES){
   must(attr(html,'og:image:width')==='1200'&&attr(html,'og:image:height')==='630',rel+': dedicated social cover metadata must be 1200x630');
   must(fs.existsSync(path.join(root,coverRel)),rel+': dedicated social cover missing');
   must(fs.existsSync(path.join(root,wordmarkRel)),rel+': separate raster wordmark missing');
+  const introCover='<h1 class="rwg-intro-cover-title"><img src="../../'+coverRel+'" width="1200" height="630" alt="'+game.name+'" decoding="async" fetchpriority="high" /></h1>';
+  must(html.includes(introCover),rel+': intro must render its dedicated cover as the semantic game title');
   if(fs.existsSync(path.join(root,coverRel))){
     const size=jpegSize(fs.readFileSync(path.join(root,coverRel)));
     must(size?.width===1200&&size?.height===630,coverRel+': JPEG must be exactly 1200x630');
@@ -102,6 +104,7 @@ must(brand.includes('height: auto'),'Home wordmark must preserve its intrinsic a
 must(brand.includes('overflow: visible'),'Home wordmark container must not clip the transparent image');
 
 const hud=read('game-hud.js');
+const hudCss=read('game-hud.css');
 const introShare=read('rwg-intro-share.js');
 const introShareCss=read('rwg-intro-share.css');
 for(const rel of gamePages) must(read(rel).includes('../../game-hud.js'),rel+': shared game-hud.js is required for automatic intro social controls');
@@ -113,6 +116,7 @@ must(introShare.includes('hint.after(row)')&&introShare.includes('panel.appendCh
 must(introShare.includes("startBtn.addEventListener('click', dismiss")&&introShare.includes("!overlay.classList.contains('visible')"),'Intro sharing must disappear permanently after gameplay starts/resumes');
 must(introShareCss.includes('.rwg-intro-share-btn')&&introShareCss.includes('.rwg-intro-share[hidden]'),'Shared intro social icon styling missing');
 must(!introShare.includes('<span'),'Intro social controls must remain icon-only with no visible text labels');
+must(hudCss.includes('.rwg-intro-cover-title')&&hudCss.includes('aspect-ratio: 1200 / 630')&&hudCss.includes('object-fit: cover'),'Shared responsive intro-cover styling missing');
 
 if(failures.length){console.error('\nRetroWebGames social-sharing validation FAILED ('+failures.length+')\n');for(const failure of failures)console.error('  ✗ '+failure);console.error('');process.exit(1);}
 console.log('RetroWebGames social-sharing validation OK');
@@ -122,3 +126,4 @@ console.log('  ✓ home wordmark uses a transparent cover-derived asset with con
 console.log('  ✓ '+gamePages.length+' game intros inherit icon-only WhatsApp/Facebook/X/Telegram/LinkedIn sharing');
 console.log('  ✓ home uses the global fallback; all '+GAMES.length+' game pages use dedicated 1200x630 covers');
 console.log('  ✓ every game owns a separate transparent 1200x300 raster wordmark');
+console.log('  ✓ every game intro renders its dedicated cover as an accessible responsive h1');
