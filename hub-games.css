@@ -28,6 +28,29 @@
 .game-cover-img.rwg-lazy-loaded { opacity: 1; }
 .game-card:active .game-cover-img { transform: scale(1.025); }
 
+.game-title-wordmark {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: clamp(28px, 8vw, 42px);
+  margin: 0;
+}
+
+.game-title-wordmark-img {
+  display: block;
+  width: min(100%, 230px);
+  height: auto;
+  max-height: 46px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .45));
+  transition: opacity .22s ease;
+}
+
+.game-title-wordmark-img.rwg-lazy-pending { opacity: 0; }
+.game-title-wordmark-img.rwg-lazy-loaded { opacity: 1; }
+
 @media (prefers-reduced-motion: reduce) {
-  .game-cover-img { transition: none; }
+  .game-cover-img,
+  .game-title-wordmark-img { transition: none; }
 }

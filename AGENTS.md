@@ -148,9 +148,9 @@ window.RWGResumeAdapter = Object.freeze({
 
 Every game must retain both `assets/social/games/<slug>.jpg` (1200×630 JPEG) and a separate `assets/brand/games/<slug>-wordmark.png` (1200×300 transparent PNG). Game HTML must expose the dedicated cover through static Open Graph, Twitter/X and JSON-LD metadata; social crawlers must never depend on JavaScript or fall back to the generic home cover.
 
-Every game also owns `assets/covers/games/<slug>-portrait.jpg` (1080×1920) and its `-portrait-540.jpg` responsive derivative. Home cards must load these through `rwg-lazy-images.js`; do not restore procedural CSS thumbnails or eagerly download every full-size portrait.
+Every game also owns `assets/covers/games/<slug>-portrait.jpg` (1080×1920) and its `-portrait-540.jpg` responsive derivative. Home cards must load these through `rwg-lazy-images.js`; do not restore procedural CSS thumbnails or eagerly download every full-size portrait. The card's semantic `h2` must render the matching wordmark through that same loader and retain the canonical game name as a non-empty image `alt`.
 
-`scripts/seo-catalog.mjs`, `scripts/apply-seo.mjs`, `docs/SOCIAL-SHARING.md` and `scripts/validate-social-sharing.mjs` form the authoritative contract. Do not delete a standalone wordmark merely because the current game UI does not render it.
+`scripts/seo-catalog.mjs`, `scripts/apply-seo.mjs`, `docs/SOCIAL-SHARING.md`, `docs/LAZY-IMAGES.md`, `scripts/validate-social-sharing.mjs` and `scripts/validate-lazy-images.mjs` form the authoritative contract. Do not replace the home wordmark heading with plain text or make its accessible name empty.
 
 ## 5. Game-specific sources of truth
 

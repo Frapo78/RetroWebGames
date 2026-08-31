@@ -32,7 +32,9 @@ The home loads the module directly. Other public sections can reuse it by includ
 
 ## Home game covers
 
-Every game card uses a gameplay-derived 9:16 raster cover under `assets/covers/games/`. The 1080×1920 `*-portrait.jpg` file is the reusable vertical/social master; the paired 540×960 `*-portrait-540.jpg` file is the lightweight home candidate. Markup exposes both through `data-rwg-srcset`, while the card keeps the title in semantic HTML and treats the artwork as decorative.
+Every game card uses a gameplay-derived 9:16 raster cover under `assets/covers/games/`. The 1080×1920 `*-portrait.jpg` file is the reusable vertical/social master; the paired 540×960 `*-portrait-540.jpg` file is the lightweight home candidate. Markup exposes both through `data-rwg-srcset` and treats the artwork as decorative.
+
+The visible card heading is the matching transparent 1200×300 wordmark from `assets/brand/games/<slug>-wordmark.png`. It uses the same shared lazy loader and stays inside an `h2`; its non-empty `alt` is the canonical game name, so replacing text with artwork does not remove the card's accessible heading.
 
 Do not restore the former procedural thumbnail CSS or load the 1080 px source unconditionally. New games must provide both portrait sizes and use the shared lazy loader.
 
@@ -43,4 +45,4 @@ node scripts/validate-lazy-images.mjs
 node scripts/validate-contracts.mjs
 ```
 
-The specialized validator inventories every home `img` and rejects eager `src`, missing lazy/async hints or missing intrinsic dimensions. It also verifies all nine responsive cover pairs and their exact JPEG dimensions.
+The specialized validator inventories every home `img` and rejects eager `src`, missing lazy/async hints or missing intrinsic dimensions. It also verifies all nine responsive cover pairs, the nine wordmark headings, their source mapping and their accessible names.

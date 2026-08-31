@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GAMES } from './seo-catalog.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -13,6 +14,7 @@ const loader = read('rwg-lazy-images.js');
 const worker = read('sw.js');
 const images = home.match(/<img\b[^>]*>/gi) || [];
 const gameCoverImages = images.filter(tag => /\sclass=["'][^"']*\bgame-cover-img\b/.test(tag));
+const gameWordmarkImages = images.filter(tag => /\sclass=["'][^"']*\bgame-title-wordmark-img\b/.test(tag));
 const jpegSize = buffer => {
   if (buffer.readUInt16BE(0) !== 0xffd8) return null;
   let offset = 2;
@@ -51,6 +53,17 @@ for (const tag of gameCoverImages) {
     }
   }
 }
+must(gameWordmarkImages.length === GAMES.length, 'home must expose one wordmark heading for every game');
+for (const game of GAMES) {
+  const source = `/assets/brand/games/${game.slug}-wordmark.png`;
+  const tag = gameWordmarkImages.find(candidate => candidate.includes(`data-rwg-src="${source}"`) || candidate.includes(`data-rwg-src='${source}'`));
+  must(Boolean(tag), `home is missing the ${game.name} wordmark`);
+  if (!tag) continue;
+  must(tag.includes(`alt="${game.name}"`) || tag.includes(`alt='${game.name}'`), `${game.name} wordmark must preserve the semantic game name`);
+  must(/\swidth=["']1200["']/.test(tag) && /\sheight=["']300["']/.test(tag), `${game.name} wordmark must reserve its 1200x300 intrinsic ratio`);
+  must(fs.existsSync(path.join(root, source.slice(1))), `missing game wordmark asset: ${source}`);
+}
+must((home.match(/<h2\s+class=["']game-title-wordmark["']>/g) || []).length === GAMES.length, 'every game wordmark must remain inside a semantic h2');
 for (const marker of ['IntersectionObserver', "rootMargin: '280px 0px'", 'MutationObserver', 'window.RWGLazyImages', 'Object.freeze', 'image.dataset.rwgSrc', 'image.src = image.dataset.rwgSrc']) {
   must(loader.includes(marker), 'shared lazy-image controller missing: ' + marker);
 }
@@ -66,3 +79,4 @@ if (failures.length) {
 console.log('RWG lazy-image validation OK');
 console.log('  ✓ ' + images.length + ' home images use shared viewport loading with reusable dynamic-content support');
 console.log('  ✓ nine game cards use responsive 9:16 JPEG covers at 540x960 and 1080x1920');
+console.log('  ✓ nine semantic card headings use their matching 1200x300 lazy-loaded wordmark');
