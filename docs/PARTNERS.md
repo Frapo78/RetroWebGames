@@ -13,12 +13,16 @@ e vivere in `assets/partners/`. I link esterni aprono una nuova scheda con
 
 - URL: `https://afelio.space/`
 - Categoria: gestionale strategico spaziale
-- Asset: `assets/partners/afelio-planet.webp`
+- Asset master: `assets/partners/afelio-portrait.webp` (1080×1920)
+- Asset home: `assets/partners/afelio-portrait-540.webp` (540×960)
 - Provenienza asset: elaborazione locale della risorsa ufficiale
   `art/planet-rocky.webp`, estratta dall’archivio Safari autenticato fornito dal
   proprietario il 30 agosto 2026. Il pianeta resta il soggetto originale; per la
   card RWG sono stati aggiunti un campo nero con stelle lontane e il wordmark
-  `AFELIO`, centrato orizzontalmente e verticalmente.
+  `AFELIO`, centrato orizzontalmente e verticalmente. La composizione 9:16 usa
+  una coppia responsive e `object-fit: contain`, così pianeta e wordmark non
+  vengono tagliati neppure nelle card più alte su smartphone stretti. Il vecchio
+  asset quadrato resta archiviato come derivazione storica, ma non è operativo.
 
 Per aggiungere un partner, replicare una `.partner-site-card`, mantenere il
 lazy loading e aggiornare `scripts/validate-partners.mjs` con il nuovo elemento.

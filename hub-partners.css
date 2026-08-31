@@ -68,11 +68,13 @@
 .partner-site-art img {
   position: relative;
   z-index: 1;
-  width: min(100%, 156px);
-  height: auto;
+  width: 100%;
+  height: 100%;
   max-width: none;
   object-fit: contain;
-  filter: drop-shadow(0 0 17px rgba(68, 154, 255, .48));
+  object-position: 50% 50%;
+  background: #000;
+  filter: drop-shadow(0 0 13px rgba(68, 154, 255, .34));
   transition: opacity .2s ease, transform .28s ease;
 }
 .partner-site-card:hover .partner-site-art img { transform: rotate(-2deg) scale(1.025); }
@@ -119,7 +121,6 @@
   .partner-site-card { grid-template-columns: 98px minmax(0, 1fr); }
   .partner-site-copy { padding: 16px 13px; }
   .partner-site-copy > span { font-size: 9px; line-height: 1.45; }
-  .partner-site-art img { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
