@@ -146,10 +146,31 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
   background: radial-gradient(circle, #fff 0 28%, rgba(255,255,255,.72) 34%, transparent 74%);
 }
 #nextBubble i.is-bomb {
-  color: #ffe66d !important;
-  background: radial-gradient(circle at 35% 30%, #ffb05c 0 14%, #d13950 35%, #260a16 75%) !important;
-  border: 1px solid rgba(255,230,109,.75);
-  box-shadow: 0 0 13px rgba(255,95,115,.72), inset -3px -3px 5px rgba(0,0,0,.42);
+  overflow: visible;
+  color: transparent !important;
+  background: radial-gradient(circle at 34% 28%, #747d89 0 7%, #242a32 23%, #020307 72%, #343b46 88%, #080a0e 100%) !important;
+  border: 1px solid #7d8794;
+  box-shadow: 0 0 12px rgba(255,151,49,.55), inset -3px -3px 5px rgba(0,0,0,.55);
+}
+#nextBubble i.is-bomb::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 7px;
+  top: -5px;
+  right: -2px;
+  border-top: 3px solid #d6a64c;
+  border-radius: 70% 50% 0 0;
+  transform: rotate(-18deg);
+}
+#nextBubble i.is-bomb::after {
+  width: 5px;
+  height: 5px;
+  left: auto;
+  top: -7px;
+  right: -5px;
+  background: #fff4a8;
+  box-shadow: 0 0 6px 2px #ff8528;
 }
 #nextBubble i.is-color-clear {
   color: #fff !important;

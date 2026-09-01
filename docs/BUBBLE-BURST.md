@@ -154,7 +154,9 @@ Performance invariants:
 - the renderer reuses those sub-step positions for a short additive path and cached-sprite afterimages, improving perceived motion continuity without reducing speed or forcing a lower frame rate;
 - aim tracing uses the same local collision lookup;
 - pressure descent is represented as a fractional row-space ceiling offset instead of rewriting every bubble coordinate, so resize remains stable and the pressure update is O(1);
-- bubble visuals are cached as 96×96 offscreen sprites by color/type/armor state instead of rebuilding radial gradients for every bubble every frame; the cover-matched treatment uses the same vivid red/cyan/yellow/purple/green family as the raster cover, with a colored glass core, luminous inner ring, thin glass rim, compact top-left pin light and restrained outer glow; the frame loop still performs only one `drawImage` per ordinary bubble;
+- bubble visuals are cached as 96×96 offscreen sprites by color/type/armor state instead of rebuilding gradients for every bubble every frame; ordinary cover-matched marbles use the vivid raster-cover palette, a full-color center, a dark softly blended inner ring, solid-color rim, thick upper-left reflection, smaller lower-right counter-reflection and restrained internal glass texture;
+- special materials remain immediately distinguishable without extra per-frame work: Bomb is a black spherical bomb with neck, fuse and spark; Armor is brushed/riveted metal (and visibly cracked after its shell breaks); Star is carved stone; Prism and Color Wipe are faceted translucent acrylic/plastic;
+- the frame loop still performs exactly one cached `drawImage` per bubble, including specials;
 - background artwork is cached and rebuilt only on resize;
 - the two 1024×512 RGBA character sheets are decoded once and reused; the frame loop performs only two cropped raster draws plus lightweight eye/transform work;
 - aim dots and character gaze reuse one trajectory prediction per active preview frame;
