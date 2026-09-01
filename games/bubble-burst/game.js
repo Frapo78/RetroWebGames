@@ -494,10 +494,12 @@
     const sphere = g.createRadialGradient(39, 35, 4, 48, 48, 35);
     sphere.addColorStop(0, light);
     sphere.addColorStop(.2, color);
-    sphere.addColorStop(.58, color);
-    sphere.addColorStop(.76, deep);
-    sphere.addColorStop(.88, dark);
-    sphere.addColorStop(.965, color);
+    sphere.addColorStop(.6, color);
+    sphere.addColorStop(.72, mixBubbleColor(color, '#071126', .1));
+    sphere.addColorStop(.82, deep);
+    sphere.addColorStop(.89, dark);
+    sphere.addColorStop(.94, mixBubbleColor(color, '#071126', .2));
+    sphere.addColorStop(.98, color);
     sphere.addColorStop(1, mixBubbleColor(color, '#ffffff', .12));
     g.fillStyle = sphere; g.beginPath(); g.arc(48, 48, 34, 0, Math.PI * 2); g.fill();
 
@@ -519,8 +521,15 @@
       g.fillStyle = softBloom; g.fillRect(9, 6, 51, 49);
     });
 
-    g.strokeStyle = dark; g.lineWidth = 5.5; g.beginPath(); g.arc(48, 48, 27.5, .15, Math.PI * 2 + .15); g.stroke();
-    g.strokeStyle = mixBubbleColor(color, '#000000', .18); g.lineWidth = 2.2; g.beginPath(); g.arc(48, 48, 30.5, 0, Math.PI * 2); g.stroke();
+    const blendedRing = g.createRadialGradient(48, 48, 20, 48, 48, 33);
+    blendedRing.addColorStop(0, 'rgba(0,0,12,0)');
+    blendedRing.addColorStop(.28, 'rgba(0,0,12,.02)');
+    blendedRing.addColorStop(.5, 'rgba(0,0,12,.08)');
+    blendedRing.addColorStop(.68, 'rgba(0,0,12,.18)');
+    blendedRing.addColorStop(.82, 'rgba(0,0,12,.14)');
+    blendedRing.addColorStop(.94, 'rgba(0,0,12,.05)');
+    blendedRing.addColorStop(1, 'rgba(0,0,12,0)');
+    g.fillStyle = blendedRing; g.beginPath(); g.arc(48, 48, 33, 0, Math.PI * 2); g.fill();
 
     g.save(); g.lineCap = 'round'; g.globalCompositeOperation = 'screen';
     g.strokeStyle = 'rgba(255,255,255,.98)'; g.lineWidth = 6.2; g.shadowBlur = 5; g.shadowColor = '#fff';
