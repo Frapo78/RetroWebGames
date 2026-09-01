@@ -24,5 +24,17 @@ e vivere in `assets/partners/`. I link esterni aprono una nuova scheda con
   vengono tagliati neppure nelle card più alte su smartphone stretti. Il vecchio
   asset quadrato resta archiviato come derivazione storica, ma non è operativo.
 
+## Purrfect Dominion
+
+- URL: `https://www.purrfectdominion.app/`
+- Categoria: strategia multiplayer in tempo reale
+- Asset master: `assets/partners/purrfect-dominion-portrait.webp` (1080×1920)
+- Asset home: `assets/partners/purrfect-dominion-portrait-540.webp` (540×960)
+- Provenienza asset: adattamento verticale generativo realizzato il 1 settembre
+  2026 a partire dalla cover ufficiale fornita dal proprietario. La composizione
+  conserva il wordmark completo e le tre fazioni — Gatti Ninja, Corgi Imperiali
+  e Capibara Zen — ricomposte in un poster 9:16 senza testi promozionali
+  secondari. La card usa la stessa pipeline responsive e lazy-loaded di Afelio.
+
 Per aggiungere un partner, replicare una `.partner-site-card`, mantenere il
 lazy loading e aggiornare `scripts/validate-partners.mjs` con il nuovo elemento.
