@@ -178,7 +178,7 @@
     TOP = Math.max(106, H * .13);
     launcherX = W / 2; launcherY = H - Math.max(96, H * .115);
     aimX = clamp(aimX, R, W - R); aimY = Math.min(launcherY - 45, aimY);
-    bubbleSprites.clear(); backgroundCache = buildBackgroundCache();
+    bubbleSprites.clear(); for (const color of PALETTE) makeBubbleSprite(color); backgroundCache = buildBackgroundCache();
   }
 
   function cellPos(r, c) {
@@ -259,7 +259,8 @@
   function updateNextPreview() {
     nextDot.className = '';
     nextDot.textContent = '';
-    nextDot.style.background = nextShot.color;
+    nextDot.style.removeProperty('background');
+    nextDot.style.setProperty('--rwg-next-bubble', nextShot.color);
     nextDot.style.color = nextShot.color;
     if (nextShot.kind === SHOT_BOMB) { nextDot.classList.add('is-bomb'); nextDot.textContent = '✦'; }
     if (nextShot.kind === SHOT_COLOR_CLEAR) { nextDot.classList.add('is-color-clear'); nextDot.textContent = '◆'; }
@@ -472,21 +473,66 @@
     for (let i = falling.length - 1; i >= 0; i--) { const b = falling[i]; b.vy += 720 * dt; b.x += b.vx * dt; b.y += b.vy * dt; if (b.y > H + R * 3) falling.splice(i, 1); }
   }
 
+  function mixBubbleColor(color, target, amount) {
+    const parse = value => {
+      const hex = /^#([0-9a-f]{6})$/i.exec(value)?.[1] || '65e7ff';
+      return [Number.parseInt(hex.slice(0, 2), 16), Number.parseInt(hex.slice(2, 4), 16), Number.parseInt(hex.slice(4, 6), 16)];
+    };
+    const source = parse(color), destination = parse(target);
+    const channel = index => Math.round(source[index] + (destination[index] - source[index]) * amount);
+    return `rgb(${channel(0)} ${channel(1)} ${channel(2)})`;
+  }
+
   function makeBubbleSprite(color, type = STATIC_NORMAL, armor = 0) {
     const cacheKey = `${color}|${type}|${armor}`; if (bubbleSprites.has(cacheKey)) return bubbleSprites.get(cacheKey);
-    const c = document.createElement('canvas'); c.width = c.height = 72; const g = c.getContext('2d'), x = 36, y = 36, rr = 24; g.shadowBlur = 13; g.shadowColor = type === STATIC_PRISM ? '#d586ff' : type === SHOT_BOMB ? '#ff5f73' : color;
-    const grad = g.createRadialGradient(27, 25, 2, 36, 36, 27);
-    if (type === SHOT_BOMB) { grad.addColorStop(0, '#ffb05c'); grad.addColorStop(.28, '#cb384e'); grad.addColorStop(1, '#2a0b17'); }
-    else if (type === SHOT_COLOR_CLEAR || type === STATIC_PRISM) { grad.addColorStop(0, '#ffffff'); grad.addColorStop(.27, '#65e7ff'); grad.addColorStop(.52, '#ff5ecf'); grad.addColorStop(.76, '#ffe66d'); grad.addColorStop(1, '#765cff'); }
-    else { grad.addColorStop(0, '#ffffff'); grad.addColorStop(.2, color); grad.addColorStop(1, '#071126'); }
-    g.fillStyle = grad; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0; g.strokeStyle = 'rgba(255,255,255,.52)'; g.lineWidth = 2; g.stroke();
-    if (type === STATIC_ARMOR && armor > 0) { g.strokeStyle = '#d8e4f5'; g.lineWidth = 5; g.beginPath(); g.arc(x, y, rr - 4, .2, 2.75); g.stroke(); g.beginPath(); g.arc(x, y, rr - 4, 3.25, 5.8); g.stroke(); g.fillStyle = '#8fa6bd'; [[18,32],[51,30],[32,15],[35,51]].forEach(([px,py])=>g.fillRect(px,py,5,5)); }
-    else if (type === STATIC_STAR) { g.fillStyle = '#fff6a8'; const pts=[[36,17],[40,29],[53,29],[43,37],[47,50],[36,42],[25,50],[29,37],[19,29],[32,29]]; g.beginPath(); pts.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py)); g.closePath(); g.fill(); }
-    else if (type === STATIC_PRISM || type === SHOT_COLOR_CLEAR) { g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(36,17); g.lineTo(52,36); g.lineTo(36,55); g.lineTo(20,36); g.closePath(); g.stroke(); }
-    else if (type === SHOT_BOMB) { g.fillStyle = '#fff0cb'; g.fillRect(31,31,10,10); g.fillStyle = '#ffdf5d'; g.fillRect(46,13,5,9); g.fillRect(50,10,5,5); }
+    const c = document.createElement('canvas'); c.width = c.height = 96;
+    const g = c.getContext('2d'), x = 48, y = 48, rr = 34;
+    const normalColor = /^#[0-9a-f]{6}$/i.test(color) ? color : PALETTE[0];
+    const glowColor = type === STATIC_PRISM || type === SHOT_COLOR_CLEAR ? '#d586ff' : type === SHOT_BOMB ? '#ff5f73' : normalColor;
+
+    g.save();
+    g.shadowBlur = 16; g.shadowColor = glowColor; g.fillStyle = glowColor;
+    g.globalAlpha = .34; g.beginPath(); g.arc(x, y, rr + 1, 0, Math.PI * 2); g.fill();
+    g.restore();
+
+    const sphere = g.createRadialGradient(34, 29, 2, 51, 52, 39);
+    if (type === SHOT_BOMB) {
+      sphere.addColorStop(0, '#fff7d7'); sphere.addColorStop(.10, '#ffcb65'); sphere.addColorStop(.36, '#ff704f'); sphere.addColorStop(.68, '#bd254f'); sphere.addColorStop(1, '#250619');
+    } else if (type === SHOT_COLOR_CLEAR || type === STATIC_PRISM) {
+      sphere.addColorStop(0, '#ffffff'); sphere.addColorStop(.14, '#8ff5ff'); sphere.addColorStop(.36, '#6f8cff'); sphere.addColorStop(.58, '#f05fe8'); sphere.addColorStop(.79, '#ffd85b'); sphere.addColorStop(1, '#3a147c');
+    } else {
+      sphere.addColorStop(0, '#ffffff');
+      sphere.addColorStop(.09, mixBubbleColor(normalColor, '#ffffff', .78));
+      sphere.addColorStop(.30, mixBubbleColor(normalColor, '#ffffff', .24));
+      sphere.addColorStop(.62, normalColor);
+      sphere.addColorStop(.84, mixBubbleColor(normalColor, '#071126', .58));
+      sphere.addColorStop(1, mixBubbleColor(normalColor, '#02040c', .86));
+    }
+    g.fillStyle = sphere; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+
+    g.save();
+    g.beginPath(); g.arc(x, y, rr - .7, 0, Math.PI * 2); g.clip();
+    g.globalCompositeOperation = 'screen';
+    const specular = g.createRadialGradient(33, 27, 0, 34, 28, 16);
+    specular.addColorStop(0, 'rgba(255,255,255,.98)'); specular.addColorStop(.18, 'rgba(255,255,255,.88)'); specular.addColorStop(.48, 'rgba(255,255,255,.22)'); specular.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = specular; g.fillRect(16, 10, 38, 38);
+    const bounce = g.createRadialGradient(57, 65, 0, 57, 65, 25);
+    bounce.addColorStop(0, 'rgba(255,255,255,.26)'); bounce.addColorStop(.42, 'rgba(255,255,255,.08)'); bounce.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = bounce; g.fillRect(30, 39, 54, 48);
+    g.restore();
+
+    const rim = g.createLinearGradient(24, 20, 72, 76);
+    rim.addColorStop(0, 'rgba(255,255,255,.88)'); rim.addColorStop(.34, 'rgba(255,255,255,.34)'); rim.addColorStop(.7, 'rgba(255,255,255,.08)'); rim.addColorStop(1, 'rgba(3,8,24,.78)');
+    g.strokeStyle = rim; g.lineWidth = 2.2; g.beginPath(); g.arc(x, y, rr - 1.1, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 1.7; g.beginPath(); g.arc(x, y, rr - 5, 3.72, 5.05); g.stroke();
+
+    if (type === STATIC_ARMOR && armor > 0) { g.strokeStyle = '#e8f1ff'; g.lineWidth = 5; g.beginPath(); g.arc(x, y, rr - 5, .2, 2.75); g.stroke(); g.beginPath(); g.arc(x, y, rr - 5, 3.25, 5.8); g.stroke(); g.fillStyle = '#91a9c2'; [[24,43],[67,40],[43,20],[47,68]].forEach(([px,py])=>g.fillRect(px,py,6,6)); }
+    else if (type === STATIC_STAR) { g.fillStyle = '#fff6a8'; g.shadowBlur = 7; g.shadowColor = '#ffe66d'; const pts=[[48,23],[53,40],[70,40],[56,50],[62,67],[48,57],[34,67],[40,50],[26,40],[43,40]]; g.beginPath(); pts.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py)); g.closePath(); g.fill(); g.shadowBlur = 0; }
+    else if (type === STATIC_PRISM || type === SHOT_COLOR_CLEAR) { g.strokeStyle = '#fff'; g.shadowBlur = 8; g.shadowColor = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(48,23); g.lineTo(69,48); g.lineTo(48,73); g.lineTo(27,48); g.closePath(); g.stroke(); g.shadowBlur = 0; }
+    else if (type === SHOT_BOMB) { g.fillStyle = '#fff0cb'; g.fillRect(42,42,12,12); g.fillStyle = '#ffdf5d'; g.fillRect(61,18,6,11); g.fillRect(66,14,6,6); }
     bubbleSprites.set(cacheKey, c); return c;
   }
-  function drawBubble(x, y, color, radius = R, type = STATIC_NORMAL, armor = 0) { const sprite = makeBubbleSprite(color, type, armor), d = radius * 2.55; ctx.drawImage(sprite, x - d / 2, y - d / 2, d, d); }
+  function drawBubble(x, y, color, radius = R, type = STATIC_NORMAL, armor = 0) { const sprite = makeBubbleSprite(color, type, armor), d = radius * 2.7; ctx.drawImage(sprite, x - d / 2, y - d / 2, d, d); }
   function drawMovingBubble() {
     if (!moving) return; const trail = moving.renderTrail;
     if (trail?.length >= 4) { const samples = trail.length / 2, stride = Math.max(1, Math.ceil((samples - 1) / 3)); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = .16; ctx.strokeStyle = moving.kind === SHOT_BOMB ? '#ff934f' : moving.kind === SHOT_COLOR_CLEAR ? '#ffffff' : moving.color; ctx.lineWidth = Math.max(5, R * .9); ctx.shadowBlur = R; ctx.shadowColor = ctx.strokeStyle; ctx.beginPath(); ctx.moveTo(trail[0], trail[1]); for (let i = 2; i < trail.length; i += 2) ctx.lineTo(trail[i], trail[i + 1]); ctx.stroke(); ctx.shadowBlur = 0; for (let sample = stride; sample < samples - 1; sample += stride) { const progress = sample / (samples - 1); ctx.globalAlpha = .05 + progress * .1; drawBubble(trail[sample * 2], trail[sample * 2 + 1], moving.color, R * (.62 + progress * .2), moving.kind, 0); } ctx.restore(); }

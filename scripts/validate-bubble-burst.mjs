@@ -61,6 +61,10 @@ matches(game, /Math\.ceil\(\s*distance\s*\/\s*Math\.max\(\s*4\s*,\s*R\s*\*\s*\.7
 matches(game, /function\s+drawMovingBubble\s*\(/, 'Moving-bubble renderer missing');
 matches(game, /globalCompositeOperation\s*=\s*['"]lighter['"]/, 'Projectile trail must retain additive rendering');
 matches(game, /const\s+bubbleSprites\s*=\s*new\s+Map\s*\(/, 'Bubble sprite cache missing');
+matches(game, /function\s+mixBubbleColor\s*\(/, 'Cover-matched bubble color shading helper missing');
+matches(game, /c\.width\s*=\s*c\.height\s*=\s*96/, 'Bubble cache sprites must retain high-quality 96px source resolution');
+matches(game, /globalCompositeOperation\s*=\s*['"]screen['"]/, 'Bubble sprites must retain cached specular and bounce-light compositing');
+matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');
 matches(game, /new\s+Image\s*\(\s*\)/, 'Crew sprite preload missing');
