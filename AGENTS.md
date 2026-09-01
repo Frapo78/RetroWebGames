@@ -199,6 +199,8 @@ Do not port whole games to WebAssembly without measured evidence. WASM is justif
 
 Bubble Burst launcher characters are raster atlases aligned with the social-cover identity. Preserve the four emotional poses, decoded-image cache, shared trajectory-driven pupils and transform-only breathing/reaction animation. A successful level clear must retain the 2-second pre-summary Canvas celebration, at least five interpolated manga-jump keyframes per character, and the star/heart eye overlays; restored level-clear sessions open the summary directly and must never expose the ordinary shared pause menu. Do not restore procedural character bodies, allocate canvases/images per frame or duplicate aim prediction for eye tracking.
 
+Bubble Burst level architecture is deterministic by absolute level number: replaying level N must reproduce identical cells, colors, specials, cluster descriptors and signature. Preserve the validator-guarded uniqueness of the first 1000 actual compositions and the progression from shallow, sparse early arrangements to deeper, denser and more numerous downward clusters. Do not add per-run randomness to layouts. Ceiling pressure begins at 32.5 seconds on level 1, floors at 8 seconds and multiplies the next interval by 0.86 after each same-level descent; resumable state must preserve that descent count.
+
 ## 7. Regression guardrail workflow
 
 Before a change is considered complete:

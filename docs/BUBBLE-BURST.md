@@ -5,7 +5,7 @@ This document is the gameplay source of truth for Bubble Burst.
 ## Runtime files
 
 - `games/bubble-burst/index.html`
-- `games/bubble-burst/levels.js` — deterministic 200-layout catalogue
+- `games/bubble-burst/levels.js` — deterministic open-ended clustered-layout generator
 - `games/bubble-burst/game.js` — authoritative gameplay/runtime
 - `games/bubble-burst/style.css`
 
@@ -13,14 +13,16 @@ This document is the gameplay source of truth for Bubble Burst.
 
 ## Level catalogue
 
-The base catalogue contains exactly 200 deterministic artistic configurations:
+The generator produces a deterministic new composition for every level. A given level number always reproduces exactly the same cells, colors, specials, clusters and signature on every run/device: there is no per-play randomness in level architecture. The first 200 remain the base named catalogue, while later levels continue producing new real arrangements rather than merely relabelling recycled geometry:
 
 - 20 visual motif families;
 - 10 deterministic variants per motif;
-- 200 distinct layout signatures;
+- at least the first 1000 levels are validator-guarded as distinct actual bubble compositions, not only distinct signatures;
 - top-connected height-profile construction so decorative silhouettes do not begin as unsupported floating islands;
-- increasing row count, palette breadth and special-bubble density through the catalogue;
-- after level 200 the geometric catalogue may cycle while difficulty continues to scale.
+- deterministic downward lobe descriptors give every layout at least two attached bubble clusters;
+- cluster count, depth and colored cohesion grow with progression, producing increasingly pronounced bunches toward the danger line;
+- increasing row count, palette breadth and special-bubble density through long-run progression;
+- motif names may cycle after level 200, but the geometry, clustered colors, special placement and signature continue changing from the absolute level seed.
 
 Current motif families include Aurora Bands, Neon Crown, Twin Peaks, Pixel Wave, Diamond Sky, Arcade Steps, Cosmic Bowl, Double Arc, Star Ridge, Cascade, Portal Rim, Zigzag Field, Comet Tail, Butterfly, Fortress, Hyper Wave, Crystal Fan, Echo Valley, Nova Teeth and Mosaic Sky.
 
@@ -118,16 +120,17 @@ The bubble structure is not static for the whole stage. During active play the c
 
 Current pressure curve:
 
-- level 1 first drop: **65 seconds**, therefore never below one minute;
-- interval decreases exponentially by level with a floor of **16 seconds**;
-- approximate intervals: level 10 ≈ 55 s, level 25 ≈ 42 s, level 50 ≈ 27 s, level 80+ ≈ 16 s;
+- level 1 first drop: **32.5 seconds**, exactly half of the previous 65-second window;
+- the base interval decreases exponentially by level with a floor of **8 seconds**, exactly half of the previous 16-second floor;
+- approximate first-drop intervals: level 10 ≈ 27.6 s, level 25 ≈ 21 s, level 50 ≈ 13.4 s, level 80+ ≈ 8 s;
+- after every descent inside the same level, the next interval is multiplied by **0.86**, so sustained play accelerates the ceiling step by step until the 8-second floor;
 - each drop starts at **0.5 row** at level 1 and gradually grows toward **0.9 row** by high levels;
 - repeated drops continue within the same level until the board is cleared or reaches the danger line;
 - the timer advances only while gameplay is actually running; pause/visibility/orientation pauses do not consume pressure time;
 - if a pressure drop becomes due while a projectile is in flight, it waits until the projectile resolves so collision geometry does not jump mid-shot;
 - the last 6 seconds before a drop show an arcade warning; the ceiling line itself is drawn so its downward movement is visually readable;
 - a new level resets ceiling offset and pressure timer using that level's harder interval;
-- a one-credit Continue preserves the descended board position but resets the pressure countdown, while the existing safety pruning may remove dangerous bottom rows.
+- a one-credit Continue preserves the descended board position, drop count and accelerated interval but resets the current countdown, while the existing safety pruning may remove dangerous bottom rows.
 
 This pressure system is separate from the miss-penalty row. Both mechanics may contribute to the board approaching the danger line.
 
@@ -140,7 +143,7 @@ Difficulty increases through:
 - progressively more special bubbles;
 - miss limit tightening from 5 to 4 and eventually 3;
 - modest baseline shot-speed increase by level, with launched speed globally multiplied by three;
-- timed ceiling pressure becoming faster and slightly deeper per drop;
+- timed ceiling pressure beginning twice as fast, accelerating after every same-level drop and becoming slightly deeper per drop;
 - continued scaling after the first 200 levels.
 
 ## Rendering and performance
@@ -193,4 +196,4 @@ Terminal death must:
 3. explicitly request the shared `RWGGameOver` presentation;
 4. preserve full score on the one-credit `rwg:continue-game` path.
 
-Continue may prune dangerous bottom rows to make resumption playable, but must not reset score, level, elapsed level time or the start-of-level scoring baseline.
+Continue may prune dangerous bottom rows to make resumption playable, but must not reset score, level, elapsed level time, the start-of-level scoring baseline or accumulated same-level pressure acceleration.

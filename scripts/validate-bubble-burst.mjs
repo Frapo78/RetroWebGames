@@ -18,7 +18,7 @@ for (const rel of ['games/bubble-burst/levels.js','games/bubble-burst/game.js'])
 }
 
 const html = read('games/bubble-burst/index.html');
-must(html.includes('<script src="levels.js"></script>'), 'Bubble Burst must load levels.js');
+must(html.includes('<script src="levels.js?v=20260902.1"></script>'), 'Bubble Burst must load cache-versioned levels.js');
 must(/<script src="game\.js(?:\?v=[^"]+)?"><\/script>/.test(html), 'Bubble Burst must load its optionally cache-versioned game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
@@ -40,7 +40,17 @@ const levels = sandbox.window.BubbleBurstLevels;
 must(levels?.TOTAL_CONFIGS === 200, `Expected 200 base configurations; found ${levels?.TOTAL_CONFIGS}`);
 if (levels?.getLevel) {
   const configs = Array.from({ length: 200 }, (_, index) => levels.getLevel(index + 1, 11));
+  const repeatedConfigs = Array.from({ length: 200 }, (_, index) => levels.getLevel(index + 1, 11));
+  const compositionKey = config => config.cells.map(cell => `${cell.r},${cell.c},${cell.colorIndex},${cell.special}`).join('|');
   must(new Set(configs.map(config => config.signature)).size === 200, 'First 200 layout signatures must be unique');
+  must(configs.every((config, index) => config.signature === repeatedConfigs[index].signature && compositionKey(config) === compositionKey(repeatedConfigs[index])), 'A numbered level must always reproduce the exact same layout');
+  const firstThousand = Array.from({ length: 1000 }, (_, index) => levels.getLevel(index + 1, 11));
+  must(new Set(firstThousand.map(compositionKey)).size === 1000, 'First 1000 levels must have distinct actual bubble compositions');
+  must(configs.every(config => Array.isArray(config.clusters) && config.clusters.length >= 2), 'Every level must contain deterministic downward cluster descriptors');
+  must(firstThousand.at(-1).clusters.length > firstThousand[0].clusters.length, 'Cluster count must grow through long-run progression');
+  must(Math.max(...configs.at(-1).cells.map(cell => cell.r)) > Math.max(...configs[0].cells.map(cell => cell.r)), 'Late catalogue levels must reach deeper than level 1');
+  const averageCells = entries => entries.reduce((sum, config) => sum + config.cells.length, 0) / entries.length;
+  must(averageCells(configs.slice(-10)) > averageCells(configs.slice(0, 10)) * 2, 'Late catalogue architecture must be substantially denser than early levels');
   must(configs.every(config => config.cells.length > 0), 'Base layouts must never be empty');
   must(configs.every(config => Number.isFinite(config.optimalSeconds) && config.optimalSeconds >= 30), 'Every layout needs sane deterministic optimalSeconds');
   must(new Set(configs.map(config => config.optimalSeconds)).size > 10, 'Optimal time must vary materially by layout');
@@ -68,7 +78,7 @@ must(game.includes("const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff',
 for (const marker of ['drawNormalGlassMarble', 'drawBombSprite', 'drawMetalBubble', 'drawStoneBubble', 'drawPlasticBubble', 'g.lineWidth = 6.2', 'g.lineWidth = 3.2']) must(game.includes(marker), 'Material-specific cached bubble renderer missing: ' + marker);
 must(game.includes('sphere.addColorStop(.6, color)') && game.includes('const blendedRing = g.createRadialGradient(48, 48, 7, 48, 48, 33)'), 'Ordinary marbles must retain a full-color center and double-width softly blended dark ring');
 must(!game.includes('g.strokeStyle = dark'), 'The internal dark ring must not regress to a hard stroke');
-must(html.includes('style.css?v=20260901.5') && html.includes('game.js?v=20260901.5'), 'Bubble double-width blended-ring assets must retain their cache-busting release query');
+must(html.includes('style.css?v=20260901.5') && html.includes('levels.js?v=20260902.1') && html.includes('game.js?v=20260902.1'), 'Bubble changed assets must retain their cache-busting release query');
 matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');
@@ -90,16 +100,19 @@ must(!game.includes('queue.shift()'), 'Graph traversal must not regress to Array
 const pressureStart = Number(game.match(/PRESSURE_START_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureMin = Number(game.match(/PRESSURE_MIN_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureDecay = Number(game.match(/PRESSURE_DECAY\s*=\s*([0-9.]+)/)?.[1]);
+const pressureDropDecay = Number(game.match(/PRESSURE_DROP_DECAY\s*=\s*([0-9.]+)/)?.[1]);
 const pressureStartRows = Number(game.match(/PRESSURE_START_ROWS\s*=\s*([0-9.]+)/)?.[1]);
 const pressureMaxRows = Number(game.match(/PRESSURE_MAX_ROWS\s*=\s*([0-9.]+)/)?.[1]);
-must(Number.isFinite(pressureStart) && pressureStart >= 60, `Level-1 pressure must not begin before 60s; found ${pressureStart}`);
-must(Number.isFinite(pressureMin) && pressureMin >= 12 && pressureMin < pressureStart, `Pressure floor must remain progressive/playable; found ${pressureMin}`);
+must(pressureStart === 32.5, `Level-1 pressure must begin after the halved 32.5s window; found ${pressureStart}`);
+must(pressureMin === 8, `Pressure floor must remain at the halved 8s interval; found ${pressureMin}`);
 must(Number.isFinite(pressureDecay) && pressureDecay > 0 && pressureDecay < 1, `Pressure interval must decrease progressively; found ${pressureDecay}`);
+must(Number.isFinite(pressureDropDecay) && pressureDropDecay > .75 && pressureDropDecay < 1, `Same-level pressure acceleration must remain progressive and playable; found ${pressureDropDecay}`);
 must(Number.isFinite(pressureStartRows) && pressureStartRows > 0 && pressureStartRows <= .6, `Initial pressure step should stay near half-row; found ${pressureStartRows}`);
 must(Number.isFinite(pressureMaxRows) && pressureMaxRows >= pressureStartRows && pressureMaxRows <= 1, `Pressure step cap must be <= one row; found ${pressureMaxRows}`);
 matches(game, /y\s*:\s*ceilingY\(\)\s*\+\s*R\s*\+\s*r\s*\*\s*ROW_H/, 'Cell geometry must include descending ceiling offset');
 matches(game, /function\s+updatePressure\s*\(\s*dt\s*\)/, 'Timed ceiling-pressure update missing');
 matches(game, /if\s*\(\s*pressureDue\s*&&\s*!moving\s*\)\s*applyPressureDrop\s*\(\s*\)/, 'Pressure drop must wait for in-flight projectile');
+matches(game, /pressureDrops\+\+\s*;\s*pressureInterval\s*=\s*pressureIntervalFor\(level,\s*pressureDrops\)/, 'Every same-level drop must shorten the next pressure interval');
 matches(game, /banner\s*=\s*['"]↓ STRUTTURA IN DISCESA!['"]/, 'Pressure drop arcade feedback missing');
 matches(game, /remaining\s*>\s*6\s*&&\s*pressurePulse\s*<=\s*0/, 'Final six-second pressure warning missing');
 matches(game, /pressureElapsed\s*=\s*0\s*;\s*pressureDue\s*=\s*false\s*;\s*pressurePulse\s*=\s*0/, 'Credit Continue must reset only next pressure countdown');
@@ -135,11 +148,12 @@ matches(game, /function\s+applyPendingBombReward\s*\(/, 'Deferred Bomb reward lo
 
 // Resume contract: logical board state + deterministic layout signature + shared v2 service.
 matches(game, /id\s*:\s*['"]bubble-burst['"]/, 'Bubble Burst resume adapter id missing');
-matches(game, /version\s*:\s*1/, 'Bubble Burst adapter version missing');
-matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v1-layouts200-pressure2-specials1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
+matches(game, /version\s*:\s*2/, 'Bubble Burst adapter version missing');
+matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v2-clustered-levels-pressure3-specials1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
 matches(game, /pauseBtn\.textContent\s*=\s*paused\s*&&\s*!levelClearActive\s*\?[^:]+:[^;]+;/, "Restored level-clear intermission must not masquerade as an ordinary pause");
 matches(game, /layoutSignature\s*:\s*boardMeta\?\.signature/, 'Snapshot must persist deterministic layout signature');
 matches(game, /s\.layoutSignature\s*!==\s*meta\.signature/, 'Restore validation must reject changed level layouts');
+must(game.includes('pressureRows,pressureDrops,pressureElapsed'), 'Snapshot must persist same-level pressure acceleration state');
 matches(game, /serializeResumeState\s*\(/, 'Resume serializer missing');
 matches(game, /validateResumeState\s*\(/, 'Resume validator missing');
 matches(game, /restoreResumeState\s*\(/, 'Resume restore path missing');
@@ -158,7 +172,8 @@ if (failures.length) {
 }
 
 console.log('Bubble Burst validation OK');
-console.log('  ✓ 200 deterministic configurations + timing/bonus/pressure contracts');
+console.log('  ✓ fixed numbered layouts + 1000 distinct deterministic clustered compositions');
+console.log('  ✓ timing/bonus and accelerating pressure contracts');
 console.log('  ✓ special bubbles, rare shots and cached rendering guards');
 console.log('  ✓ semantic checks are formatting-independent');
 console.log('  ✓ deterministic layout-aware resumable session adapter');

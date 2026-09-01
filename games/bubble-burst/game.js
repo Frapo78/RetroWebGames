@@ -19,9 +19,10 @@
   const SHOT_NORMAL = 'normal', SHOT_BOMB = 'bomb', SHOT_COLOR_CLEAR = 'colorClear';
   const STATIC_NORMAL = 'normal', STATIC_ARMOR = 'armor', STATIC_STAR = 'star', STATIC_PRISM = 'prism';
   const COLS = 11;
-  const PRESSURE_START_SECONDS = 65;
-  const PRESSURE_MIN_SECONDS = 16;
+  const PRESSURE_START_SECONDS = 32.5;
+  const PRESSURE_MIN_SECONDS = 8;
   const PRESSURE_DECAY = .982;
+  const PRESSURE_DROP_DECAY = .86;
   const PRESSURE_START_ROWS = .5;
   const PRESSURE_MAX_ROWS = .9;
   const PRESSURE_ROW_GROWTH = .004;
@@ -29,7 +30,7 @@
   const LEVEL_BONUS_FAST = .50;
   const LEVEL_BONUS_GOOD = .25;
   const LEVEL_CLEAR_CELEBRATION_MS = 2000;
-  const RESUME_SCHEMA = 1;
+  const RESUME_SCHEMA = 2;
 
   let W = 390, H = 844, DPR = 1;
   let R = 16, CELL = 32, ROW_H = 28, TOP = 108;
@@ -43,7 +44,7 @@
   let crewMood = 'idle', crewMoodTime = 0;
   let poppingShotStreak = 0, rewardBombsPending = 0;
   let boardMeta = null, backgroundCache = null, audio = null;
-  let pressureRows = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
+  let pressureRows = 0, pressureDrops = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
   let levelElapsed = 0, levelStartScore = 0, lastTimerCentis = -1;
   let levelClearActive = false, levelClearReadyAt = 0, levelClearCelebrationStartedAt = 0, levelClearPanelShown = false;
   let best = Number(localStorage.getItem('bubbleBurstBest') || 0);
@@ -97,7 +98,7 @@
     image.decode().then(markReady, () => image.complete ? markReady() : image.addEventListener('load', markReady, { once: true }));
     crewSheets[role] = image;
   }
-  const pressureIntervalFor = lvl => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)));
+  const pressureIntervalFor = (lvl, drops = 0) => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)) * Math.pow(PRESSURE_DROP_DECAY, Math.max(0, drops)));
   const pressureStepFor = lvl => Math.min(PRESSURE_MAX_ROWS, PRESSURE_START_ROWS + Math.max(0, lvl - 1) * PRESSURE_ROW_GROWTH);
   const ceilingY = () => TOP + pressureRows * ROW_H;
 
@@ -138,6 +139,7 @@
 
   function resetPressure() {
     pressureRows = 0;
+    pressureDrops = 0;
     pressureElapsed = 0;
     pressureInterval = pressureIntervalFor(level);
     pressureDue = false;
@@ -440,7 +442,7 @@
   }
 
   function applyPressureDrop() {
-    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressurePulse = .85; setCrewMood('fear', 1.3); banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
+    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressureDrops++; pressureInterval = pressureIntervalFor(level, pressureDrops); pressurePulse = .85; setCrewMood('fear', 1.3); banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
   }
   function updatePressure(dt) { pressureElapsed += dt; pressurePulse = Math.max(0, pressurePulse - dt); if (pressureElapsed >= pressureInterval) pressureDue = true; if (pressureDue && !moving) applyPressureDrop(); }
 
@@ -740,10 +742,10 @@
 
   function validShot(s){return Boolean(s&&[SHOT_NORMAL,SHOT_BOMB,SHOT_COLOR_CLEAR].includes(s.kind)&&PALETTE.includes(s.color));}
   function validateResumeState(s){
-    if(!s||s.schema!==RESUME_SCHEMA||!Number.isInteger(s.level)||s.level<1||!Number.isInteger(s.misses)||s.misses<0||!Number.isInteger(s.missLimit)||!Number.isInteger(s.colorCount))return false;
+    if(!s||s.schema!==RESUME_SCHEMA||!Number.isInteger(s.level)||s.level<1||!Number.isInteger(s.misses)||s.misses<0||!Number.isInteger(s.missLimit)||!Number.isInteger(s.colorCount)||!Number.isInteger(s.pressureDrops)||s.pressureDrops<0)return false;
     const meta=Levels.getLevel(s.level,COLS),expectedLimit=s.level>=80?3:s.level>=28?4:5;if(s.layoutSignature!==meta.signature||s.colorCount!==meta.colorCount||s.missLimit!==expectedLimit)return false;
     if(![s.score,s.pressureRows,s.pressureElapsed,s.pressureInterval,s.levelElapsed,s.levelStartScore].every(Number.isFinite)||s.score<0||s.pressureRows<0||s.pressureElapsed<0||s.levelElapsed<0||s.levelStartScore<0)return false;
-    if(Math.abs(s.pressureInterval-pressureIntervalFor(s.level))>.001||s.pressureRows>100||s.pressureElapsed>s.pressureInterval+300)return false;
+    if(Math.abs(s.pressureInterval-pressureIntervalFor(s.level,s.pressureDrops))>.001||Math.abs(s.pressureRows-s.pressureDrops*pressureStepFor(s.level))>.001||s.pressureRows>100||s.pressureDrops>250||s.pressureElapsed>s.pressureInterval+300)return false;
     if(!validShot(s.currentShot)||!validShot(s.nextShot)||!Number.isInteger(s.poppingShotStreak)||s.poppingShotStreak<0||s.poppingShotStreak>4||!Number.isInteger(s.rewardBombsPending)||s.rewardBombsPending<0||s.rewardBombsPending>20)return false;
     if(!Array.isArray(s.grid)||new Set(s.grid.map(b=>`${b.r},${b.c}`)).size!==s.grid.length)return false;
     const types=new Set([STATIC_NORMAL,STATIC_ARMOR,STATIC_STAR,STATIC_PRISM]);
@@ -754,10 +756,10 @@
     if(s.levelClearActive&&(!s.clearSummary||['title','points','time','bonus','total'].some(k=>typeof s.clearSummary[k]!=='string')))return false;
     return true;
   }
-  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,levelClearActive,clearSummary:levelClearActive?{title:levelClearTitleEl.textContent,points:clearPointsEl.textContent,time:clearTimeEl.textContent,bonus:clearBonusEl.textContent,total:clearTotalEl.textContent}:null,grid:[...grid.values()].map(b=>({...b}))};}
-  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){levelClearTitleEl.textContent=s.clearSummary.title;clearPointsEl.textContent=s.clearSummary.points;clearTimeEl.textContent=s.clearSummary.time;clearBonusEl.textContent=s.clearSummary.bonus;clearTotalEl.textContent=s.clearSummary.total;levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
+  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureDrops,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,levelClearActive,clearSummary:levelClearActive?{title:levelClearTitleEl.textContent,points:clearPointsEl.textContent,time:clearTimeEl.textContent,bonus:clearBonusEl.textContent,total:clearTotalEl.textContent}:null,grid:[...grid.values()].map(b=>({...b}))};}
+  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureDrops=s.pressureDrops;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){levelClearTitleEl.textContent=s.clearSummary.title;clearPointsEl.textContent=s.clearSummary.points;clearTimeEl.textContent=s.clearSummary.time;clearBonusEl.textContent=s.clearSummary.bonus;clearTotalEl.textContent=s.clearSummary.total;levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
   function startFreshResume(){ensureAudio();window.RWGSession?.clear?.();resetGame();running=true;paused=false;startBtn.textContent='GIOCA';overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';last=performance.now();markSessionDirty('new-game');}
-  const resumeAdapter=Object.freeze({id:'bubble-burst',version:1,compatibility:'bubble-burst-state-v1-layouts200-pressure2-specials1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>`livello ${s.level} • ${formatLevelTime(s.levelElapsed||0)} • ${Math.floor(s.score||0).toLocaleString('it-IT')} punti`});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
+  const resumeAdapter=Object.freeze({id:'bubble-burst',version:2,compatibility:'bubble-burst-state-v2-clustered-levels-pressure3-specials1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>`livello ${s.level} • ${formatLevelTime(s.levelElapsed||0)} • ${Math.floor(s.score||0).toLocaleString('it-IT')} punti`});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
 
   canvas.addEventListener('pointerdown',e=>{if(!running||paused||moving||levelClearActive)return;e.preventDefault();aiming=true;canvas.setPointerCapture?.(e.pointerId);setAim(e);ensureAudio();});
   canvas.addEventListener('pointermove',e=>{if(!aiming)return;e.preventDefault();setAim(e);});

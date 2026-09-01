@@ -13,6 +13,25 @@
   const fract = n => n - Math.floor(n);
   const hash01 = (a, b, c = 0) => fract(Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453123);
 
+  function makeClusters(level, cols, rows, colorCount, seed) {
+    const progress = clamp(Math.log2(level + 1) / 8, 0, 1);
+    const count = clamp(2 + Math.floor(progress * 4), 2, 6);
+    const baseDepth = 1.15 + progress * Math.max(1.6, rows * .38);
+    return Array.from({ length: count }, (_, index) => ({
+      center: hash01(seed, index + 11, level) * (cols - 1),
+      width: 1.05 + hash01(seed + 19, index + 23, level) * (1.35 + progress * .75),
+      depth: baseDepth * (.72 + hash01(seed + 37, index + 41, level) * .58),
+      colorIndex: Math.floor(hash01(seed + 53, index + 59, level) * colorCount) % colorCount
+    }));
+  }
+
+  function clusterInfluence(c, cluster) {
+    const distance = Math.abs(c - cluster.center) / cluster.width;
+    if (distance >= 1) return 0;
+    const roundedLobe = 1 - distance * distance;
+    return cluster.depth * roundedLobe;
+  }
+
   function heightFor(motif, c, cols, rows, variant) {
     const x = cols <= 1 ? 0 : c / (cols - 1);
     const center = Math.abs(x - .5) * 2;
@@ -46,7 +65,20 @@
     return clamp(Math.round(h + variantNudge), 2, rows);
   }
 
-  function colorFor(motif, r, c, colorCount, variant) {
+  function colorFor(motif, r, c, colorCount, variant, seed, height, clusters) {
+    let owner = null, ownerDistance = Infinity;
+    for (const cluster of clusters) {
+      const distance = Math.abs(c - cluster.center) / cluster.width;
+      if (distance < ownerDistance) { owner = cluster; ownerDistance = distance; }
+    }
+    if (owner && ownerDistance < 1.08) {
+      const bottomDepth = height - 1 - r;
+      const clusterBand = Math.max(2, Math.round(owner.depth * .95));
+      if (bottomDepth < clusterBand) {
+        const variation = hash01(seed + r * 7, c * 11, variant);
+        return variation < .18 ? (owner.colorIndex + 1 + (r & 1)) % colorCount : owner.colorIndex;
+      }
+    }
     switch (motif % 8) {
       case 0: return (r + Math.floor(c / 3) + variant) % colorCount;
       case 1: return (c + variant) % colorCount;
@@ -85,27 +117,32 @@
     const safeLevel = Math.max(1, Math.floor(level || 1));
     const id = ((safeLevel - 1) % TOTAL_CONFIGS) + 1;
     const cycle = Math.floor((safeLevel - 1) / TOTAL_CONFIGS);
-    const motif = (id - 1) % MOTIFS.length;
-    const variant = Math.floor((id - 1) / MOTIFS.length);
-    const rows = clamp(5 + Math.floor((id - 1) / 34) + Math.min(2, cycle), 5, 12);
-    const colorCount = clamp(4 + Math.floor((id - 1) / 72) + Math.min(1, cycle), 4, 6);
-    const seed = id * 97 + variant * 541 + motif * 31 + cycle * 10007;
+    const motif = (safeLevel - 1) % MOTIFS.length;
+    const variant = Math.floor((safeLevel - 1) / MOTIFS.length);
+    const rows = clamp(5 + Math.floor((safeLevel - 1) / 34), 5, 12);
+    const colorCount = clamp(4 + Math.floor((safeLevel - 1) / 72), 4, 6);
+    const seed = safeLevel * 10007 + variant * 541 + motif * 31;
+    const clusters = makeClusters(safeLevel, cols, rows, colorCount, seed);
     const heights = [];
     const cells = [];
 
     for (let c = 0; c < cols; c++) {
-      const h = heightFor(motif, c, cols, rows, variant);
+      const baseHeight = heightFor(motif, c, cols, rows, variant);
+      let clusterBoost = 0;
+      for (const cluster of clusters) clusterBoost = Math.max(clusterBoost, clusterInfluence(c, cluster));
+      const h = clamp(Math.round(baseHeight + clusterBoost), 2, rows);
       heights.push(h);
       for (let r = 0; r < h; r++) {
         if (r % 2 === 1 && c === cols - 1) continue;
         const special = specialFor(safeLevel, r, c, seed);
-        cells.push({ r, c, colorIndex: colorFor(motif, r, c, colorCount, variant), special });
+        cells.push({ r, c, colorIndex: colorFor(motif, r, c, colorCount, variant, seed, h, clusters), special });
       }
     }
 
     const optimalSeconds = optimalSecondsFor(cells, colorCount, rows, safeLevel);
-    const signature = `${id}:${motif}:${variant}:${rows}:${colorCount}:${heights.join('.')}`;
-    return { id, cycle, motif, variant, name: MOTIFS[motif], rows, colorCount, cells, optimalSeconds, signature };
+    const clusterSignature = clusters.map(cluster => `${cluster.center.toFixed(3)},${cluster.width.toFixed(3)},${cluster.depth.toFixed(3)},${cluster.colorIndex}`).join(';');
+    const signature = `${safeLevel}:${id}:${motif}:${variant}:${rows}:${colorCount}:${heights.join('.')}:${clusterSignature}`;
+    return { id, cycle, motif, variant, name: MOTIFS[motif], rows, colorCount, cells, clusters, optimalSeconds, signature };
   }
 
   window.BubbleBurstLevels = Object.freeze({ TOTAL_CONFIGS, MOTIFS: [...MOTIFS], getLevel });
