@@ -66,9 +66,9 @@ matches(game, /c\.width\s*=\s*c\.height\s*=\s*96/, 'Bubble cache sprites must re
 matches(game, /globalCompositeOperation\s*=\s*['"]screen['"]/, 'Bubble sprites must retain cached specular and bounce-light compositing');
 must(game.includes("const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18']"), 'Bubble palette must stay aligned with the raster cover');
 for (const marker of ['drawNormalGlassMarble', 'drawBombSprite', 'drawMetalBubble', 'drawStoneBubble', 'drawPlasticBubble', 'g.lineWidth = 6.2', 'g.lineWidth = 3.2']) must(game.includes(marker), 'Material-specific cached bubble renderer missing: ' + marker);
-must(game.includes('sphere.addColorStop(.6, color)') && game.includes('const blendedRing = g.createRadialGradient(48, 48, 20, 48, 48, 33)'), 'Ordinary marbles must retain a full-color center and softly blended dark ring');
+must(game.includes('sphere.addColorStop(.6, color)') && game.includes('const blendedRing = g.createRadialGradient(48, 48, 7, 48, 48, 33)'), 'Ordinary marbles must retain a full-color center and double-width softly blended dark ring');
 must(!game.includes('g.strokeStyle = dark'), 'The internal dark ring must not regress to a hard stroke');
-must(html.includes('style.css?v=20260901.4') && html.includes('game.js?v=20260901.4'), 'Bubble blended-ring assets must retain their cache-busting release query');
+must(html.includes('style.css?v=20260901.5') && html.includes('game.js?v=20260901.5'), 'Bubble double-width blended-ring assets must retain their cache-busting release query');
 matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');

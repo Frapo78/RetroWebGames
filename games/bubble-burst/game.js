@@ -521,7 +521,7 @@
       g.fillStyle = softBloom; g.fillRect(9, 6, 51, 49);
     });
 
-    const blendedRing = g.createRadialGradient(48, 48, 20, 48, 48, 33);
+    const blendedRing = g.createRadialGradient(48, 48, 7, 48, 48, 33);
     blendedRing.addColorStop(0, 'rgba(0,0,12,0)');
     blendedRing.addColorStop(.28, 'rgba(0,0,12,.02)');
     blendedRing.addColorStop(.5, 'rgba(0,0,12,.08)');
