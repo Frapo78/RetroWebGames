@@ -463,4 +463,5 @@
   retryQueue();
   getRunId();
   window.RWGLeaderboard = Object.freeze({ load: loadBoard, getRunId, startNewRun, retryQueue });
+  window.dispatchEvent(new CustomEvent('rwg:leaderboard-ready'));
 })();

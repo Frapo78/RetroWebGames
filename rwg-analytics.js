@@ -214,9 +214,15 @@
     beginEngagement('resume');
   });
 
-  window.addEventListener('rwg:session-declined', () => {
-    track('game_resume_declined');
-    startFreshTracked('resume_declined');
+  window.addEventListener('rwg:session-declined', event => {
+    stopVisibleClock();
+    gameStarted = false;
+    gameEnded = true;
+    track('game_resume_declined', {
+      eligible: bool(event.detail?.eligible),
+      score: number(event.detail?.score),
+      active_seconds: Number.isFinite(Number(event.detail?.activeMs)) ? Math.floor(Number(event.detail.activeMs) / 1000) : undefined
+    });
   });
 
   window.addEventListener('rwg:session-restore-failed', () => {

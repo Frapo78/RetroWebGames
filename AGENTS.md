@@ -71,6 +71,7 @@ Forbidden regressions include:
 - direct leaderboard API calls from pause/game code;
 - clearing `rwg.session.v2:*` merely because a run is paused;
 - using shared Game Over as the ordinary pause screen.
+- calling an adapter's `startFresh()` when the user answers No to a valid saved-run prompt; this path must terminal-suppress, reuse shared interrupted-run eligibility/leaderboard handling and return to the idle intro.
 
 After pause-related work run at minimum:
 

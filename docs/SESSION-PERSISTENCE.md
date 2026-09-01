@@ -20,7 +20,7 @@ If a genuine unfinished run survives reload, browser/app closure, background dis
 
 > Vuoi continuare la partita precedente?
 
-- **No**: discard the old snapshot and start a genuine fresh run.
+- **No**: terminate the saved run, evaluate its interrupted result with the same centralized pause eligibility rules, optionally register it in High Scores, then remain on the initial screen of that same game. It MUST NOT auto-start a new run.
 - **Sì**: restore the exact saved unfinished run.
 
 This free restore is separate from one-credit Game Over Continue.
@@ -59,7 +59,7 @@ Semantics:
 - `serialize()` returns compact authoritative logical state;
 - `validate()` rejects corrupt/impossible/incompatible state;
 - `restore()` reconstructs exact logical progress;
-- `startFresh()` creates a real new run after the user rejects resume;
+- `startFresh()` creates a real new run only for an explicit gameplay start or as the safe fallback after an invalid restore; rejecting a valid saved run does not call it;
 - `compatibility` changes whenever old snapshots become semantically unsafe.
 
 ## Automatic invalidation
@@ -162,11 +162,12 @@ Runtime smoke tests must include:
 
 1. progress → reload → Sì → exact continuation;
 2. progress → navigation → reopen → Sì;
-3. progress → reload → No → genuine fresh run;
-4. pause/background/reopen;
-5. terminal Game Over → reload → no stale prompt;
-6. successful completion → reload → no stale prompt;
-7. pause menu `TERMINA PARTITA` → immediate reload → no stale prompt;
-8. pause termination followed immediately by `beforeunload/pagehide` → no snapshot recreation;
-9. Game Over → credit Continue → background/reload → continued run is resumable;
-10. corrupt/version-mismatched snapshot → safe discard.
+3. progress → reload → No below threshold → snapshot removed, no registration and same-game intro without auto-start;
+4. eligible progress → reload → No → shared High Score registration (automatic with saved nickname, coin-op prompt on first use), then same-game intro;
+5. pause/background/reopen;
+6. terminal Game Over → reload → no stale prompt;
+7. successful completion → reload → no stale prompt;
+8. pause menu `TERMINA PARTITA` → immediate reload → no stale prompt;
+9. pause termination followed immediately by `beforeunload/pagehide` → no snapshot recreation;
+10. Game Over → credit Continue → background/reload → continued run is resumable;
+11. corrupt/version-mismatched snapshot → safe discard.

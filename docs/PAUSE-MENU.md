@@ -44,6 +44,8 @@ This ordering is mandatory. It prevents Home, pagehide, beforeunload, freeze, he
 
 After terminal suppression, an eligible result is emitted through `rwg:leaderboard-result` using the already captured data. Pause never calls the leaderboard HTTP API directly. Registration may finish through the normal idempotent/offline shared client; a bounded fallback reload prevents the UI from hanging forever. Non-eligible runs reload directly after terminal cleanup.
 
+The same centralized `45 seconds + per-game score threshold` policy also evaluates a saved run when the player answers **No** to the resume prompt. `RWGSession` first terminal-suppresses the saved run with `terminate('resume-declined')`; shared pause then evaluates the immutable saved payload and persisted active time, emits an eligible result through the normal leaderboard event, and leaves the player on the intro of that same game. It never invokes the adapter's `startFresh()` and never auto-starts gameplay. A `rwg:pause-ready` / `rwg:leaderboard-ready` handshake makes the path safe even when shared scripts finish bootstrap in a different order.
+
 A normal pause remains resumable and must not clear the session. Saving is enabled again only by a genuine `rwg:game-session-start` or `rwg:continue-game` lifecycle.
 
 ## Orientation and Game Over

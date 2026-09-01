@@ -147,6 +147,26 @@
     try { adapter?.startFresh?.(); } catch (_) {}
   }
 
+  function declineSaved(envelope) {
+    const gameId = adapter?.id || '';
+    const detail = Object.freeze({ gameId, payload: envelope.payload, envelope });
+    // Rejecting a saved run is terminal: suppress lifecycle writes before the
+    // shared interrupted-run policy performs any asynchronous leaderboard work.
+    terminate('resume-declined');
+    hidePrompt();
+
+    const finalize = () => {
+      if (typeof window.RWGPauseMenu?.finalizeResumeDecline === 'function') {
+        window.RWGPauseMenu.finalizeResumeDecline(detail);
+        return;
+      }
+      window.dispatchEvent(new CustomEvent('rwg:session-declined', { detail: { gameId, eligible: false } }));
+    };
+
+    if (window.RWGPauseMenu) finalize();
+    else window.addEventListener('rwg:pause-ready', finalize, { once: true });
+  }
+
   function showPrompt(envelope) {
     if (!adapter || !envelope || promptOpen) return;
     const layer = ensureModal();
@@ -163,10 +183,7 @@
     const yes = layer.querySelector('[data-rwg-resume-yes]');
 
     no.onclick = () => {
-      clearSaved();
-      hidePrompt();
-      startFresh();
-      window.dispatchEvent(new CustomEvent('rwg:session-declined', { detail: { gameId: adapter.id } }));
+      declineSaved(envelope);
     };
 
     yes.onclick = () => {

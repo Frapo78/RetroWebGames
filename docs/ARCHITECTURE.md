@@ -29,6 +29,8 @@ Every game page exposes `#startBtn`, `#pauseBtn`, `<body data-rwg-game="true" da
 
 A genuine new run emits `rwg:game-session-start`. A credit Continue emits `rwg:continue-game`. Terminal Game Over emits `rwg:game-ended`. Successful completion may emit `rwg:session-completed`. These events are platform contracts, not presentation details.
 
+Rejecting a valid saved run is also terminal. `RWGSession` clears/suppresses the snapshot, delegates the immutable payload to shared pause eligibility, and leaves the same-game intro idle. Eligible interrupted results use the shared leaderboard event; rejection must never call the game adapter's `startFresh()`.
+
 ## RWGSession v2
 `rwg-session.js` exclusively owns unfinished-run persistence. Namespace is `rwg.session.v2:<game-id>`, envelope schema 2, dirty debounce 750 ms, heartbeat 5 seconds, snapshot limit 384 KiB. It checkpoints on hidden, pagehide, beforeunload, freeze and same-tab navigation and validates adapter version, compatibility and semantic payload before restore.
 

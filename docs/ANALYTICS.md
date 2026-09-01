@@ -34,7 +34,7 @@ Gameplay funnel:
 - `game_restart` — another new run after a previous run/start.
 - `gameplay_begin` — engagement clock starts after new, restart, resume or paid Continue.
 - `game_resume` — unfinished autosaved run restored.
-- `game_resume_declined` — user chose a fresh run instead of restoring.
+- `game_resume_declined` — user closed a saved run instead of restoring; reports only numeric score/active seconds and the low-cardinality eligibility flag, and does not fabricate a new gameplay start.
 - `game_resume_failed` — saved state could not be restored safely.
 - `game_continue` — shared one-credit Continue granted.
 - `level_reached` — shared level HUD advanced.

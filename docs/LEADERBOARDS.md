@@ -17,6 +17,7 @@ The shared client listens to:
 - `rwg:game-session-start` — starts a new leaderboard run id;
 - `rwg:game-over-summary` — terminal result from the shared Game Over;
 - `rwg:leaderboard-result` — successful completion without Game Over, currently Solitario;
+- `rwg:leaderboard-result` also carries eligible interrupted runs from either confirmed pause termination or a rejected saved-session resume, always after synchronous terminal suppression;
 - `online` — retries idempotently queued submissions and refreshes ranking state.
 
 The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and per-game cache as game pages. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
@@ -108,6 +109,8 @@ The service issues a Secure, HttpOnly, SameSite=Lax pseudonymous player cookie. 
 ## Ranking
 
 Every completed new run is eligible, including multiple runs from the same player.
+
+An interrupted saved run is submitted only when it passes the authoritative shared interruption policy: at least 45 seconds of active play and a score strictly above the game threshold in `rwg-pause-menu.js`. Answering No to resume never creates a new run automatically; after optional first-name registration the existing game intro remains visible.
 
 - Arcade games: score, level/progression, game-specific tertiary metric, then earliest server timestamp.
 - Neon Rally: win, score differential, maximum rally, then timestamp.

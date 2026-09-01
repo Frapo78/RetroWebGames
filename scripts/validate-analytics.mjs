@@ -40,7 +40,8 @@ must(analytics.includes('milestones = [30, 120, 300, 600, 1200]'), 'Gameplay eng
 must(analytics.includes('RWGResumeAdapter?.isInProgress'), 'Intentional exits must retain in-progress context');
 must(analytics.includes('gameplayPaused') && analytics.includes('setGameplayPaused'), 'Engagement timer must exclude explicit pause time');
 must(analytics.includes("label.includes('RIPRENDI')"), 'RIPRENDI must not be counted as a game restart');
-must(analytics.includes("startFreshTracked('resume_declined')"), 'Declining a saved game must begin a tracked fresh run');
+must(!analytics.includes("startFreshTracked('resume_declined')"), 'Declining a saved game must not fabricate a fresh-run analytics lifecycle');
+must(analytics.includes('eligible: bool(event.detail?.eligible)') && analytics.includes('event.detail.activeMs'), 'Saved-run decline analytics must describe interrupted eligibility without PII');
 must(analytics.includes("startFreshTracked('restore_failed')"), 'Safe fallback after failed restore must begin a tracked fresh run');
 
 must(hud.includes('rwg-analytics.js'), 'game-hud.js must bootstrap centralized analytics for every game');
