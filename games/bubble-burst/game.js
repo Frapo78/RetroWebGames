@@ -15,7 +15,7 @@
   const levelClearEl = $('levelClear'), levelClearTitleEl = $('levelClearTitle');
   const clearPointsEl = $('clearPoints'), clearTimeEl = $('clearTime'), clearBonusEl = $('clearBonus'), clearTotalEl = $('clearTotal');
 
-  const PALETTE = ['#ff5f73', '#65e7ff', '#ffe66d', '#8d7cff', '#7cffb2', '#ff934f'];
+  const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18'];
   const SHOT_NORMAL = 'normal', SHOT_BOMB = 'bomb', SHOT_COLOR_CLEAR = 'colorClear';
   const STATIC_NORMAL = 'normal', STATIC_ARMOR = 'armor', STATIC_STAR = 'star', STATIC_PRISM = 'prism';
   const COLS = 11;
@@ -491,40 +491,46 @@
     const glowColor = type === STATIC_PRISM || type === SHOT_COLOR_CLEAR ? '#d586ff' : type === SHOT_BOMB ? '#ff5f73' : normalColor;
 
     g.save();
-    g.shadowBlur = 16; g.shadowColor = glowColor; g.fillStyle = glowColor;
-    g.globalAlpha = .34; g.beginPath(); g.arc(x, y, rr + 1, 0, Math.PI * 2); g.fill();
+    g.shadowBlur = 8; g.shadowColor = glowColor; g.fillStyle = glowColor;
+    g.globalAlpha = .42; g.beginPath(); g.arc(x, y, rr + 1, 0, Math.PI * 2); g.fill();
     g.restore();
 
-    const sphere = g.createRadialGradient(34, 29, 2, 51, 52, 39);
+    const sphere = g.createRadialGradient(48, 49, 1, 48, 48, 35);
     if (type === SHOT_BOMB) {
-      sphere.addColorStop(0, '#fff7d7'); sphere.addColorStop(.10, '#ffcb65'); sphere.addColorStop(.36, '#ff704f'); sphere.addColorStop(.68, '#bd254f'); sphere.addColorStop(1, '#250619');
+      sphere.addColorStop(0, '#420717'); sphere.addColorStop(.48, '#8e1633'); sphere.addColorStop(.78, '#ff3b45'); sphere.addColorStop(.94, '#ffae55'); sphere.addColorStop(1, '#260513');
     } else if (type === SHOT_COLOR_CLEAR || type === STATIC_PRISM) {
-      sphere.addColorStop(0, '#ffffff'); sphere.addColorStop(.14, '#8ff5ff'); sphere.addColorStop(.36, '#6f8cff'); sphere.addColorStop(.58, '#f05fe8'); sphere.addColorStop(.79, '#ffd85b'); sphere.addColorStop(1, '#3a147c');
+      sphere.addColorStop(0, '#21105b'); sphere.addColorStop(.34, '#5e28c8'); sphere.addColorStop(.61, '#f05fe8'); sphere.addColorStop(.82, '#69edff'); sphere.addColorStop(.95, '#fff2a0'); sphere.addColorStop(1, '#351078');
     } else {
-      sphere.addColorStop(0, '#ffffff');
-      sphere.addColorStop(.09, mixBubbleColor(normalColor, '#ffffff', .78));
-      sphere.addColorStop(.30, mixBubbleColor(normalColor, '#ffffff', .24));
-      sphere.addColorStop(.62, normalColor);
-      sphere.addColorStop(.84, mixBubbleColor(normalColor, '#071126', .58));
-      sphere.addColorStop(1, mixBubbleColor(normalColor, '#02040c', .86));
+      sphere.addColorStop(0, mixBubbleColor(normalColor, '#02040c', .55));
+      sphere.addColorStop(.42, mixBubbleColor(normalColor, '#02040c', .38));
+      sphere.addColorStop(.68, mixBubbleColor(normalColor, '#071126', .15));
+      sphere.addColorStop(.82, normalColor);
+      sphere.addColorStop(.94, mixBubbleColor(normalColor, '#ffffff', .38));
+      sphere.addColorStop(1, mixBubbleColor(normalColor, '#02040c', .52));
     }
     g.fillStyle = sphere; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
 
     g.save();
-    g.beginPath(); g.arc(x, y, rr - .7, 0, Math.PI * 2); g.clip();
+    g.beginPath(); g.arc(x, y, rr - .6, 0, Math.PI * 2); g.clip();
     g.globalCompositeOperation = 'screen';
-    const specular = g.createRadialGradient(33, 27, 0, 34, 28, 16);
-    specular.addColorStop(0, 'rgba(255,255,255,.98)'); specular.addColorStop(.18, 'rgba(255,255,255,.88)'); specular.addColorStop(.48, 'rgba(255,255,255,.22)'); specular.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = specular; g.fillRect(16, 10, 38, 38);
-    const bounce = g.createRadialGradient(57, 65, 0, 57, 65, 25);
-    bounce.addColorStop(0, 'rgba(255,255,255,.26)'); bounce.addColorStop(.42, 'rgba(255,255,255,.08)'); bounce.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = bounce; g.fillRect(30, 39, 54, 48);
+    const directional = g.createRadialGradient(33, 28, 0, 34, 29, 25);
+    directional.addColorStop(0, 'rgba(255,255,255,.58)'); directional.addColorStop(.14, 'rgba(255,255,255,.30)'); directional.addColorStop(.42, 'rgba(255,255,255,.08)'); directional.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = directional; g.fillRect(13, 8, 50, 48);
+    const pinLight = g.createRadialGradient(31, 25, 0, 31, 25, 7);
+    pinLight.addColorStop(0, 'rgba(255,255,255,1)'); pinLight.addColorStop(.28, 'rgba(255,255,255,.92)'); pinLight.addColorStop(.58, 'rgba(255,255,255,.28)'); pinLight.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = pinLight; g.fillRect(23, 17, 16, 16);
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(30.5, 24.5, 1.8, 0, Math.PI * 2); g.fill();
     g.restore();
 
-    const rim = g.createLinearGradient(24, 20, 72, 76);
-    rim.addColorStop(0, 'rgba(255,255,255,.88)'); rim.addColorStop(.34, 'rgba(255,255,255,.34)'); rim.addColorStop(.7, 'rgba(255,255,255,.08)'); rim.addColorStop(1, 'rgba(3,8,24,.78)');
-    g.strokeStyle = rim; g.lineWidth = 2.2; g.beginPath(); g.arc(x, y, rr - 1.1, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 1.7; g.beginPath(); g.arc(x, y, rr - 5, 3.72, 5.05); g.stroke();
+    g.save();
+    g.strokeStyle = type === STATIC_PRISM || type === SHOT_COLOR_CLEAR ? '#e8f9ff' : type === SHOT_BOMB ? '#ff5b51' : normalColor;
+    g.shadowBlur = 7; g.shadowColor = glowColor; g.lineWidth = 3.1; g.beginPath(); g.arc(x, y, rr - 3.5, 0, Math.PI * 2); g.stroke();
+    g.shadowBlur = 3; g.strokeStyle = 'rgba(255,255,255,.88)'; g.lineWidth = 2.3; g.beginPath(); g.arc(x, y, rr - 6, 3.62, 4.72); g.stroke();
+    g.restore();
+
+    const rim = g.createLinearGradient(23, 19, 73, 77);
+    rim.addColorStop(0, 'rgba(255,255,255,.96)'); rim.addColorStop(.24, 'rgba(255,255,255,.42)'); rim.addColorStop(.62, 'rgba(255,255,255,.10)'); rim.addColorStop(1, 'rgba(2,5,18,.92)');
+    g.strokeStyle = rim; g.lineWidth = 2; g.beginPath(); g.arc(x, y, rr - .8, 0, Math.PI * 2); g.stroke();
 
     if (type === STATIC_ARMOR && armor > 0) { g.strokeStyle = '#e8f1ff'; g.lineWidth = 5; g.beginPath(); g.arc(x, y, rr - 5, .2, 2.75); g.stroke(); g.beginPath(); g.arc(x, y, rr - 5, 3.25, 5.8); g.stroke(); g.fillStyle = '#91a9c2'; [[24,43],[67,40],[43,20],[47,68]].forEach(([px,py])=>g.fillRect(px,py,6,6)); }
     else if (type === STATIC_STAR) { g.fillStyle = '#fff6a8'; g.shadowBlur = 7; g.shadowColor = '#ffe66d'; const pts=[[48,23],[53,40],[70,40],[56,50],[62,67],[48,57],[34,67],[40,50],[26,40],[43,40]]; g.beginPath(); pts.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py)); g.closePath(); g.fill(); g.shadowBlur = 0; }

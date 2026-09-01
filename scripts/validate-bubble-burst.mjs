@@ -64,6 +64,9 @@ matches(game, /const\s+bubbleSprites\s*=\s*new\s+Map\s*\(/, 'Bubble sprite cache
 matches(game, /function\s+mixBubbleColor\s*\(/, 'Cover-matched bubble color shading helper missing');
 matches(game, /c\.width\s*=\s*c\.height\s*=\s*96/, 'Bubble cache sprites must retain high-quality 96px source resolution');
 matches(game, /globalCompositeOperation\s*=\s*['"]screen['"]/, 'Bubble sprites must retain cached specular and bounce-light compositing');
+must(game.includes("const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18']"), 'Bubble palette must stay aligned with the raster cover');
+for (const marker of ['const pinLight', 'rr - 3.5', 'g.shadowBlur = 8', 'g.arc(30.5, 24.5, 1.8']) must(game.includes(marker), 'Cover-matched glass bubble shader missing: ' + marker);
+must(html.includes('style.css?v=20260901.2') && html.includes('game.js?v=20260901.2'), 'Bubble cover-matched assets must retain their cache-busting release query');
 matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');

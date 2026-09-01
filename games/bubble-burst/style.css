@@ -126,16 +126,24 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
   place-items: center;
   border-radius: 50%;
   --rwg-next-bubble: var(--cyan);
-  background:
-    radial-gradient(circle at 30% 24%, #fff 0 5%, rgba(255,255,255,.82) 6%, rgba(255,255,255,.18) 22%, transparent 34%),
-    radial-gradient(circle at 68% 72%, rgba(255,255,255,.22), transparent 34%),
-    radial-gradient(circle at 36% 32%, var(--rwg-next-bubble) 0 40%, #071126 100%);
+  position: relative;
+  background: radial-gradient(circle at 50% 52%, #030713 0 34%, var(--rwg-next-bubble) 66%, #fff 84%, var(--rwg-next-bubble) 91%, #02040c 100%);
   color: var(--rwg-next-bubble);
   font-style: normal;
   font-size: 10px;
   line-height: 1;
   border: 1px solid rgba(255,255,255,.58);
   box-shadow: inset -4px -5px 7px rgba(0,0,18,.5), inset 3px 3px 5px rgba(255,255,255,.34), 0 0 11px currentColor;
+}
+#nextBubble i::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  left: 4px;
+  top: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 28%, rgba(255,255,255,.72) 34%, transparent 74%);
 }
 #nextBubble i.is-bomb {
   color: #ffe66d !important;
