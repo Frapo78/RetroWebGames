@@ -15,7 +15,10 @@
   const levelClearEl = $('levelClear'), levelClearTitleEl = $('levelClearTitle');
   const clearPointsEl = $('clearPoints'), clearTimeEl = $('clearTime'), clearBonusEl = $('clearBonus'), clearTotalEl = $('clearTotal');
 
-  const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18'];
+  const PALETTE = [
+    '#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18', '#ff36d1', '#1768ff',
+    '#9cf000', '#00d99a', '#ff66a8', '#a85cff', '#008c88', '#a95a18', '#4144c7', '#75f0b0'
+  ];
   const SHOT_NORMAL = 'normal', SHOT_BOMB = 'bomb', SHOT_COLOR_CLEAR = 'colorClear';
   const STATIC_NORMAL = 'normal', STATIC_ARMOR = 'armor', STATIC_STAR = 'star', STATIC_PRISM = 'prism';
   const COLS = 11;
@@ -30,7 +33,11 @@
   const LEVEL_BONUS_FAST = .50;
   const LEVEL_BONUS_GOOD = .25;
   const LEVEL_CLEAR_CELEBRATION_MS = 2000;
-  const RESUME_SCHEMA = 2;
+  const AUTO_SHOOT_START_SECONDS = 7;
+  const AUTO_SHOOT_MIN_SECONDS = 4;
+  const AUTO_SHOOT_LEVEL_STEP = 20;
+  const AUTO_SHOOT_SECONDS_STEP = .5;
+  const RESUME_SCHEMA = 3;
 
   let W = 390, H = 844, DPR = 1;
   let R = 16, CELL = 32, ROW_H = 28, TOP = 108;
@@ -46,6 +53,7 @@
   let boardMeta = null, backgroundCache = null, audio = null;
   let pressureRows = 0, pressureDrops = 0, pressureElapsed = 0, pressureInterval = PRESSURE_START_SECONDS, pressureDue = false, pressurePulse = 0;
   let levelElapsed = 0, levelStartScore = 0, lastTimerCentis = -1;
+  let shotElapsed = 0, lastAutoCountdown = 0;
   let levelClearActive = false, levelClearReadyAt = 0, levelClearCelebrationStartedAt = 0, levelClearPanelShown = false;
   let best = Number(localStorage.getItem('bubbleBurstBest') || 0);
 
@@ -100,6 +108,7 @@
   }
   const pressureIntervalFor = (lvl, drops = 0) => Math.max(PRESSURE_MIN_SECONDS, PRESSURE_START_SECONDS * Math.pow(PRESSURE_DECAY, Math.max(0, lvl - 1)) * Math.pow(PRESSURE_DROP_DECAY, Math.max(0, drops)));
   const pressureStepFor = lvl => Math.min(PRESSURE_MAX_ROWS, PRESSURE_START_ROWS + Math.max(0, lvl - 1) * PRESSURE_ROW_GROWTH);
+  const autoShootDelayFor = lvl => Math.max(AUTO_SHOOT_MIN_SECONDS, AUTO_SHOOT_START_SECONDS - Math.floor(Math.max(0, lvl - 1) / AUTO_SHOOT_LEVEL_STEP) * AUTO_SHOOT_SECONDS_STEP);
   const ceilingY = () => TOP + pressureRows * ROW_H;
 
   function formatLevelTime(seconds) {
@@ -135,6 +144,11 @@
     levelStartScore = score;
     lastTimerCentis = -1;
     updateLevelTimer(true);
+  }
+
+  function resetShotTimer() {
+    shotElapsed = 0;
+    lastAutoCountdown = 0;
   }
 
   function resetPressure() {
@@ -295,7 +309,7 @@
   function resetGame() {
     score = 0; level = 1; misses = 0; missLimit = 5; moving = null; aiming = false;
     particles.length = 0; falling.length = 0; operatorPulse = 0; crewMood = 'idle'; crewMoodTime = 0; poppingShotStreak = 0; rewardBombsPending = 0;
-    hideLevelClear(); resetPressure(); spawnBoard(); resetLevelMetrics();
+    hideLevelClear(); resetPressure(); spawnBoard(); resetLevelMetrics(); resetShotTimer();
     currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     banner = `LIVELLO 001 • ${boardMeta.name}`; bannerTime = 1.6; updateHud();
   }
@@ -315,11 +329,12 @@
     return { x: Math.cos(angle), y: Math.sin(angle), angle };
   }
 
-  function shoot() {
+  function shoot(automatic = false) {
     if (!running || paused || moving || levelClearActive) return;
+    if (automatic) { aiming = false; setCrewMood('fear', 1.35); banner = 'AUTO-LANCIO!'; bannerTime = 1; navigator.vibrate?.([18, 16, 28]); }
     const v = aimVector(), baseSpeed = Math.min(720, 535 + level * .85 + H * .05), speed = baseSpeed * 3;
     moving = { x: launcherX + v.x * (R + 16), y: launcherY + v.y * (R + 16), vx: v.x * speed, vy: v.y * speed, renderTrail: [], ...currentShot };
-    currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18;
+    currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18; resetShotTimer();
     updateHud(); tone(moving.kind === SHOT_BOMB ? 320 : moving.kind === SHOT_COLOR_CLEAR ? 820 : 520, .055, 'triangle', .028, 180);
   }
 
@@ -432,7 +447,7 @@
   function resolveImpact(hit = null) { if (!moving) return; if (hit && moving.kind === SHOT_BOMB) { resolveBomb(hit); return; } if (hit && moving.kind === SHOT_COLOR_CLEAR) { resolveColorClear(hit); return; } attachNormal(); }
 
   function startNextLevel() {
-    hideLevelClear(); level++; misses = 0; missLimit = level >= 80 ? 3 : level >= 28 ? 4 : 5; resetPressure(); spawnBoard(); resetLevelMetrics(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
+    hideLevelClear(); level++; misses = 0; missLimit = level >= 80 ? 3 : level >= 28 ? 4 : 5; resetPressure(); spawnBoard(); resetLevelMetrics(); resetShotTimer(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
     const intro = level === 8 ? 'ARMOR BUBBLES!' : level === 18 ? 'STAR BUBBLES!' : level === 35 ? 'PRISM BUBBLES!' : null;
     banner = intro || `LIVELLO ${String(level).padStart(3, '0')} • ${boardMeta.name}`; bannerTime = intro ? 2 : 1.5; paused = false; tone(480, .18, 'triangle', .045, 480); updateHud(); last = performance.now(); markSessionDirty('next-level');
   }
@@ -445,6 +460,16 @@
     pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressureDrops++; pressureInterval = pressureIntervalFor(level, pressureDrops); pressurePulse = .85; setCrewMood('fear', 1.3); banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
   }
   function updatePressure(dt) { pressureElapsed += dt; pressurePulse = Math.max(0, pressurePulse - dt); if (pressureElapsed >= pressureInterval) pressureDue = true; if (pressureDue && !moving) applyPressureDrop(); }
+
+  function updateAutoShoot(dt) {
+    if (moving) return;
+    const delay = autoShootDelayFor(level);
+    shotElapsed = Math.min(delay, shotElapsed + dt);
+    const remaining = Math.max(0, delay - shotElapsed);
+    const countdown = remaining > 0 && remaining <= 3 ? Math.ceil(remaining) : 0;
+    if (countdown && countdown !== lastAutoCountdown) { lastAutoCountdown = countdown; tone(300 + countdown * 90, .045, 'square', .018, 80); }
+    if (shotElapsed >= delay) shoot(true);
+  }
 
   function endGame() {
     if (!running || levelClearActive) return; running = false; paused = false; aiming = false; moving = null; best = Math.max(best, score); localStorage.setItem('bubbleBurstBest', String(best)); updateHud();
@@ -469,7 +494,7 @@
   }
 
   function update(dt) {
-    if (!running || paused || levelClearActive) return; levelElapsed += dt; updateLevelTimer(); updateMoving(dt); if (!running || paused || levelClearActive) return; updatePressure(dt); if (!running || paused || levelClearActive) return;
+    if (!running || paused || levelClearActive) return; levelElapsed += dt; updateLevelTimer(); updateMoving(dt); if (!running || paused || levelClearActive) return; updatePressure(dt); if (!running || paused || levelClearActive) return; updateAutoShoot(dt); if (!running || paused || levelClearActive) return;
     bannerTime = Math.max(0, bannerTime - dt); operatorPulse = Math.max(0, operatorPulse - dt); crewMoodTime = Math.max(0, crewMoodTime - dt);
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= Math.pow(.08, dt); p.vy *= Math.pow(.08, dt); p.life -= dt; if (p.life <= 0) particles.splice(i, 1); }
     for (let i = falling.length - 1; i >= 0; i--) { const b = falling[i]; b.vy += 720 * dt; b.x += b.vx * dt; b.y += b.vy * dt; if (b.y > H + R * 3) falling.splice(i, 1); }
@@ -734,8 +759,9 @@
 
   function buildBackgroundCache(){const c=document.createElement('canvas');c.width=Math.ceil(W);c.height=Math.ceil(H);const g=c.getContext('2d'),grad=g.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#122d54');grad.addColorStop(.46,'#08142d');grad.addColorStop(1,'#03050d');g.fillStyle=grad;g.fillRect(0,0,W,H);for(let i=0;i<70;i++){const x=(i*83.17)%W,y=TOP+((i*47.31)%Math.max(20,launcherY-TOP));g.globalAlpha=.08+(i%5)*.025;g.fillStyle=i%7===0?'#ff5ecf':'#65e7ff';g.fillRect(x,y,i%4===0?2:1,i%4===0?2:1);}g.globalAlpha=.08;g.strokeStyle='#65e7ff';g.lineWidth=1;for(let y=TOP+12;y<launcherY-40;y+=38){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}g.globalAlpha=1;return c;}
   function drawPressureStatus(){if(!running||levelClearActive)return;const remaining=Math.max(0,pressureInterval-pressureElapsed);if(remaining>6&&pressurePulse<=0)return;const dangerY=launcherY-R*3.4,label=pressurePulse>0?'↓ STRUTTURA IN DISCESA':`↓ DISCESA IN ${Math.max(1,Math.ceil(remaining))}s`;ctx.save();ctx.font='900 9px ui-monospace, monospace';ctx.textAlign='center';const width=ctx.measureText(label).width+18,y=dangerY-19;ctx.globalAlpha=pressurePulse>0?.95:.72+Math.sin(performance.now()*.012)*.18;ctx.fillStyle='rgba(44,8,20,.82)';ctx.fillRect(W/2-width/2,y-11,width,17);ctx.fillStyle='#ff9aaa';ctx.fillText(label,W/2,y+1);ctx.restore();}
+  function drawAutoShootCountdown(){if(!running||paused||moving||levelClearActive)return;const remaining=autoShootDelayFor(level)-shotElapsed;if(remaining<=0||remaining>3)return;const count=Math.ceil(remaining),phase=count-remaining,eased=1-Math.pow(1-phase,3),scale=1.7-.72*eased,alpha=1-.72*eased;ctx.save();ctx.translate(launcherX,launcherY-R*1.35);ctx.scale(scale,scale);ctx.globalAlpha=alpha;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`900 ${Math.round(R*2.8)}px ui-monospace, monospace`;ctx.lineWidth=6;ctx.strokeStyle='rgba(3,7,20,.95)';ctx.shadowColor='#ff5f73';ctx.shadowBlur=20;ctx.strokeText(String(count),0,0);ctx.fillStyle='#fff3a6';ctx.fillText(String(count),0,0);ctx.restore();}
   function drawBackground(){if(backgroundCache)ctx.drawImage(backgroundCache,0,0,W,H);else{ctx.fillStyle='#071126';ctx.fillRect(0,0,W,H);}const dangerY=launcherY-R*3.4,top=ceilingY();ctx.save();ctx.strokeStyle='rgba(255,230,109,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,top);ctx.lineTo(W,top);ctx.stroke();ctx.setLineDash([5,8]);ctx.strokeStyle='rgba(255,95,115,.42)';ctx.beginPath();ctx.moveTo(0,dangerY);ctx.lineTo(W,dangerY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,95,115,.62)';ctx.font='8px ui-monospace, monospace';ctx.fillText('DANGER',10,dangerY-6);ctx.restore();}
-  function draw(now = performance.now()){const aimPrediction=running&&!paused&&!moving&&!levelClearActive?predictAimTrajectory():null;if(aimPrediction)lastAimFocus=predictAimFocusPoint(aimPrediction);ctx.clearRect(0,0,W,H);drawBackground();traceAim(aimPrediction);for(const b of grid.values()){const p=cellPos(b.r,b.c);drawBubble(p.x,p.y,b.color,R,b.type,b.armor);}for(const b of falling)drawBubble(b.x,b.y,b.color,R*.92,b.type,b.armor);drawMovingBubble();drawLauncher(lastAimFocus);for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);}ctx.globalAlpha=1;drawPressureStatus();if(bannerTime>0&&running&&!levelClearActive){ctx.save();ctx.globalAlpha=Math.min(1,bannerTime*2);ctx.textAlign='center';ctx.font='900 17px ui-monospace, monospace';ctx.fillStyle='#f7fbff';ctx.shadowBlur=15;ctx.shadowColor='#65e7ff';ctx.fillText(banner,W/2,H*.55);ctx.restore();}if(paused&&running&&!levelClearActive){ctx.fillStyle='rgba(2,5,14,.62)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.font='900 22px ui-monospace, monospace';ctx.fillStyle='#fff';ctx.fillText('PAUSA',W/2,H/2);}if(levelClearActive&&!levelClearPanelShown)drawLevelClearCelebration(now);}
+  function draw(now = performance.now()){const aimPrediction=running&&!paused&&!moving&&!levelClearActive?predictAimTrajectory():null;if(aimPrediction)lastAimFocus=predictAimFocusPoint(aimPrediction);ctx.clearRect(0,0,W,H);drawBackground();traceAim(aimPrediction);for(const b of grid.values()){const p=cellPos(b.r,b.c);drawBubble(p.x,p.y,b.color,R,b.type,b.armor);}for(const b of falling)drawBubble(b.x,b.y,b.color,R*.92,b.type,b.armor);drawMovingBubble();drawLauncher(lastAimFocus);drawAutoShootCountdown();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);}ctx.globalAlpha=1;drawPressureStatus();if(bannerTime>0&&running&&!levelClearActive){ctx.save();ctx.globalAlpha=Math.min(1,bannerTime*2);ctx.textAlign='center';ctx.font='900 17px ui-monospace, monospace';ctx.fillStyle='#f7fbff';ctx.shadowBlur=15;ctx.shadowColor='#65e7ff';ctx.fillText(banner,W/2,H*.55);ctx.restore();}if(paused&&running&&!levelClearActive){ctx.fillStyle='rgba(2,5,14,.62)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.font='900 22px ui-monospace, monospace';ctx.fillStyle='#fff';ctx.fillText('PAUSA',W/2,H/2);}if(levelClearActive&&!levelClearPanelShown)drawLevelClearCelebration(now);}
   function frame(ts){const dt=Math.min(.033,Math.max(0,(ts-last)/1000||0));last=ts;update(dt);updateLevelClearPresentation(ts);draw(ts);requestAnimationFrame(frame);}
   function pointerPos(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*(W/rect.width),y:(e.clientY-rect.top)*(H/rect.height)};}
   function setAim(e){const p=pointerPos(e);aimX=clamp(p.x,R,W-R);aimY=Math.min(launcherY-40,p.y);}
@@ -744,7 +770,7 @@
   function validateResumeState(s){
     if(!s||s.schema!==RESUME_SCHEMA||!Number.isInteger(s.level)||s.level<1||!Number.isInteger(s.misses)||s.misses<0||!Number.isInteger(s.missLimit)||!Number.isInteger(s.colorCount)||!Number.isInteger(s.pressureDrops)||s.pressureDrops<0)return false;
     const meta=Levels.getLevel(s.level,COLS),expectedLimit=s.level>=80?3:s.level>=28?4:5;if(s.layoutSignature!==meta.signature||s.colorCount!==meta.colorCount||s.missLimit!==expectedLimit)return false;
-    if(![s.score,s.pressureRows,s.pressureElapsed,s.pressureInterval,s.levelElapsed,s.levelStartScore].every(Number.isFinite)||s.score<0||s.pressureRows<0||s.pressureElapsed<0||s.levelElapsed<0||s.levelStartScore<0)return false;
+    if(![s.score,s.pressureRows,s.pressureElapsed,s.pressureInterval,s.levelElapsed,s.levelStartScore,s.shotElapsed].every(Number.isFinite)||s.score<0||s.pressureRows<0||s.pressureElapsed<0||s.levelElapsed<0||s.levelStartScore<0||s.shotElapsed<0||s.shotElapsed>autoShootDelayFor(s.level)+1)return false;
     if(Math.abs(s.pressureInterval-pressureIntervalFor(s.level,s.pressureDrops))>.001||Math.abs(s.pressureRows-s.pressureDrops*pressureStepFor(s.level))>.001||s.pressureRows>100||s.pressureDrops>250||s.pressureElapsed>s.pressureInterval+300)return false;
     if(!validShot(s.currentShot)||!validShot(s.nextShot)||!Number.isInteger(s.poppingShotStreak)||s.poppingShotStreak<0||s.poppingShotStreak>4||!Number.isInteger(s.rewardBombsPending)||s.rewardBombsPending<0||s.rewardBombsPending>20)return false;
     if(!Array.isArray(s.grid)||new Set(s.grid.map(b=>`${b.r},${b.c}`)).size!==s.grid.length)return false;
@@ -756,10 +782,10 @@
     if(s.levelClearActive&&(!s.clearSummary||['title','points','time','bonus','total'].some(k=>typeof s.clearSummary[k]!=='string')))return false;
     return true;
   }
-  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureDrops,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,levelClearActive,clearSummary:levelClearActive?{title:levelClearTitleEl.textContent,points:clearPointsEl.textContent,time:clearTimeEl.textContent,bonus:clearBonusEl.textContent,total:clearTotalEl.textContent}:null,grid:[...grid.values()].map(b=>({...b}))};}
-  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureDrops=s.pressureDrops;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){levelClearTitleEl.textContent=s.clearSummary.title;clearPointsEl.textContent=s.clearSummary.points;clearTimeEl.textContent=s.clearSummary.time;clearBonusEl.textContent=s.clearSummary.bonus;clearTotalEl.textContent=s.clearSummary.total;levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
+  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureDrops,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,shotElapsed,levelClearActive,clearSummary:levelClearActive?{title:levelClearTitleEl.textContent,points:clearPointsEl.textContent,time:clearTimeEl.textContent,bonus:clearBonusEl.textContent,total:clearTotalEl.textContent}:null,grid:[...grid.values()].map(b=>({...b}))};}
+  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureDrops=s.pressureDrops;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;shotElapsed=s.shotElapsed;lastAutoCountdown=0;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){levelClearTitleEl.textContent=s.clearSummary.title;clearPointsEl.textContent=s.clearSummary.points;clearTimeEl.textContent=s.clearSummary.time;clearBonusEl.textContent=s.clearSummary.bonus;clearTotalEl.textContent=s.clearSummary.total;levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
   function startFreshResume(){ensureAudio();window.RWGSession?.clear?.();resetGame();running=true;paused=false;startBtn.textContent='GIOCA';overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';last=performance.now();markSessionDirty('new-game');}
-  const resumeAdapter=Object.freeze({id:'bubble-burst',version:2,compatibility:'bubble-burst-state-v2-clustered-levels-pressure3-specials1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>`livello ${s.level} • ${formatLevelTime(s.levelElapsed||0)} • ${Math.floor(s.score||0).toLocaleString('it-IT')} punti`});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
+  const resumeAdapter=Object.freeze({id:'bubble-burst',version:3,compatibility:'bubble-burst-state-v3-colors16-autoshoot1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>`livello ${s.level} • ${formatLevelTime(s.levelElapsed||0)} • ${Math.floor(s.score||0).toLocaleString('it-IT')} punti`});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
 
   canvas.addEventListener('pointerdown',e=>{if(!running||paused||moving||levelClearActive)return;e.preventDefault();aiming=true;canvas.setPointerCapture?.(e.pointerId);setAim(e);ensureAudio();});
   canvas.addEventListener('pointermove',e=>{if(!aiming)return;e.preventDefault();setAim(e);});
@@ -768,7 +794,7 @@
   startBtn.addEventListener('click',()=>{startFreshResume();});
   pauseBtn.addEventListener('click',()=>{if(!running||levelClearActive)return;paused=!paused;aiming=false;pauseBtn.textContent=paused?'▶':'Ⅱ';if(!paused)last=performance.now();else window.RWGSession?.saveNow?.('pause');});
   muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(!muted)ensureAudio();});
-  window.addEventListener('rwg:continue-game',e=>{score=Math.max(0,Math.floor(e.detail?.score??score));misses=0;moving=null;aiming=false;pressureElapsed=0;pressureDue=false;pressurePulse=0;const dangerY=launcherY-R*3.4;let guard=0;while(guard++<20){let maxRow=-1,dangerous=false;for(const b of grid.values()){maxRow=Math.max(maxRow,b.r);if(cellPos(b.r,b.c).y+R>=dangerY-R*1.15)dangerous=true;}if(!dangerous)break;for(const[k,b]of grid)if(b.r===maxRow)grid.delete(k);if(!grid.size){resetPressure();spawnBoard();break;}}reconcileQueue();currentShot=makeQueuedShot();nextShot=makeQueuedShot();running=true;paused=false;hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent='Ⅱ';banner='CONTINUA!';bannerTime=1.2;last=performance.now();updateHud();ensureAudio();tone(520,.16,'triangle',.035,900);markSessionDirty('credit-continue');});
+  window.addEventListener('rwg:continue-game',e=>{score=Math.max(0,Math.floor(e.detail?.score??score));misses=0;moving=null;aiming=false;resetShotTimer();pressureElapsed=0;pressureDue=false;pressurePulse=0;const dangerY=launcherY-R*3.4;let guard=0;while(guard++<20){let maxRow=-1,dangerous=false;for(const b of grid.values()){maxRow=Math.max(maxRow,b.r);if(cellPos(b.r,b.c).y+R>=dangerY-R*1.15)dangerous=true;}if(!dangerous)break;for(const[k,b]of grid)if(b.r===maxRow)grid.delete(k);if(!grid.size){resetPressure();spawnBoard();break;}}reconcileQueue();currentShot=makeQueuedShot();nextShot=makeQueuedShot();running=true;paused=false;hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent='Ⅱ';banner='CONTINUA!';bannerTime=1.2;last=performance.now();updateHud();ensureAudio();tone(520,.16,'triangle',.035,900);markSessionDirty('credit-continue');});
   window.addEventListener('resize',resize);window.addEventListener('orientationchange',resize);document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused&&!levelClearActive){paused=true;aiming=false;pauseBtn.textContent='▶';}});
   resize();updateHud();draw();requestAnimationFrame(frame);
 })();

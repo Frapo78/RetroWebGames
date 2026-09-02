@@ -21,10 +21,24 @@ The generator produces a deterministic new composition for every level. A given 
 - top-connected height-profile construction so decorative silhouettes do not begin as unsupported floating islands;
 - deterministic downward lobe descriptors give every layout at least two attached bubble clusters;
 - cluster count, depth and colored cohesion grow with progression, producing increasingly pronounced bunches toward the danger line;
-- increasing row count, palette breadth and special-bubble density through long-run progression;
+- increasing row count, palette breadth from 4 to 16 colors and special-bubble density through long-run progression;
 - motif names may cycle after level 200, but the geometry, clustered colors, special placement and signature continue changing from the absolute level seed.
 
 Current motif families include Aurora Bands, Neon Crown, Twin Peaks, Pixel Wave, Diamond Sky, Arcade Steps, Cosmic Bowl, Double Arc, Star Ridge, Cascade, Portal Rim, Zigzag Field, Comet Tail, Butterfly, Fortress, Hyper Wave, Crystal Fan, Echo Valley, Nova Teeth and Mosaic Sky.
+
+## Shot decision timer
+
+Every loaded bubble has a finite active-play decision window:
+
+- level 1 starts at **7 seconds**;
+- the window loses **0.5 seconds every 20 levels**: 7.0, 6.5, 6.0, 5.5, 5.0, 4.5 and finally 4.0 seconds from level 121 onward;
+- the last three seconds render `3`, `2`, `1` directly over the launcher with a per-number zoom-out and fade;
+- if the player has not released a shot at expiry, the current bubble launches along the current aim trajectory and both launcher characters enter their fear pose;
+- explicit pause, background/visibility pause, orientation guard, a projectile in flight and level-clear presentation freeze the decision timer;
+- manual or automatic launch, new game, next level and credit Continue reset the next decision window;
+- resumable snapshots persist elapsed decision time so reload/background restore cannot silently grant a fresh window.
+
+The palette starts with the six cover-aligned colors in their established order and expands by one color every 10 levels: 4 colors at level 1, 5 at level 11 and the 16-color cap at level 121. All 16 cached glass-marble colors are unique and validator-guarded for visual separation.
 
 ## Optimal-time scoring
 
@@ -139,7 +153,8 @@ This pressure system is separate from the miss-penalty row. Both mechanics may c
 Difficulty increases through:
 
 - larger/more complex silhouettes;
-- palette growth from four toward six colors;
+- palette growth by one color every 10 levels, from four to a maximum of sixteen;
+- decision time shrinking from 7 to 4 seconds, with automatic fear launch at expiry;
 - progressively more special bubbles;
 - miss limit tightening from 5 to 4 and eventually 3;
 - modest baseline shot-speed increase by level, with launched speed globally multiplied by three;

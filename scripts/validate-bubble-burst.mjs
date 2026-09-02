@@ -18,7 +18,7 @@ for (const rel of ['games/bubble-burst/levels.js','games/bubble-burst/game.js'])
 }
 
 const html = read('games/bubble-burst/index.html');
-must(html.includes('<script src="levels.js?v=20260902.1"></script>'), 'Bubble Burst must load cache-versioned levels.js');
+must(html.includes('<script src="levels.js?v=20260902.2"></script>'), 'Bubble Burst must load cache-versioned levels.js');
 must(/<script src="game\.js(?:\?v=[^"]+)?"><\/script>/.test(html), 'Bubble Burst must load its optionally cache-versioned game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
@@ -57,6 +57,12 @@ if (levels?.getLevel) {
   must(configs[7].cells.some(cell => cell.special === 'armor'), 'Armor Bubble must be available from level 8');
   must(configs.slice(17).some(config => config.cells.some(cell => cell.special === 'star')), 'Star Bubble must appear from level 18 onward');
   must(configs.slice(34).some(config => config.cells.some(cell => cell.special === 'prism')), 'Prism Bubble must appear from level 35 onward');
+  must(levels.getLevel(1, 11).colorCount === 4, 'Level 1 must start with four colors');
+  must(levels.getLevel(11, 11).colorCount === 5, 'Palette must gain one color every ten levels');
+  must(levels.getLevel(120, 11).colorCount === 15, 'Level 120 must expose fifteen colors');
+  must(levels.getLevel(121, 11).colorCount === 16, 'Level 121 must reach the sixteen-color cap');
+  must(firstThousand.every(config => config.colorCount >= 4 && config.colorCount <= 16), 'Level palettes must stay within the 4..16 contract');
+  must(firstThousand.every(config => new Set(config.cells.map(cell => cell.colorIndex)).size === config.colorCount), 'Every generated level must materially contain all configured colors');
 }
 
 const game = read('games/bubble-burst/game.js');
@@ -74,11 +80,23 @@ matches(game, /const\s+bubbleSprites\s*=\s*new\s+Map\s*\(/, 'Bubble sprite cache
 matches(game, /function\s+mixBubbleColor\s*\(/, 'Cover-matched bubble color shading helper missing');
 matches(game, /c\.width\s*=\s*c\.height\s*=\s*96/, 'Bubble cache sprites must retain high-quality 96px source resolution');
 matches(game, /globalCompositeOperation\s*=\s*['"]screen['"]/, 'Bubble sprites must retain cached specular and bounce-light compositing');
-must(game.includes("const PALETTE = ['#ff174d', '#00cfff', '#ffd21f', '#7b2cff', '#2bd900', '#ff7a18']"), 'Bubble palette must stay aligned with the raster cover');
+const paletteBlock = game.match(/const\s+PALETTE\s*=\s*\[([\s\S]*?)\];/)?.[1] || '';
+const paletteColors = [...paletteBlock.matchAll(/#[0-9a-f]{6}/gi)].map(match => match[0].toLowerCase());
+must(paletteColors.length === 16 && new Set(paletteColors).size === 16, `Bubble palette must contain 16 unique colors; found ${paletteColors.length}`);
+must(paletteColors.slice(0, 6).join(',') === '#ff174d,#00cfff,#ffd21f,#7b2cff,#2bd900,#ff7a18', 'The six cover-aligned base colors must retain their order');
+const colorRgb = color => [1, 3, 5].map(index => Number.parseInt(color.slice(index, index + 2), 16));
+let minimumPaletteDistance = Infinity;
+for (let left = 0; left < paletteColors.length; left++) {
+  for (let right = left + 1; right < paletteColors.length; right++) {
+    const a = colorRgb(paletteColors[left]), b = colorRgb(paletteColors[right]);
+    minimumPaletteDistance = Math.min(minimumPaletteDistance, Math.hypot(...a.map((channel, index) => channel - b[index])));
+  }
+}
+must(minimumPaletteDistance >= 60, `Bubble palette colors are too similar (minimum RGB distance ${minimumPaletteDistance.toFixed(1)})`);
 for (const marker of ['drawNormalGlassMarble', 'drawBombSprite', 'drawMetalBubble', 'drawStoneBubble', 'drawPlasticBubble', 'g.lineWidth = 6.2', 'g.lineWidth = 3.2']) must(game.includes(marker), 'Material-specific cached bubble renderer missing: ' + marker);
 must(game.includes('sphere.addColorStop(.6, color)') && game.includes('const blendedRing = g.createRadialGradient(48, 48, 7, 48, 48, 33)'), 'Ordinary marbles must retain a full-color center and double-width softly blended dark ring');
 must(!game.includes('g.strokeStyle = dark'), 'The internal dark ring must not regress to a hard stroke');
-must(html.includes('style.css?v=20260901.5') && html.includes('levels.js?v=20260902.1') && html.includes('game.js?v=20260902.1'), 'Bubble changed assets must retain their cache-busting release query');
+must(html.includes('style.css?v=20260901.5') && html.includes('levels.js?v=20260902.2') && html.includes('game.js?v=20260902.2'), 'Bubble changed assets must retain their cache-busting release query');
 matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');
@@ -117,6 +135,23 @@ matches(game, /banner\s*=\s*['"]↓ STRUTTURA IN DISCESA!['"]/, 'Pressure drop a
 matches(game, /remaining\s*>\s*6\s*&&\s*pressurePulse\s*<=\s*0/, 'Final six-second pressure warning missing');
 matches(game, /pressureElapsed\s*=\s*0\s*;\s*pressureDue\s*=\s*false\s*;\s*pressurePulse\s*=\s*0/, 'Credit Continue must reset only next pressure countdown');
 
+const autoShootStart = Number(game.match(/AUTO_SHOOT_START_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
+const autoShootMin = Number(game.match(/AUTO_SHOOT_MIN_SECONDS\s*=\s*([0-9.]+)/)?.[1]);
+const autoShootLevelStep = Number(game.match(/AUTO_SHOOT_LEVEL_STEP\s*=\s*([0-9.]+)/)?.[1]);
+const autoShootSecondsStep = Number(game.match(/AUTO_SHOOT_SECONDS_STEP\s*=\s*([0-9.]+)/)?.[1]);
+must(autoShootStart === 7 && autoShootMin === 4, `Auto-shot bounds must remain 7s → 4s; found ${autoShootStart}s → ${autoShootMin}s`);
+must(autoShootLevelStep === 20 && autoShootSecondsStep === .5, `Auto-shot progression must drop 0.5s every 20 levels; found ${autoShootSecondsStep}s / ${autoShootLevelStep} levels`);
+matches(game, /function\s+updateAutoShoot\s*\(\s*dt\s*\)/, 'Active-time auto-shot updater missing');
+matches(game, /remaining\s*>\s*0\s*&&\s*remaining\s*<=\s*3\s*\?\s*Math\.ceil\(remaining\)/, 'Auto-shot must count down only the final 3 seconds');
+matches(game, /shotElapsed\s*>=\s*delay\s*\)\s*shoot\(true\)/, 'Expired choice timer must trigger automatic launch');
+matches(game, /automatic\)\s*\{\s*aiming\s*=\s*false\s*;\s*setCrewMood\(['"]fear['"]/, 'Automatic launch must put both launcher characters in fear pose');
+matches(game, /function\s+drawAutoShootCountdown\s*\(/, 'Launcher-centered auto-shot countdown renderer missing');
+must(game.includes('ctx.translate(launcherX,launcherY-R*1.35)') && game.includes('scale=1.7-.72*eased') && game.includes('alpha=1-.72*eased'), 'Countdown must remain centered on the launcher with zoom-out and fade');
+matches(game, /updatePressure\(dt\)[^\n]*updateAutoShoot\(dt\)/, 'Auto-shot timer must advance only in the active gameplay update path');
+matches(game, /function\s+resetShotTimer\s*\(/, 'Shot timer reset helper missing');
+must(game.includes('currentShot = nextShot; nextShot = makeQueuedShot(); applyPendingBombReward(); operatorPulse = .18; resetShotTimer();'), 'Every fired shot must reset the next decision timer');
+
+
 const orangeMultiplier = Number(game.match(/ORANGE_DEADLINE_MULTIPLIER\s*=\s*([0-9.]+)/)?.[1]);
 const fastBonus = Number(game.match(/LEVEL_BONUS_FAST\s*=\s*([0-9.]+)/)?.[1]);
 const goodBonus = Number(game.match(/LEVEL_BONUS_GOOD\s*=\s*([0-9.]+)/)?.[1]);
@@ -146,15 +181,16 @@ matches(game, /if\s*\(\s*poppingShotStreak\s*<\s*5\s*\)\s*return/, 'Bomb reward 
 matches(game, /banner\s*=\s*['"]COMBO ×5 • BOMBA PRONTA!['"]/, 'Five-shot Bomb reward feedback missing');
 matches(game, /function\s+applyPendingBombReward\s*\(/, 'Deferred Bomb reward logic missing');
 
-// Resume contract: logical board state + deterministic layout signature + shared v2 service.
+// Resume contract: logical board state + deterministic layout signature + shared v3 service.
 matches(game, /id\s*:\s*['"]bubble-burst['"]/, 'Bubble Burst resume adapter id missing');
-matches(game, /version\s*:\s*2/, 'Bubble Burst adapter version missing');
-matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v2-clustered-levels-pressure3-specials1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
+matches(game, /version\s*:\s*3/, 'Bubble Burst adapter version missing');
+matches(game, /compatibility\s*:\s*['"]bubble-burst-state-v3-colors16-autoshoot1['"]/, 'Bubble Burst compatibility token changed unexpectedly');
 matches(game, /pauseBtn\.textContent\s*=\s*paused\s*&&\s*!levelClearActive\s*\?[^:]+:[^;]+;/, "Restored level-clear intermission must not masquerade as an ordinary pause");
 matches(game, /layoutSignature\s*:\s*boardMeta\?\.signature/, 'Snapshot must persist deterministic layout signature');
 matches(game, /s\.layoutSignature\s*!==\s*meta\.signature/, 'Restore validation must reject changed level layouts');
 must(game.includes('pressureRows,pressureDrops,pressureElapsed'), 'Snapshot must persist same-level pressure acceleration state');
 matches(game, /serializeResumeState\s*\(/, 'Resume serializer missing');
+must(game.includes('levelStartScore,shotElapsed,levelClearActive'), 'Snapshot must persist the current decision timer');
 matches(game, /validateResumeState\s*\(/, 'Resume validator missing');
 matches(game, /restoreResumeState\s*\(/, 'Resume restore path missing');
 matches(game, /markSessionDirty\(['"]shot-resolved['"]\)/, 'Resolved shots must mark state dirty');
@@ -175,5 +211,6 @@ console.log('Bubble Burst validation OK');
 console.log('  ✓ fixed numbered layouts + 1000 distinct deterministic clustered compositions');
 console.log('  ✓ timing/bonus and accelerating pressure contracts');
 console.log('  ✓ special bubbles, rare shots and cached rendering guards');
+console.log('  ✓ 4→16 color progression + 7→4 second fear auto-launch');
 console.log('  ✓ semantic checks are formatting-independent');
 console.log('  ✓ deterministic layout-aware resumable session adapter');

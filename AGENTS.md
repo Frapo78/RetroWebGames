@@ -208,6 +208,8 @@ Bubble Burst launcher characters are raster atlases aligned with the social-cove
 
 Bubble Burst level architecture is deterministic by absolute level number: replaying level N must reproduce identical cells, colors, specials, cluster descriptors and signature. Preserve the validator-guarded uniqueness of the first 1000 actual compositions and the progression from shallow, sparse early arrangements to deeper, denser and more numerous downward clusters. Do not add per-run randomness to layouts. Ceiling pressure begins at 32.5 seconds on level 1, floors at 8 seconds and multiplies the next interval by 0.86 after each same-level descent; resumable state must preserve that descent count.
 
+Bubble Burst palette progression is 4→16 colors, adding one color every 10 levels and reaching the cap at level 121. Its active-play shot timer starts at 7 seconds, drops by 0.5 seconds every 20 levels to a 4-second floor, renders a launcher-centered fading `3 / 2 / 1`, then fires along the current aim with the crew in fear pose. Preserve pause/background/in-flight/intermission freezing, per-shot reset, cached palette rendering and persisted `shotElapsed`; do not implement this with wall-clock timers or per-frame sprite allocation.
+
 ## 7. Regression guardrail workflow
 
 Before a change is considered complete:

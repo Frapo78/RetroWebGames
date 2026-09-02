@@ -91,6 +91,23 @@
     }
   }
 
+  function ensureColorCoverage(cells, colorCount, seed) {
+    const counts = Array(colorCount).fill(0);
+    for (const cell of cells) counts[cell.colorIndex]++;
+    for (let target = 0; target < colorCount; target++) {
+      if (counts[target] > 0) continue;
+      const start = Math.floor(hash01(seed + 71, target + 79, colorCount) * cells.length);
+      for (let offset = 0; offset < cells.length; offset++) {
+        const cell = cells[(start + offset) % cells.length];
+        if (counts[cell.colorIndex] <= 1) continue;
+        counts[cell.colorIndex]--;
+        cell.colorIndex = target;
+        counts[target]++;
+        break;
+      }
+    }
+  }
+
   function specialFor(level, r, c, seed) {
     const cycleBoost = Math.floor((level - 1) / TOTAL_CONFIGS);
     const t = level + cycleBoost * 18;
@@ -120,7 +137,7 @@
     const motif = (safeLevel - 1) % MOTIFS.length;
     const variant = Math.floor((safeLevel - 1) / MOTIFS.length);
     const rows = clamp(5 + Math.floor((safeLevel - 1) / 34), 5, 12);
-    const colorCount = clamp(4 + Math.floor((safeLevel - 1) / 72), 4, 6);
+    const colorCount = clamp(4 + Math.floor((safeLevel - 1) / 10), 4, 16);
     const seed = safeLevel * 10007 + variant * 541 + motif * 31;
     const clusters = makeClusters(safeLevel, cols, rows, colorCount, seed);
     const heights = [];
@@ -139,6 +156,7 @@
       }
     }
 
+    ensureColorCoverage(cells, colorCount, seed);
     const optimalSeconds = optimalSecondsFor(cells, colorCount, rows, safeLevel);
     const clusterSignature = clusters.map(cluster => `${cluster.center.toFixed(3)},${cluster.width.toFixed(3)},${cluster.depth.toFixed(3)},${cluster.colorIndex}`).join(';');
     const signature = `${safeLevel}:${id}:${motif}:${variant}:${rows}:${colorCount}:${heights.join('.')}:${clusterSignature}`;
