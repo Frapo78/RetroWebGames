@@ -14,7 +14,7 @@ Production URL:
 
 The fallback is a 1280×672 JPEG. Every game instead owns an original 1200×630 JPEG under `assets/social/games/<slug>.jpg`.
 
-The nine covers are gameplay-derived artistic reinterpretations in a dynamic 1980s/1990s coin-op poster language. They use only original project imagery and preserve a centered, social-safe title treatment.
+The ten covers are gameplay-derived artistic reinterpretations in a dynamic 1980s/1990s coin-op poster language. They use only original project imagery and preserve a centered, social-safe title treatment.
 
 Each game also owns a separate transparent 1200×300 RGBA PNG wordmark under `assets/brand/games/<slug>-wordmark.png`. Keeping it separate prevents later cover crops or alternate campaign art from depending on text baked into a particular background. The home renders this asset as the visible heading of the corresponding game card while preserving the canonical title through the image `alt` inside the semantic `h2`.
 
@@ -54,7 +54,7 @@ The intro share buttons automatically use the same game's canonical link, so no 
 
 ## Validation
 
-Every public page must have exactly one static Open Graph and Twitter/X `summary_large_image` metadata set. Current coverage is 11 pages: home, the avatar editor and nine games.
+Every public page must have exactly one static Open Graph and Twitter/X `summary_large_image` metadata set. Current coverage is 12 pages: home, the avatar editor and ten games.
 
 The social validator checks the metadata mapping, JPEG headers and exact cover dimensions, as well as existence, dimensions and alpha channel of every standalone wordmark. It also checks that `game-hud.js` automatically loads the shared intro-sharing component and that all game intros inherit the five icon-only social actions.
 

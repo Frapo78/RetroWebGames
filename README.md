@@ -51,6 +51,11 @@ Brick-breaker verticale originale con 100 livelli deterministici e distinti, str
 
 Percorso: `games/prism-breaker/`
 
+### The Great Empire
+Strategia in tempo reale essenziale su mappa fissa verticale: contadini che raccolgono cibo e oro, addestramento, ondate nemiche e accampamento avversario da abbattere, con livelli deterministici a difficoltà crescente.
+
+Percorso: `games/the-great-empire/`
+
 ## Autosalvataggio e ripresa — obbligatori su tutta la piattaforma
 
 Ogni gioco attuale e futuro implementa la ripresa della partita non conclusa tramite il servizio centrale `RWGSession`.

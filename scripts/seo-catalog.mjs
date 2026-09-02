@@ -15,7 +15,8 @@ const SOCIAL_ALTS = Object.freeze({
   'neon-snake': 'Neon Snake — cyber-serpente luminoso su una griglia arcade',
   'neon-tilt': 'Neon Tilt — sfera cromata in un labirinto inclinato al neon',
   solitaire: 'Solitario — carte francesi classiche su un tavolo verde arcade',
-  'prism-breaker': 'Prism Breaker — palla e paddle tra prismi e mattoni al neon'
+  'prism-breaker': 'Prism Breaker — palla e paddle tra prismi e mattoni al neon',
+  'the-great-empire': 'The Great Empire — villaggio, contadini e soldati in battaglia strategica'
 });
 
 export function getGameSocial(game) {
@@ -35,5 +36,6 @@ export const GAMES = Object.freeze([
   { slug: 'neon-snake', name: 'Neon Snake', title: 'Snake gratis online: Neon Snake | RetroWebGames', description: 'Gioca a Snake gratis online con Neon Snake: cresci, crea combo, raccogli shield e supera ostacoli in un retrogame moderno per mobile.', genres: ['Snake', 'Arcade'] },
   { slug: 'neon-tilt', name: 'Neon Tilt', title: 'Neon Tilt: videogame mobile gratis | RetroWebGames', description: 'Gioca gratis a Neon Tilt, videogame mobile di abilità: inclina lo smartphone e guida la biglia tra cristalli, bumper e labirinti.', genres: ['Maze', 'Physics'] },
   { slug: 'solitaire', name: 'Solitario', alternateName: 'Solitaire', title: 'Solitario gratis online (Solitaire) | RetroWebGames', description: 'Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone.', genres: ['Solitario', 'Solitaire', 'Card game'] },
-  { slug: 'prism-breaker', name: 'Prism Breaker', title: 'Prism Breaker: brick breaker gratis | RetroWebGames', description: 'Gioca gratis a Prism Breaker, videogame brick breaker con 100 livelli originali, power-up, mattoni speciali e boss arcade.', genres: ['Brick breaker', 'Arcade'] }
+  { slug: 'prism-breaker', name: 'Prism Breaker', title: 'Prism Breaker: brick breaker gratis | RetroWebGames', description: 'Gioca gratis a Prism Breaker, videogame brick breaker con 100 livelli originali, power-up, mattoni speciali e boss arcade.', genres: ['Brick breaker', 'Arcade'] },
+  { slug: 'the-great-empire', name: 'The Great Empire', title: 'The Great Empire: strategia gratis | RetroWebGames', description: 'Gioca gratis a The Great Empire, strategia in tempo reale per smartphone: raccogli risorse, addestra soldati e conquista l\'accampamento nemico.', genres: ['Strategia in tempo reale', 'Arcade'] }
 ]);

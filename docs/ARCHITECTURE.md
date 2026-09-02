@@ -73,6 +73,9 @@ Credit Continue is distinct from free unfinished-session restore. It revives the
 ## Orientation
 Orientation guard may pause through the same `#pauseBtn` contract and resume with the shared countdown. It must never create another pause UI or mark the run terminal.
 
+## Game runtime architecture
+Older runtimes are single files that own state, rules, rendering, input and platform wiring together. New games follow the modular object-oriented pattern established by The Great Empire: content, authoritative state, simulation, snapshot, renderer, input and a thin composition root, with the DOM confined to that root so rules and simulation stay testable headlessly. The renderer reads state and never writes it; input produces orders, never values. See `GAME-OOP-ARCHITECTURE.md` and `THE-GREAT-EMPIRE.md`.
+
 ## Future-game enforcement
 `scripts/validate-session.mjs` discovers `games/*/index.html` with `data-rwg-game="true"` and requires a conforming adapter before `game-hud.js`. It also invokes the shared pause/control validators, so the repository-wide `validate-contracts.mjs` path covers these platform contracts transitively.
 
@@ -85,9 +88,10 @@ node scripts/validate-shared-pause.mjs
 node scripts/validate-shared-controls.mjs
 node scripts/validate-leaderboards.mjs
 ```
+On the FraPoVPS checkout, where the site root is `public/` and `scripts/` stays at the repository root, run them through `bash scripts/validate-local.sh` instead: it assembles the layout the validators expect and runs them there.
 Specialized game validators remain required for touched games. Static validators cover contracts, not full gameplay correctness.
 
 Browser smoke tests must cover common phone sizes and desktop, pause/resume, Home from pause, Share from pause, dock tapability, both termination confirmations, eligible interrupted leaderboard registration, reload/resume, confirmed termination with no stale resume prompt, modal dock blocking and terminal Game Over. Canvas games whose playfield geometry is changed by shared controls must be checked after CSS load as well as after a real viewport resize.
 
 ## Related authoritative docs
-Read `AGENTS.md`, `SESSION-PERSISTENCE.md`, `PAUSE-MENU.md`, `SHARED-HUD-CONTROLS.md`, `LEADERBOARDS.md`, `AVATAR.md`, `SEO-GEO.md` and `PWA-INSTALL.md` before changing their respective systems.
+Read `AGENTS.md`, `SESSION-PERSISTENCE.md`, `PAUSE-MENU.md`, `SHARED-HUD-CONTROLS.md`, `LEADERBOARDS.md`, `AVATAR.md`, `GAME-OOP-ARCHITECTURE.md`, `SEO-GEO.md` and `PWA-INSTALL.md` before changing their respective systems.

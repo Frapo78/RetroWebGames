@@ -66,7 +66,7 @@ for (const page of pages) {
 }
 
 must(!fs.existsSync(path.join(root, 'llms.txt')), 'Do not add an unnecessary llms.txt as a GEO shortcut');
-must(GAMES.length === 9, 'SEO catalog must track all nine current games');
+must(GAMES.length === 10, 'SEO catalog must track all ten current games');
 
 const sitemap = read('sitemap.xml');
 const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);

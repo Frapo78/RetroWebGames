@@ -38,7 +38,7 @@ images.forEach((tag, index) => {
   must(/\sdecoding=["']async["']/.test(tag), 'home image ' + (index + 1) + ' must decode asynchronously');
   must(/\swidth=["']\d+["']/.test(tag) && /\sheight=["']\d+["']/.test(tag), 'home image ' + (index + 1) + ' must reserve intrinsic layout space');
 });
-must(gameCoverImages.length === 9, 'home must expose exactly nine raster game covers');
+must(gameCoverImages.length === GAMES.length, `home must expose exactly ${GAMES.length} raster game covers`);
 for (const tag of gameCoverImages) {
   const compact = tag.match(/data-rwg-src=["']([^"']+-portrait-540\.jpg)["']/)?.[1];
   const full = tag.match(/data-rwg-srcset=["'][^"']*,\s*([^\s"']+-portrait\.jpg)\s+1080w["']/)?.[1];
@@ -78,5 +78,5 @@ if (failures.length) {
 
 console.log('RWG lazy-image validation OK');
 console.log('  ✓ ' + images.length + ' home images use shared viewport loading with reusable dynamic-content support');
-console.log('  ✓ nine game cards use responsive 9:16 JPEG covers at 540x960 and 1080x1920');
-console.log('  ✓ nine semantic card headings use their matching 1200x300 lazy-loaded wordmark');
+console.log('  ✓ ' + GAMES.length + ' game cards use responsive 9:16 JPEG covers at 540x960 and 1080x1920');
+console.log('  ✓ ' + GAMES.length + ' semantic card headings use their matching 1200x300 lazy-loaded wordmark');

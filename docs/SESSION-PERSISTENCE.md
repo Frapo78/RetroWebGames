@@ -144,7 +144,9 @@ Do not confuse:
 
 ## Current coverage
 
-All current games must expose a valid adapter: Star Swarm, Bubble Burst, Block Drop, Maze Munch, Neon Rally, Neon Snake, Neon Tilt, Solitario and Prism Breaker.
+All current games must expose a valid adapter: Star Swarm, Bubble Burst, Block Drop, Maze Munch, Neon Rally, Neon Snake, Neon Tilt, Solitario, Prism Breaker and The Great Empire.
+
+The Great Empire keeps its serialization in a pure `snapshot.js` module rather than in the composition root, so the resume contract — including refusal of tampered or foreign snapshots — is exercised headlessly by its specialized validator.
 
 ## Future-game enforcement
 

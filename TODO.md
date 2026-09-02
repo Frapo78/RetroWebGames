@@ -313,10 +313,10 @@ Il refactor non deve trasformare `RWGResumeAdapter` in un secondo engine.
 
 Priorità: P0.
 
-- [ ] Creare `docs/GAME-OOP-ARCHITECTURE.md` dopo l'approvazione del pattern del primo gioco.
-- [ ] Documentare ufficialmente il modello OOP + data-oriented.
-- [ ] Aggiungere in `AGENTS.md` il riferimento al nuovo documento quando diventa contratto stabile.
-- [ ] Definire naming convenzionale dei moduli locali senza imporre file identici a ogni gioco.
+- [x] Creare `docs/GAME-OOP-ARCHITECTURE.md` dopo l'approvazione del pattern del primo gioco. *(2026-09-02, pattern stabilito da The Great Empire)*
+- [x] Documentare ufficialmente il modello OOP + data-oriented.
+- [x] Aggiungere in `AGENTS.md` il riferimento al nuovo documento quando diventa contratto stabile.
+- [x] Definire naming convenzionale dei moduli locali senza imporre file identici a ogni gioco. *(levels/state/systems/snapshot/renderer/input + composition root)*
 - [ ] Definire regola: nessuna allocazione intenzionale per-frame nei hot path dei giochi heavy, salvo misurazione che dimostri irrilevanza.
 - [ ] Definire regola: nessuna query DOM ripetuta per frame.
 - [ ] Definire regola: nessuna scrittura DOM se valore invariato.
@@ -326,7 +326,7 @@ Priorità: P0.
 - [ ] Conservare baseline pre-refactor per ogni gioco prima di modificarlo.
 - [ ] Aggiornare `scripts/validate-contracts.mjs` solo quando il nuovo layout dei file rende i controlli letterali troppo legati al monolite.
 - [ ] I validator devono verificare contratti/behavior marker nel nuovo modulo corretto, non obbligare artificialmente a ricopiare codice in `game.js`.
-- [ ] Non avviare migrazioni massive finché Neon Rally non dimostra il pattern.
+- [x] Non avviare migrazioni massive finché il pattern non è dimostrato. *(dimostrato su un gioco nuovo invece che su una migrazione: nessun gameplay esistente a rischio)*
 
 ### Gate Fase 0
 
@@ -338,11 +338,19 @@ Priorità: P0.
 
 ---
 
-# 5. Fase 1 — Neon Rally, progetto pilota
+# 5. Fase 1 — The Great Empire, progetto pilota ✅
 
-Priorità: P0.
+Priorità: P0. **Completata il 2026-09-02.**
 
-Motivo: runtime piccolo ma completo; contiene stato, fisica, CPU, rendering, input, audio, lifecycle e resume nello stesso file. È il miglior banco di prova con rischio contenuto.
+Il pilota non è più Neon Rally. Su richiesta, il pattern è stato dimostrato scrivendo da zero un gioco nuovo — `games/the-great-empire/` — invece di rifattorizzare un runtime esistente.
+
+Il motivo per cui questa scelta è migliore, e non solo diversa: una migrazione deve provare contemporaneamente che l'architettura funziona *e* che il gameplay è rimasto identico. Con un gioco nuovo il secondo vincolo non esiste, quindi il pattern si giudica per quello che è. Non c'era inoltre alcun resume, punteggio o bilanciamento già in mano ai giocatori da mettere a rischio.
+
+Risultato: `levels.js` (contenuto puro), `state.js` (stato autorevole), `systems.js` (simulazione), `snapshot.js` (serializzazione pura), `renderer.js`, `input.js` e `game.js` come composition root. Il DOM si ferma alla radice, quindi `scripts/validate-the-great-empire.mjs` gioca partite intere senza browser: vittoria, sconfitta, tetto di popolazione, riuso del pool e rifiuto di tredici snapshot manomessi.
+
+Neon Rally resta un candidato alla migrazione, ora con un pattern già provato alle spalle. I task qui sotto restano validi per quel lavoro.
+
+## Neon Rally — migrazione (rimandata, non annullata)
 
 ## Struttura target indicativa
 

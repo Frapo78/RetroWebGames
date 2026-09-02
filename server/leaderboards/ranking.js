@@ -1,4 +1,4 @@
-export const GAMES = new Set(['star-swarm','bubble-burst','block-drop','maze-munch','neon-rally','neon-snake','neon-tilt','prism-breaker','solitaire']);
+export const GAMES = new Set(['star-swarm','bubble-burst','block-drop','maze-munch','neon-rally','neon-snake','neon-tilt','prism-breaker','solitaire','the-great-empire']);
 
 const integer = (value, min = 0, max = 2_000_000_000) => {
   const number = Number(value);

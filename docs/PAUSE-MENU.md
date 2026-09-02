@@ -36,6 +36,7 @@ Eligibility requires both active time >= 45 seconds and score strictly greater t
 | Prism Breaker | 250 |
 | Solitario | 10 |
 | Star Swarm | 500 |
+| The Great Empire | 200 |
 
 ## Terminal suppression — CRITICAL
 At the exact moment the user presses `CONFERMA DEFINITIVA`, shared pause first captures the immutable score/state/time needed for optional leaderboard submission, then synchronously calls `RWGSession.terminate('pause-terminate')` **before any asynchronous leaderboard/network work**.

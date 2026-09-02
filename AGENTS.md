@@ -174,7 +174,8 @@ Before modifying a game, read its dedicated documentation when present. Importan
 - `docs/BUBBLE-BURST.md`;
 - `docs/SOLITAIRE.md`;
 - `docs/PRISM-BREAKER.md`;
-- `docs/NEON-SNAKE.md`.
+- `docs/NEON-SNAKE.md`;
+- `docs/THE-GREAT-EMPIRE.md`.
 
 Game-specific documentation may define mechanics, content, physics, rendering and semantic snapshot validation. It cannot override shared pause/session/Game Over/leaderboard contracts unless the platform documentation and validators are intentionally changed in the same work.
 
@@ -188,6 +189,12 @@ Do not conflate these two systems.
 - **POWER** controls per-projectile damage strength. POWER range: **1..20**, with twenty projectile colors and independent progression from Weapon.
 
 Life loss without Shield reduces Weapon by two forms and POWER by two levels. Lasers continue through normal enemies and each laser projectile damages a given target at most once unless the mechanic is intentionally redesigned together with documentation and validators. Detailed campaign, boss and drop-rate invariants remain authoritative in `docs/STAR-SWARM.md`.
+
+### The Great Empire — object-oriented runtime pattern
+
+`The Great Empire` is the first game built as separate modules (content, state, simulation, snapshot, renderer, input, composition root) instead of a single runtime file. `docs/GAME-OOP-ARCHITECTURE.md` describes the pattern and `docs/THE-GREAT-EMPIRE.md` the game.
+
+Two invariants there are regression-critical and easy to lose in a refactor: the renderer must never mutate gameplay state, and the DOM must stop at the composition root — the rules, state, simulation and snapshot modules stay loadable in `node:vm`, which is how `scripts/validate-the-great-empire.mjs` plays entire matches headlessly. Its command bar height is measured at runtime into `--tge-actions`; never replace that with a hardcoded value.
 
 ## 6. Rendering and performance
 
@@ -218,6 +225,13 @@ Core validation entrypoint:
 
 ```bash
 node scripts/validate-contracts.mjs
+```
+
+On the FraPoVPS checkout the site root lives in `public/` while `scripts/` stays at the repository root, so the validators cannot resolve their root from either directory. Use the wrapper, which assembles the expected layout under the project's own `.work/` and runs them there:
+
+```bash
+bash scripts/validate-local.sh
+bash scripts/validate-local.sh validate-session.mjs
 ```
 
 Pause-related work additionally requires `node scripts/validate-shared-pause.mjs`.

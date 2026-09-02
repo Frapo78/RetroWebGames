@@ -15,7 +15,7 @@
     'maze-munch': { minScoreExclusive: 100 }, 'neon-rally': { minScoreExclusive: 0 },
     'neon-snake': { minScoreExclusive: 100 }, 'neon-tilt': { minScoreExclusive: 150 },
     'prism-breaker': { minScoreExclusive: 250 }, 'solitaire': { minScoreExclusive: 10 },
-    'star-swarm': { minScoreExclusive: 500 }
+    'star-swarm': { minScoreExclusive: 500 }, 'the-great-empire': { minScoreExclusive: 200 }
   });
   const policy = POLICIES[gameSlug] || { minScoreExclusive: 100 };
   const numberFromText = value => { const raw=String(value??'').replace(/[^\d-]/g,''); return Number.isFinite(Number(raw))?Number(raw):0; };
