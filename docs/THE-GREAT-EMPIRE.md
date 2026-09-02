@@ -55,7 +55,9 @@ Arrows in flight are deliberately not persisted: each carries at most one pendin
 
 ## Assets
 
-Cover `assets/social/games/the-great-empire.jpg` (1200×630), wordmark `assets/brand/games/the-great-empire-wordmark.png` (1200×300, alpha), portrait artwork `assets/covers/games/the-great-empire-portrait.jpg` (1080×1920) and its 540×960 derivative. All four are rendered from the game's own drawing routines and palette, so the poster shows the actual units and buildings rather than unrelated art.
+Cover `assets/social/games/the-great-empire.jpg` (1200×630), wordmark `assets/brand/games/the-great-empire-wordmark.png` (1200×300, alpha), portrait artwork `assets/covers/games/the-great-empire-portrait.jpg` (1080×1920) and its 540×960 derivative.
+
+The artwork translates the real match into the shared RWG arcade-poster language: blue player town and units, red enemy camp and raiders, the fixed road between the bases, cavalry/archers/villagers, woodland, food and gold. It may add perspective, cinematic lighting and foreground action, but must not turn into unrelated generic fantasy art or imply mechanics the game does not have. The standalone wordmark is the single title asset reused by the home card and by social-cover composition; keep it centered, mobile-legible and transparent rather than redrawing the title independently in each image.
 
 ## Validation
 
