@@ -984,3 +984,405 @@ A migrazione conclusa, RetroWebGames deve avere nove runtime con caratteristiche
 - gameplay indistinguibile salvo modifiche intenzionali future.
 
 L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più veloci da eseguire, più facili da profilare, più facili da evolvere e molto più difficili da rompere**.
+
+---
+
+# 20. Internazionalizzazione EN / IT / DE / FR / ES
+
+Stato: **piano approvato, implementazione non iniziata**.
+
+Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
+
+## 20.1 Obiettivo e perimetro
+
+Rendere RetroWebGames completamente fruibile e indicizzabile in italiano (`it`), inglese (`en`), tedesco (`de`), francese (`fr`) e spagnolo (`es`).
+
+La localizzazione deve coprire:
+
+- home, card e sezione partner;
+- pagine e intro dei dieci giochi;
+- HUD, tutorial, intermission e messaggi gameplay;
+- UI shared: pausa, resume, Game Over, leaderboard, profilo, crediti, avatar, orientation, condivisione e PWA;
+- accessibilità: alt, label, live region e annunci;
+- title, description, Open Graph, JSON-LD, canonical, `hreflang` e sitemap;
+- formatter di numeri, date, durata e plurali.
+
+La lingua è presentazione. ID giocatore, crediti, avatar, achievements, sessioni, run id, record locali e classifiche globali restano unici fra tutte le lingue.
+
+## 20.2 Decisione architetturale proposta
+
+Adottare **Astro con output statico** per generare shell, route, HTML e metadata. Conservare:
+
+- JavaScript + Canvas 2D dei giochi;
+- DOM/CSS del Solitario;
+- servizi shared RWG nel browser;
+- Fastify per le leaderboard;
+- Nginx statico in produzione;
+- nessun processo Node persistente per il frontend.
+
+Astro è un generatore di pagine: non entra nei game loop e non diventa un framework di gioco.
+
+### Alternative escluse salvo nuove evidenze
+
+- **PHP semplice:** aggiunge runtime server-side senza risolvere le stringhe client-side.
+- **FraPoFW:** adatto a siti dinamici/gestionali, ma per RWG introdurrebbe PHP-FPM, routing e superficie operativa non necessari; non offre oggi un contratto i18n pubblico già pronto per questo caso.
+- **React/Vue/Svelte SPA:** aumentano bootstrap, bundle e rischio SEO/mobile senza vantaggi per Canvas.
+- **Statico attuale + generatori custom:** possibile, ma replicherebbe template, routing, sitemap e controlli già disponibili in Astro.
+
+### Gate Astro obbligatorio
+
+- [ ] Scrivere `docs/I18N-ARCHITECTURE.md` come ADR con scelta, alternative, rischi e rollback.
+- [ ] Fissare una versione Astro/`@astrojs/sitemap` validata e senza vulnerabilità note.
+- [ ] Creare una build pilota isolata e non pubblicata: home + Block Drop in IT/EN.
+- [ ] Dimostrare output compatibile con `/apps/deploy`, Appmanager `astro-static` e convenzione `public/`.
+- [ ] Confrontare DOM, byte, metadata, screenshot e comportamento con la produzione attuale.
+- [ ] Dimostrare che runtime e ordine di bootstrap dei giochi restano invariati.
+- [ ] Provare e documentare il rollback al deploy statico precedente.
+- [ ] Procedere solo con validator e smoke test verdi.
+
+## 20.3 URL, routing e SEO
+
+Preservare gli URL italiani già indicizzati e condivisi:
+
+```text
+/                              italiano
+/games/<slug>/                 italiano
+/avatar/                       italiano, noindex
+
+/en/                           inglese
+/en/games/<slug>/              inglese
+/en/avatar/                    inglese, noindex
+
+/de/...  /fr/...  /es/...
+```
+
+Contratti:
+
+- [ ] italiano default senza prefisso (`prefixDefaultLocale: false`);
+- [ ] slug dei giochi invariati in tutte le lingue;
+- [ ] nessun redirect degli URL italiani esistenti;
+- [ ] canonical autoreferenziale su ogni variante;
+- [ ] alternate reciproci e fully-qualified `hreflang="it|en|de|fr|es"`;
+- [ ] `x-default` verso il fallback scelto nell'ADR;
+- [ ] ogni gruppo alternate include se stesso e tutte le traduzioni effettivamente pubblicate;
+- [ ] nessun alternate verso pagine mancanti o incomplete;
+- [ ] `html lang`, `og:locale`, `og:locale:alternate` e JSON-LD `inLanguage` coerenti;
+- [ ] sitemap con tutte e sole le canonical indicizzabili più alternate localizzati;
+- [ ] utility sottili `noindex,follow` in ogni lingua;
+- [ ] una sola lingua visibile per pagina, salvo brand e termini intenzionali;
+- [ ] nessun redirect automatico basato su IP, browser o `Accept-Language`;
+- [ ] selettore lingua composto da veri link HTML crawlable.
+
+## 20.4 Catalogo e identità
+
+Evolvere `scripts/seo-catalog.mjs` separando dati language-neutral e copy localizzata:
+
+```text
+Game identity
+  slug, brandName, alternateName
+  capabilities, genres, asset paths
+
+Localized discovery copy
+  displayName, title, description
+  socialAlt, card copy, structured-data labels
+```
+
+- [ ] `brandName` immutabile distinto da `localizedDisplayName`.
+- [ ] Non tradurre automaticamente i brand dei giochi.
+- [ ] Decidere esplicitamente `Solitario` vs `Solitaire` nelle lingue non italiane.
+- [ ] Riutilizzare inizialmente cover e wordmark esistenti.
+- [ ] Tradurre alt e metadata anche quando il raster non cambia.
+- [ ] Non produrre subito cinque cover social per gioco senza necessità editoriale misurata.
+- [ ] Vietare metadata italiani di fallback su una route dichiarata completa in altra lingua.
+
+## 20.5 Runtime `RWGI18n`
+
+Creare un servizio condiviso disponibile prima dei motori e dei bootstrap shared:
+
+```js
+RWGI18n.locale
+RWGI18n.t('gameOver.playAgain')
+RWGI18n.t('session.resumeQuestion', { level: 6 })
+RWGI18n.number(score)
+RWGI18n.date(value)
+RWGI18n.duration(activeMs)
+RWGI18n.plural('credits', credits)
+```
+
+Struttura target indicativa:
+
+```text
+src/i18n/
+  schema.ts
+  glossary.ts
+  it/{core,home,games/*}
+  en/{core,home,games/*}
+  de/{core,home,games/*}
+  fr/{core,home,games/*}
+  es/{core,home,games/*}
+```
+
+Contratti:
+
+- [ ] locale determinato dalla route, non soltanto da `navigator.language`;
+- [ ] italiano come catalogo sorgente iniziale;
+- [ ] fallback italiano consentito in sviluppo, vietato per lingue marcate complete in produzione;
+- [ ] chiavi stabili e namespaced: `core`, `home`, `pause`, `session`, `gameOver`, `leaderboard`, `pwa`, `games.<slug>`;
+- [ ] interpolazione con parametri nominati;
+- [ ] plurali tramite `Intl.PluralRules` o astrazione equivalente;
+- [ ] numeri/date tramite `Intl.NumberFormat` e `Intl.DateTimeFormat`;
+- [ ] durate tramite formatter condiviso, non concatenazioni grammaticali;
+- [ ] niente HTML arbitrario nei dizionari;
+- [ ] niente chiavi derivate dal testo visibile;
+- [ ] niente flash della lingua italiana in attesa di fetch;
+- [ ] bootstrap sincrono o payload locale disponibile prima del rendering;
+- [ ] caricare shared namespace + solo il gioco corrente, non tutti i cataloghi;
+- [ ] API compatibile con gli script classici attuali;
+- [ ] nessuna libreria i18n runtime pesante senza benchmark e ADR.
+
+## 20.6 Persistenza language-neutral
+
+- [ ] Non aggiungere la lingua alle chiavi di profilo, wallet, avatar, best score o sessione.
+- [ ] Una partita iniziata in IT deve riprendersi in EN con lo stesso snapshot.
+- [ ] Snapshot con enum/codici, mai label tradotte.
+- [ ] `RWGResumeAdapter.describe()` formatta nella lingua corrente al momento dell'uso.
+- [ ] Nessun compatibility token cambia per la sola traduzione.
+- [ ] Achievements salvati per id, non per label.
+- [ ] Metriche leaderboard tradotte da codici stabili.
+- [ ] Errori API come codici machine-readable mappati dal client.
+- [ ] Classifiche globali unificate fra lingue.
+- [ ] `locale`/timezone usati per analisi, non per separare ranking.
+- [ ] Cambio lingua durante una run: lifecycle autosave, route equivalente, resume gratuito.
+- [ ] Vietare che il cambio lingua avvii una partita o consumi crediti.
+
+## 20.7 Selettore e rilevamento
+
+- [ ] Selettore accessibile in home e intro di ogni gioco.
+- [ ] Valutare accesso dal dock/pausa senza collisioni mobile.
+- [ ] Codice corto `IT/EN/DE/FR/ES` più nome esteso accessibile.
+- [ ] Lingua corrente con `aria-current`.
+- [ ] Link sempre verso la stessa pagina/gioco nella lingua scelta.
+- [ ] Preferenza esplicita in `rwg.locale.preference.v1`.
+- [ ] Prima visita: al massimo un suggerimento non invasivo se browser e route divergono.
+- [ ] Suggerimento non ripetuto dopo scelta o dismiss.
+- [ ] Nessun cambio lingua durante gameplay senza gesto esplicito.
+- [ ] Eventi `language_suggestion_shown` e `language_selected` con provenienza.
+- [ ] Non usare bandiere come unica rappresentazione della lingua.
+
+## 20.8 PWA e service worker
+
+Eseguire uno spike prima di scegliere manifest unico o manifest localizzati.
+
+- [ ] Mantenere un solo app id ed evitare cinque installazioni involontarie.
+- [ ] Preservare le installazioni italiane esistenti.
+- [ ] Definire la lingua di apertura della shortcut installata.
+- [ ] Tradurre description/prompt dove tecnicamente affidabile.
+- [ ] Mantenere icone, origin e scope comuni.
+- [ ] Service worker consapevole delle route localizzate.
+- [ ] Nessun fallback offline nella lingua sbagliata.
+- [ ] Precache limitato: non scaricare tutte le lingue e tutti i giochi.
+- [ ] Cache distinte naturalmente dagli URL localizzati.
+- [ ] Test offline home + gioco visitato per lingua.
+- [ ] Test upgrade dal service worker monolingua.
+- [ ] Bump esplicito della cache generation al rollout.
+
+## 20.9 Analytics
+
+- [ ] Aggiungere `ui_locale`, `content_language` e `browser_language` ai contesti GA appropriati.
+- [ ] Tracciare suggerimento, selezione e cambio lingua.
+- [ ] Non tradurre nomi evento o valori enumerati.
+- [ ] Segmentare PWA install, start, resume, Game Over e Continue per lingua.
+- [ ] Non inviare copy tradotta quando basta una chiave stabile.
+- [ ] Documentare eventuali dimensioni custom GA4.
+- [ ] Aggiornare `docs/ANALYTICS.md` e `scripts/validate-analytics.mjs`.
+
+## 20.10 Strategia editoriale
+
+- [ ] Glossario arcade prima della traduzione EN.
+- [ ] Classificare brand, termini invarianti e termini traducibili.
+- [ ] Copy breve, naturale, arcade e mobile-first.
+- [ ] Revisione umana prima di dichiarare completa una lingua.
+- [ ] Placeholder, numeri, tag e nomi gioco protetti.
+- [ ] Nessuna traduzione automatica massiva pubblicata senza revisione.
+- [ ] Verificare genere, plurali e formalità per lingua.
+- [ ] Frasi autonome, non concatenazioni basate sull'ordine italiano.
+- [ ] Segnalare traduzioni obsolete quando cambia il significato della sorgente.
+
+## 20.11 Piano di implementazione
+
+### I18N-0 — inventario e contratti
+
+- [ ] Censire stringhe in HTML, shared JS, giochi, CSS generated content, manifest e API errors.
+- [ ] Classificare brand, SEO, shared, gameplay, accessibilità, analytics e debug-only.
+- [ ] Censire `it-IT`, `toLocaleString`, formatter e concatenazioni.
+- [ ] Definire schema, glossario e naming delle chiavi.
+- [ ] Scrivere ADR i18n.
+- [ ] Aggiungere invarianti ad `AGENTS.md`/architettura solo dopo approvazione.
+- [ ] Creare `scripts/validate-i18n.mjs` iniziale.
+- [ ] Registrare baseline bundle, SEO, screenshot e bootstrap.
+
+Gate: inventario completo, ADR approvato, nessun cambiamento visibile.
+
+### I18N-1 — proof of concept Astro
+
+- [ ] Scaffold Astro statico su branch dedicato.
+- [ ] Separare asset sorgente dall'output build `public/`.
+- [ ] Home IT/EN da template comune.
+- [ ] Block Drop IT/EN da template gioco comune.
+- [ ] Metadata, JSON-LD, canonical, alternate e sitemap corretti.
+- [ ] Gioco, sessione, leaderboard e dock invariati.
+- [ ] Confronto Playwright prima/dopo mobile e desktop.
+- [ ] Dry-run deploy FraPoVPS e rollback documentato.
+
+Gate: output equivalente e decisione definitiva Astro sì/no.
+
+### I18N-2 — shared platform in italiano
+
+Estrarre le stringhe italiane, senza aggiungere nuove lingue, da:
+
+- [ ] Game Over;
+- [ ] pausa e doppia conferma;
+- [ ] resume session;
+- [ ] leaderboard e nickname;
+- [ ] profile/credits/avatar;
+- [ ] common dock, share e orientation;
+- [ ] PWA install;
+- [ ] home shell.
+
+Gate: UI italiana visivamente identica, zero chiavi mancanti, bootstrap entro budget.
+
+### I18N-3 — inglese pilota completo
+
+- [ ] Shared platform EN.
+- [ ] Home/discovery EN.
+- [ ] Tutti i dieci giochi EN.
+- [ ] Route, metadata, sitemap e `hreflang` EN.
+- [ ] Revisione umana.
+- [ ] Rollout EN con monitoraggio analytics/Search Console.
+
+Gate: nessun fallback italiano visibile su EN; tutti i giochi verdi.
+
+### I18N-4 — ES, FR, DE progressivi
+
+Ordine suggerito: ES, FR, DE. Ogni lingua è un rollout indipendente.
+
+Per ciascuna:
+
+- [ ] catalogo completo e revisione umana;
+- [ ] chiavi/placeholder verificati;
+- [ ] Playwright visuale e test 320×568;
+- [ ] SEO/hreflang/sitemap;
+- [ ] deploy e monitoraggio prima della lingua successiva.
+
+Il tedesco ha un gate visuale più severo per la lunghezza delle stringhe.
+
+### I18N-5 — consolidamento
+
+- [ ] Rimuovere stringhe operative residue fuori catalogo.
+- [ ] Rimuovere fallback temporanei.
+- [ ] Documentare workflow per nuova feature/nuovo gioco.
+- [ ] Aggiungere template dizionario di un gioco.
+- [ ] Aggiornare checklist deploy e audit.
+- [ ] Riesaminare cover social localizzate e manifest dopo dati reali.
+
+## 20.12 Validator obbligatori
+
+`validate-i18n.mjs` deve progressivamente verificare:
+
+- [ ] stessa struttura di chiavi per le lingue complete;
+- [ ] nessuna chiave mancante/extra o stringa vuota;
+- [ ] placeholder identici;
+- [ ] nessun HTML/script non autorizzato nei cataloghi;
+- [ ] assenza di locale italiano hardcoded nei formatter operativi;
+- [ ] assenza ragionata di copy italiano fuori catalogo;
+- [ ] `html lang`, canonical, `hreflang`, `og:locale` e JSON-LD corretti;
+- [ ] sitemap con esattamente le route attese;
+- [ ] utility noindex escluse;
+- [ ] route/slug simmetrici;
+- [ ] selettore verso pagina equivalente;
+- [ ] storage/session namespace language-neutral;
+- [ ] analytics event name stabili con locale come parametro;
+- [ ] build bloccata per lingue incomplete.
+
+Integrare il validator in `validate-contracts.mjs` quando il primo contratto i18n diventa autorevole.
+
+## 20.13 Browser e visual QA
+
+Viewport minimi per lingua:
+
+- [ ] 320×568;
+- [ ] 375×667;
+- [ ] 390×844;
+- [ ] Android moderno rappresentativo;
+- [ ] iPhone Safari/WebKit rappresentativo;
+- [ ] desktop almeno 1366×768.
+
+Superfici obbligatorie:
+
+- [ ] home/card/partner;
+- [ ] intro e high scores di ogni gioco;
+- [ ] avvio e HUD;
+- [ ] pausa e doppia conferma;
+- [ ] resume sì/no;
+- [ ] orientation guard;
+- [ ] level/boss clear;
+- [ ] Game Over, nickname e rank card;
+- [ ] Continue/crediti insufficienti;
+- [ ] avatar/editor;
+- [ ] PWA Android e istruzioni iOS;
+- [ ] share con URL localizzato;
+- [ ] offline e service-worker update;
+- [ ] cambio lingua con run attiva e successivo resume.
+
+Automazione:
+
+- [ ] build/test HTML su cinque lingue;
+- [ ] screenshot diff delle superfici shared;
+- [ ] smoke per gioco e lingua;
+- [ ] zero console errors/failed requests;
+- [ ] zero overflow, clipping o CTA fuori viewport;
+- [ ] scenari dedicati alle stringhe tedesche lunghe.
+
+## 20.14 Definition of Done
+
+- [ ] Cinque lingue su route stabili.
+- [ ] Home, dieci giochi e shared UI completi in ogni lingua.
+- [ ] Nessun fallback italiano visibile nelle lingue complete.
+- [ ] Classifiche globali uniche e funzionanti.
+- [ ] Sessione e Continue validi attraverso cambio lingua.
+- [ ] PWA mantiene identità e installazioni esistenti.
+- [ ] Canonical, `hreflang`, sitemap e JSON-LD validi.
+- [ ] Build Astro deterministica e ripetibile.
+- [ ] Frontend statico in produzione.
+- [ ] Nessuna regressione funzionale o prestazionale dei giochi.
+- [ ] Validator repository-wide e matrice Playwright verdi.
+- [ ] Workflow per nuove stringhe e nuovi giochi documentato.
+- [ ] Rollback dell'ultima release provato.
+
+## 20.15 Decisioni aperte da chiudere nell'ADR
+
+- [ ] Confermare italiano come default permanente.
+- [ ] Definire `x-default` definitivo.
+- [ ] Definire display name internazionale del Solitario.
+- [ ] Posizione finale del selettore lingua.
+- [ ] Manifest unico o strategia localizzata con un solo app id.
+- [ ] Revisori umani EN/DE/FR/ES.
+- [ ] Se/quando creare cover social localizzate.
+- [ ] Budget massimo del runtime/dizionario i18n.
+- [ ] Piano Search Console per i nuovi prefissi.
+
+## 20.16 Anti-pattern i18n
+
+- [ ] Non duplicare cinque copie manuali dei giochi.
+- [ ] Non separare profilo, crediti o leaderboard per lingua.
+- [ ] Non salvare frasi tradotte negli snapshot.
+- [ ] Non tradurre nomi evento analytics o codici API.
+- [ ] Non affidarsi solo a `navigator.language`.
+- [ ] Non usare query string come canonical di lingua.
+- [ ] Non fare redirect automatici aggressivi.
+- [ ] Non pubblicare route parzialmente tradotte.
+- [ ] Non concatenare traduzioni secondo grammatica italiana.
+- [ ] Non introdurre framework UI nei game loop.
+- [ ] Non migrare Astro, tutti i giochi e tutte le lingue in un solo rilascio.
+- [ ] Non cambiare gameplay, session schema o scoring durante l'estrazione testi.
+- [ ] Non indebolire validator esistenti per facilitare la build.
