@@ -13,7 +13,7 @@
 (() => {
   'use strict';
 
-  const { KIND } = window.GreatEmpireState;
+  const { KIND, BUILD } = window.GreatEmpireState;
   const { orders } = window.GreatEmpireSystems;
 
   /** Tap tolerance in world units — a fingertip is far bigger than a villager. */
@@ -30,16 +30,36 @@
       this.lastTapAt = 0;
       this.lastTapIndex = -1;
       this.enabled = false;
+      /** Pending build order: a building kind, or -1 when giving orders. */
+      this.pendingBuild = -1;
       this.onPointerDown = this.onPointerDown.bind(this);
+      this.onPointerMove = this.onPointerMove.bind(this);
     }
 
     attach() {
       this.canvas.addEventListener('pointerdown', this.onPointerDown);
+      this.canvas.addEventListener('pointermove', this.onPointerMove);
+    }
+
+    /** Enter or leave build mode. Entering clears the selection: the next tap
+     *  means "put it here", not "go there". */
+    setBuild(kind) {
+      this.pendingBuild = kind;
+      this.renderer.ghost = null;
+      if (kind >= 0) this.clearSelection();
+    }
+
+    onPointerMove(event) {
+      if (!this.enabled || this.pendingBuild < 0) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const wx = this.renderer.wx(event.clientX - rect.left);
+      const wy = this.renderer.wy(event.clientY - rect.top);
+      this.renderer.ghost = { kind: this.pendingBuild, x: wx, y: wy, ok: true };
     }
 
     setEnabled(value) {
       this.enabled = Boolean(value);
-      if (!this.enabled) this.clearSelection();
+      if (!this.enabled) { this.clearSelection(); this.setBuild(-1); }
     }
 
     clearSelection() {
@@ -114,6 +134,13 @@
       const wx = this.renderer.wx(event.clientX - rect.left);
       const wy = this.renderer.wy(event.clientY - rect.top);
       const state = this.state;
+
+      if (this.pendingBuild >= 0) {
+        const kind = this.pendingBuild;
+        this.setBuild(-1);
+        this.on.place?.(kind, wx, wy);
+        return;
+      }
 
       const hit = this.pick(wx, wy);
       const own = hit >= 0 && state.units[hit].kind !== KIND.RAIDER;

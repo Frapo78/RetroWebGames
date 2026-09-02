@@ -14,10 +14,23 @@
 (() => {
   'use strict';
 
-  const MAX_UNITS = 48;
+  const MAX_UNITS = 56;
+  const MAX_BUILDINGS = 10;
+  const MAX_SHOTS = 24;
 
-  /** Unit kinds. Numeric so snapshots stay compact and comparisons stay cheap. */
+  /**
+   * Unit kinds. Numeric so snapshots stay compact and comparisons stay cheap.
+   * SOLDIER covers every player military unit; the actual type (clubman,
+   * archer, cavalry) lives in `unit.type`, because behaviour differs by range
+   * and stats, not by allegiance.
+   */
   const KIND = Object.freeze({ VILLAGER: 0, SOLDIER: 1, RAIDER: 2 });
+
+  /** Military unit types, player and enemy alike. */
+  const TYPE = Object.freeze({ CLUBMAN: 0, ARCHER: 1, CAVALRY: 2, RAIDER: 3, RAIDER_ARCHER: 4 });
+
+  /** Player building kinds. */
+  const BUILD = Object.freeze({ HOUSE: 0, TOWER: 1 });
 
   /** Unit behaviours. A unit is always in exactly one. */
   const ACT = Object.freeze({
@@ -33,6 +46,7 @@
     return {
       alive: false,
       kind: KIND.VILLAGER,
+      type: TYPE.CLUBMAN,
       act: ACT.IDLE,
       x: 0, y: 0,
       px: 0, py: 0,
@@ -49,12 +63,20 @@
       carryKind: 0,
       /** Combat target: unit slot index, or -1 for a building target. */
       targetUnit: -1,
-      /** 0 = none, 1 = enemy camp, 2 = player town center. */
+      /** 0 = none, 1 = enemy camp, 2 = player town center, 3 = player structure. */
       targetBuilding: 0,
+      /** Player building slot when targetBuilding === 3, else -1. */
+      targetStruct: -1,
       gatherTimer: 0,
       selected: false,
+      /** Attack reach in world units; ranged units keep their distance. */
+      range: 3.2,
+      /** Facing, for the renderer only. */
+      face: 1,
       /** Spawn animation only — never gameplay authority. */
-      birth: 0
+      birth: 0,
+      /** Hit flash, presentation only. */
+      hurt: 0
     };
   }
 
@@ -63,6 +85,16 @@
       this.units = new Array(MAX_UNITS);
       for (let i = 0; i < MAX_UNITS; i++) this.units[i] = makeUnit();
       this.free = new Array(MAX_UNITS);
+      // Buildings and projectiles are pooled exactly like units: an arrow in
+      // flight must not allocate, and a match can fire a lot of arrows.
+      this.buildings = new Array(MAX_BUILDINGS);
+      for (let i = 0; i < MAX_BUILDINGS; i++) {
+        this.buildings[i] = { alive: false, kind: BUILD.HOUSE, x: 0, y: 0, hp: 1, maxHp: 1, build: 0, cooldown: 0, hurt: 0 };
+      }
+      this.shots = new Array(MAX_SHOTS);
+      for (let i = 0; i < MAX_SHOTS; i++) {
+        this.shots[i] = { alive: false, x: 0, y: 0, tx: 0, ty: 0, t: 0, dur: 0, damage: 0, target: -1, building: 0, hostile: false };
+      }
       this.reset();
     }
 
@@ -78,7 +110,11 @@
       this.outcome = '';
 
       this.food = 0;
+      this.wood = 0;
       this.gold = 0;
+      /** Index into RULES.ages. Advancing unlocks units and buffs stats. */
+      this.age = 0;
+      this.ageResearch = 0;
       this.score = 0;
       this.gathered = 0;
       this.kills = 0;
@@ -94,7 +130,11 @@
 
       /** Training queue: one slot, kind + remaining seconds. */
       this.trainKind = -1;
+      this.trainType = 0;
       this.trainLeft = 0;
+
+      for (let i = 0; i < MAX_BUILDINGS; i++) this.buildings[i].alive = false;
+      for (let i = 0; i < MAX_SHOTS; i++) this.shots[i].alive = false;
 
       this.tuning = null;
       /** Transient UI signal consumed by the shell; not gameplay authority. */
@@ -142,6 +182,8 @@
     }
 
     spawn(kind, x, y, rules, override) {
+      // `override` carries the unit template for military units: stats depend
+      // on type and on the current age, both of which live outside this class.
       const index = this.free.pop();
       if (index === undefined) return -1;
       const unit = this.units[index];
@@ -155,18 +197,19 @@
       unit.carryKind = 0;
       unit.targetUnit = -1;
       unit.targetBuilding = 0;
+      unit.targetStruct = -1;
       unit.cooldown = 0;
       unit.gatherTimer = 0;
       unit.selected = false;
       unit.birth = 0.45;
+      unit.type = override?.type ?? (kind === KIND.RAIDER ? TYPE.RAIDER : TYPE.CLUBMAN);
+      unit.range = override?.range ?? (rules ? rules.attackRange : 3.2);
+      unit.hurt = 0;
+      unit.face = kind === KIND.RAIDER ? 1 : -1;
       if (kind === KIND.VILLAGER) {
         unit.maxHp = rules.villagerHp;
         unit.speed = rules.villagerSpeed;
         unit.damage = 2.5;
-      } else if (kind === KIND.SOLDIER) {
-        unit.maxHp = rules.soldierHp;
-        unit.speed = rules.soldierSpeed;
-        unit.damage = rules.soldierDamage;
       } else {
         unit.maxHp = override?.hp || 30;
         unit.speed = override?.speed || 6.5;
@@ -203,6 +246,51 @@
       return n;
     }
 
+    /** Population ceiling: the town center plus every finished house. */
+    populationCap(rules) {
+      let cap = rules.basePopulation;
+      for (let i = 0; i < this.buildings.length; i++) {
+        const b = this.buildings[i];
+        if (b.alive && b.kind === BUILD.HOUSE && b.build <= 0) cap += rules.buildings.house.pop;
+      }
+      return Math.min(rules.maxPopulation, cap);
+    }
+
+    spawnBuilding(kind, x, y, rules) {
+      const spec = kind === BUILD.TOWER ? rules.buildings.tower : rules.buildings.house;
+      for (let i = 0; i < this.buildings.length; i++) {
+        const b = this.buildings[i];
+        if (b.alive) continue;
+        b.alive = true;
+        b.kind = kind;
+        b.x = x; b.y = y;
+        b.maxHp = spec.hp;
+        b.hp = spec.hp;
+        b.build = spec.build;
+        b.cooldown = 0;
+        b.hurt = 0;
+        return i;
+      }
+      return -1;
+    }
+
+    fireShot(x, y, tx, ty, damage, target, building, hostile) {
+      for (let i = 0; i < this.shots.length; i++) {
+        const s = this.shots[i];
+        if (s.alive) continue;
+        s.alive = true;
+        s.x = x; s.y = y; s.tx = tx; s.ty = ty;
+        s.t = 0;
+        s.dur = Math.max(0.12, Math.hypot(tx - x, ty - y) / 60);
+        s.damage = damage;
+        s.target = target;
+        s.building = building;
+        s.hostile = Boolean(hostile);
+        return i;
+      }
+      return -1;
+    }
+
     countKind(kind) {
       let n = 0;
       for (let i = 0; i < this.units.length; i++) {
@@ -224,5 +312,5 @@
     }
   }
 
-  window.GreatEmpireState = Object.freeze({ GameState, KIND, ACT, MAX_UNITS });
+  window.GreatEmpireState = Object.freeze({ GameState, KIND, TYPE, BUILD, ACT, MAX_UNITS, MAX_BUILDINGS, MAX_SHOTS });
 })();

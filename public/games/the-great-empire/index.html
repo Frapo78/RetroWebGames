@@ -125,11 +125,15 @@
   <main id="app">
     <header id="hud">
       <div class="v-food"><span>CIBO</span><strong id="food">0</strong></div>
+      <div class="v-wood"><span>LEGNO</span><strong id="wood">0</strong></div>
       <div class="v-gold"><span>ORO</span><strong id="gold">0</strong></div>
-      <div><span>POP</span><strong id="pop">0/14</strong></div>
-      <div><span>LIV</span><strong id="level">1</strong></div>
-      <div class="v-score"><span>PUNTI</span><strong id="score">0</strong></div>
     </header>
+    <div id="hud2">
+      <span>POP <strong id="pop">0/4</strong></span>
+      <span>LIV <strong id="level">1</strong></span>
+      <span>ETÀ <strong id="age">PIETRA</strong></span>
+      <span>PUNTI <strong id="score">0</strong></span>
+    </div>
 
     <div id="topbar">
       <a class="icon-btn" href="https://www.retrowebgames.it/" aria-label="Torna a RetroWebGames">⌂</a>
@@ -143,11 +147,18 @@
     </section>
 
     <section id="actions" aria-label="Comandi" hidden>
-      <button id="trainVillager" class="act train" type="button"><b>CONTADINO</b><i>50 cibo</i></button>
-      <button id="trainSoldier" class="act train" type="button"><b>SOLDATO</b><i>60 cibo · 35 oro</i></button>
-      <button id="selectVillagers" class="act" type="button"><b>CONTADINI</b><i>seleziona</i></button>
-      <button id="selectSoldiers" class="act" type="button"><b>SOLDATI</b><i>seleziona</i></button>
-      <button id="attackAll" class="act assault" type="button"><b>ASSALTO ALL'ACCAMPAMENTO</b></button>
+      <button id="trainVillager" class="act train" type="button"><b>CONTADINO</b><i>50🌾</i></button>
+      <button id="trainClubman" class="act train" type="button"><b>GUERRIERO</b><i>60🌾 20🪙</i></button>
+      <button id="trainArcher" class="act train" type="button"><b>ARCIERE</b><i>50🌾 35🪵</i></button>
+      <button id="trainCavalry" class="act train" type="button"><b>CAVALLERIA</b><i>80🌾 60🪙</i></button>
+
+      <button id="buildHouse" class="act build" type="button"><b>CASA</b><i>40🪵 +4 pop</i></button>
+      <button id="buildTower" class="act build" type="button"><b>TORRE</b><i>110🪵 40🪙</i></button>
+      <button id="advanceAge" class="act age" type="button"><b>→ BRONZO</b><i>220🌾 90🪵</i></button>
+
+      <button id="selectVillagers" class="act pick" type="button"><b>CONTADINI</b></button>
+      <button id="selectSoldiers" class="act pick" type="button"><b>SOLDATI</b></button>
+      <button id="attackAll" class="act assault" type="button"><b>ASSALTO</b></button>
       <p id="trainState" hidden></p>
     </section>
 
@@ -160,7 +171,7 @@
         <div class="stats-line">RECORD <strong id="best">0</strong></div>
         <button id="startBtn" class="primary-btn">GIOCA</button>
         <a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
-        <p class="hint">Verticale • tocca un'unità, poi tocca dove mandarla</p>
+        <p class="hint">Verticale • tocca un'unità, poi tocca dove mandarla<br>Raccogli, costruisci, avanza di Età e conquista</p>
       </div>
     </section>
   </main>

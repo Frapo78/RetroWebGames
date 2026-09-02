@@ -13,7 +13,7 @@
   'use strict';
 
   const Levels = window.GreatEmpireLevels;
-  const { GameState, KIND } = window.GreatEmpireState;
+  const { GameState, KIND, TYPE, BUILD } = window.GreatEmpireState;
   const Systems = window.GreatEmpireSystems;
   const { Renderer } = window.GreatEmpireRenderer;
   const { InputController } = window.GreatEmpireInput;
@@ -32,9 +32,18 @@
   const statusEl = $('status');
   const actionBar = $('actions');
   const els = {
-    food: $('food'), gold: $('gold'), pop: $('pop'),
-    level: $('level'), score: $('score'), best: $('best'),
-    train: $('trainState')
+    food: $('food'), wood: $('wood'), gold: $('gold'),
+    pop: $('pop'), level: $('level'), age: $('age'), score: $('score'),
+    best: $('best'), train: $('trainState')
+  };
+  const buttons = {
+    villager: $('trainVillager'),
+    clubman: $('trainClubman'),
+    archer: $('trainArcher'),
+    cavalry: $('trainCavalry'),
+    house: $('buildHouse'),
+    tower: $('buildTower'),
+    age: $('advanceAge')
   };
 
   const state = new GameState();
@@ -47,10 +56,11 @@
   let terminal = false;
 
   /** Preallocated event sink: a simulation tick must not allocate. */
-  const events = { cleared: false, defeated: false, killed: false, lostUnit: false, wave: false, trained: false };
+  const events = { cleared: false, defeated: false, killed: false, lostUnit: false, wave: false, trained: false, built: false, aged: false, lostBuilding: false };
   const resetEvents = () => {
     events.cleared = events.defeated = events.killed = false;
     events.lostUnit = events.wave = events.trained = false;
+    events.built = events.aged = events.lostBuilding = false;
   };
 
   const markDirty = reason => window.RWGSession?.markDirty?.(reason);
@@ -85,7 +95,15 @@
     empty: () => tone(150, 0.03, 'square', 0.012, 120)
   };
 
-  const input = new InputController(canvas, renderer, state, { feedback: name => FEEDBACK[name]?.() });
+  const input = new InputController(canvas, renderer, state, {
+    feedback: name => FEEDBACK[name]?.(),
+    place: (kind, x, y) => {
+      const outcome = Systems.orders.build(state, RULES, kind, x, y);
+      if (outcome === 'ok') { announce('CANTIERE APERTO'); tone(300, 0.1, 'square', 0.03, 220); markDirty('build'); }
+      else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
+      updateHud();
+    }
+  });
 
   // ── Shell ────────────────────────────────────────────────────────────────
   function announce(text) {
@@ -95,23 +113,45 @@
     announce.timer = setTimeout(() => statusEl.classList.remove('show'), 1400);
   }
 
+  const canPay = cost => state.food >= (cost.food || 0) && state.wood >= (cost.wood || 0) && state.gold >= (cost.gold || 0);
+
   function updateHud() {
     els.food.textContent = Math.floor(state.food);
+    els.wood.textContent = Math.floor(state.wood);
     els.gold.textContent = Math.floor(state.gold);
-    els.pop.textContent = `${state.population()}/${RULES.maxPopulation}`;
+    els.pop.textContent = `${state.population()}/${state.populationCap(RULES)}`;
     els.level.textContent = state.level;
+    els.age.textContent = RULES.ages[state.age].short;
     els.score.textContent = Math.floor(state.score);
     els.best.textContent = Math.floor(best);
-    if (state.trainKind >= 0) {
-      els.train.textContent = `${state.trainKind === KIND.SOLDIER ? 'SOLDATO' : 'CONTADINO'} ${Math.ceil(state.trainLeft)}s`;
+
+    if (state.ageResearch > 0) {
+      els.train.textContent = `AVANZAMENTO ${Math.ceil(state.ageResearch)}s`;
+      els.train.hidden = false;
+    } else if (state.trainKind >= 0) {
+      const label = state.trainKind === KIND.VILLAGER ? 'CONTADINO' : RULES.units[Systems.UNIT_KEYS[state.trainType]].label;
+      els.train.textContent = `${label} ${Math.ceil(state.trainLeft)}s`;
       els.train.hidden = false;
     } else {
       els.train.hidden = true;
     }
-    const villagerCost = RULES.villagerCost;
-    const soldierCost = RULES.soldierCost;
-    $('trainVillager').disabled = state.food < villagerCost.food;
-    $('trainSoldier').disabled = state.food < soldierCost.food || state.gold < soldierCost.gold;
+
+    buttons.villager.disabled = !canPay(RULES.villagerCost);
+    for (const [key, button] of [['clubman', buttons.clubman], ['archer', buttons.archer], ['cavalry', buttons.cavalry]]) {
+      const spec = RULES.units[key];
+      const locked = state.age < spec.age;
+      button.disabled = locked || !canPay(spec.cost);
+      button.classList.toggle('is-locked', locked);
+    }
+    buttons.house.disabled = !canPay(RULES.buildings.house.cost);
+    buttons.tower.disabled = !canPay(RULES.buildings.tower.cost);
+
+    const nextAge = RULES.ages[state.age + 1];
+    buttons.age.disabled = !nextAge || state.ageResearch > 0 || !canPay(nextAge.cost);
+    buttons.age.querySelector('b').textContent = nextAge ? `→ ${nextAge.short}` : 'ETÀ MAX';
+    buttons.age.querySelector('i').textContent = nextAge
+      ? `${nextAge.cost.food}🌾 ${nextAge.cost.wood}🪵${nextAge.cost.gold ? ' ' + nextAge.cost.gold + '🪙' : ''}`
+      : 'ferro';
   }
 
   /**
@@ -191,6 +231,7 @@
       maxLevel: state.level,
       levelsCleared: state.levelsCleared,
       kills: state.kills,
+      age: RULES.ages[state.age].short,
       result: 'loss'
     };
     window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail }));
@@ -201,6 +242,9 @@
     if (events.killed) tone(240, 0.05, 'square', 0.02, 150);
     if (events.wave) { announce('ONDATA NEMICA!'); tone(120, 0.16, 'sawtooth', 0.03, 90); }
     if (events.trained) { updateHud(); markDirty('trained'); }
+    if (events.built) { announce('COSTRUZIONE COMPLETATA'); tone(560, 0.12, 'triangle', 0.03, 760); markDirty('built'); }
+    if (events.lostBuilding) { announce('EDIFICIO DISTRUTTO!'); tone(110, 0.2, 'sawtooth', 0.035, 60); markDirty('lost-building'); }
+    if (events.aged) { announce(RULES.ages[state.age].name); tone(620, 0.3, 'triangle', 0.05, 940); markDirty('aged'); }
     if (events.defeated) { finish(); return; }
     if (events.cleared && interstitial <= 0) {
       interstitial = 1.8;
@@ -211,7 +255,7 @@
 
   /** A run with no units, no training and no way to pay for one is over. */
   function stalled() {
-    return state.population() === 0 && state.trainKind < 0 && state.food < RULES.villagerCost.food;
+    return state.population() === 0 && state.trainKind < 0 && state.ageResearch <= 0 && state.food < RULES.villagerCost.food;
   }
 
   function loop(now) {
@@ -230,29 +274,59 @@
     }
 
     const alpha = state.running && !state.paused ? Math.min(1, (state.acc || 0) / Systems.STEP) : 1;
-    renderer.draw(state, alpha);
+    renderer.draw(state, alpha, RULES);
     requestAnimationFrame(loop);
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
-  function train(kind) {
-    const outcome = Systems.orders.train(state, RULES, kind);
+  const OUTCOME_TEXT = {
+    cost: 'RISORSE INSUFFICIENTI',
+    pop: 'SERVONO PIÙ CASE',
+    busy: 'CENTRO CITTÀ OCCUPATO',
+    age: 'ETÀ NON ANCORA RAGGIUNTA',
+    space: 'SPAZIO OCCUPATO',
+    full: 'TROPPI EDIFICI',
+    max: 'SEI GIÀ NELL\'ETÀ DEL FERRO'
+  };
+
+  function train(kind, type) {
+    const outcome = Systems.orders.train(state, RULES, kind, type);
     if (outcome === 'ok') { tone(480, 0.08, 'triangle', 0.03, 620); markDirty('train'); }
-    else if (outcome === 'cost') announce('RISORSE INSUFFICIENTI');
-    else if (outcome === 'pop') announce('POPOLAZIONE AL MASSIMO');
-    else announce('ADDESTRAMENTO IN CORSO');
+    else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
     updateHud();
   }
 
-  $('trainVillager').addEventListener('click', () => train(KIND.VILLAGER));
-  $('trainSoldier').addEventListener('click', () => train(KIND.SOLDIER));
+  function requestBuild(kind) {
+    const spec = kind === BUILD.TOWER ? RULES.buildings.tower : RULES.buildings.house;
+    if (!canPay(spec.cost)) { announce(OUTCOME_TEXT.cost); return; }
+    input.setBuild(kind);
+    announce(kind === BUILD.TOWER ? 'TOCCA DOVE COSTRUIRE LA TORRE' : 'TOCCA DOVE COSTRUIRE LA CASA');
+    FEEDBACK.select();
+  }
+
+  buttons.villager.addEventListener('click', () => train(KIND.VILLAGER, 0));
+  buttons.clubman.addEventListener('click', () => train(KIND.SOLDIER, TYPE.CLUBMAN));
+  buttons.archer.addEventListener('click', () => train(KIND.SOLDIER, TYPE.ARCHER));
+  buttons.cavalry.addEventListener('click', () => train(KIND.SOLDIER, TYPE.CAVALRY));
+  buttons.house.addEventListener('click', () => requestBuild(BUILD.HOUSE));
+  buttons.tower.addEventListener('click', () => requestBuild(BUILD.TOWER));
+  buttons.age.addEventListener('click', () => {
+    const outcome = Systems.orders.advanceAge(state, RULES);
+    if (outcome === 'ok') { announce('AVANZAMENTO IN CORSO'); tone(420, 0.2, 'triangle', 0.04, 700); markDirty('age'); }
+    else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
+    updateHud();
+  });
+
   $('selectVillagers').addEventListener('click', () => {
+    input.setBuild(-1);
     if (!input.selectAllOfKind(KIND.VILLAGER)) announce('NESSUN CONTADINO');
   });
   $('selectSoldiers').addEventListener('click', () => {
+    input.setBuild(-1);
     if (!input.selectAllOfKind(KIND.SOLDIER)) announce('NESSUN SOLDATO');
   });
   $('attackAll').addEventListener('click', () => {
+    input.setBuild(-1);
     let sent = 0;
     for (let i = 0; i < state.units.length; i++) {
       if (state.units[i].alive && state.units[i].kind === KIND.SOLDIER) { Systems.orders.attackCamp(state, i); sent++; }
@@ -326,20 +400,20 @@
     setPlaying(true);
     last = performance.now();
     updateHud();
-    renderer.draw(state, 1);
+    renderer.draw(state, 1, RULES);
     return true;
   }
 
   const resumeAdapter = Object.freeze({
     id: 'the-great-empire',
     version: 1,
-    compatibility: 'the-great-empire-state-v1-world100x140-levels',
+    compatibility: 'the-great-empire-state-v2-ages-wood-buildings',
     isInProgress: () => state.running || interstitial > 0,
     serialize,
     validate,
     restore,
     startFresh: start,
-    describe: snapshot => `Livello ${snapshot.level} • ${snapshot.score} punti`
+    describe: snapshot => `Livello ${snapshot.level} • ${RULES.ages[snapshot.age]?.short || ''} • ${snapshot.score} punti`
   });
   window.RWGResumeAdapter = resumeAdapter;
   window.RWGSession?.register?.(resumeAdapter);

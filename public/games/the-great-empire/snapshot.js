@@ -14,9 +14,12 @@
 (() => {
   'use strict';
 
-  const { KIND, MAX_UNITS } = window.GreatEmpireState;
-  const SCHEMA = 1;
-  const ROW = 16;
+  const { KIND, MAX_UNITS, MAX_BUILDINGS } = window.GreatEmpireState;
+  // Schema 2: ages, wood and player buildings. Schema 1 snapshots describe a
+  // game that no longer exists, so they are refused rather than migrated.
+  const SCHEMA = 2;
+  const ROW = 19;
+  const BUILDING_ROW = 6;
 
   const round = (value, digits) => {
     const factor = 10 ** digits;
@@ -29,21 +32,34 @@
       const u = state.units[i];
       if (!u.alive) continue;
       units.push([
-        u.kind, u.act,
+        u.kind, u.type, u.act,
         round(u.x, 2), round(u.y, 2),
         round(u.hp, 1), round(u.maxHp, 1),
-        round(u.speed, 2), round(u.damage, 2),
+        round(u.speed, 2), round(u.damage, 2), round(u.range, 2),
         round(u.tx, 2), round(u.ty, 2),
         u.nodeId, round(u.carry, 2), u.carryKind,
-        u.targetUnit, u.targetBuilding, round(u.cooldown, 2)
+        u.targetUnit, u.targetBuilding, u.targetStruct, round(u.cooldown, 2)
       ]);
     }
+    const buildings = [];
+    for (let i = 0; i < state.buildings.length; i++) {
+      const b = state.buildings[i];
+      if (!b.alive) continue;
+      buildings.push([b.kind, round(b.x, 2), round(b.y, 2), round(b.hp, 1), round(b.maxHp, 1), round(b.build, 2)]);
+    }
+    // Arrows in flight are deliberately not persisted: they carry at most one
+    // pending hit and rebuilding them would add schema for no player-visible
+    // continuity.
     return {
       schema: SCHEMA,
       level: state.level,
       signature: state.signature,
+      age: state.age,
+      ageResearch: round(state.ageResearch, 2),
       food: round(state.food, 1),
+      wood: round(state.wood, 1),
       gold: round(state.gold, 1),
+      buildings,
       score: Math.floor(state.score),
       gathered: Math.floor(state.gathered),
       kills: state.kills,
@@ -54,6 +70,7 @@
       waveTimer: round(state.waveTimer, 2),
       waveNumber: state.waveNumber,
       trainKind: state.trainKind,
+      trainType: state.trainType,
       trainLeft: round(state.trainLeft, 2),
       nodes: state.nodes.map(node => round(node.amount, 1)),
       units
@@ -69,6 +86,7 @@
    * snapshot address coordinates that only that generated map has.
    */
   function validate(snapshot, Levels, RULES) {
+    if (!RULES || !Array.isArray(RULES.ages)) return false;
     if (!snapshot || snapshot.schema !== SCHEMA) return false;
     if (!wholeAtLeast(snapshot.level, 1) || snapshot.level > 5000) return false;
 
@@ -77,8 +95,18 @@
     if (!Array.isArray(snapshot.nodes) || snapshot.nodes.length !== descriptor.nodes.length) return false;
     if (!Array.isArray(snapshot.units) || snapshot.units.length > MAX_UNITS) return false;
 
-    for (const value of [snapshot.food, snapshot.gold, snapshot.waveTimer, snapshot.elapsed, snapshot.trainLeft]) {
+    for (const value of [snapshot.food, snapshot.wood, snapshot.gold, snapshot.waveTimer, snapshot.elapsed, snapshot.trainLeft, snapshot.ageResearch]) {
       if (!finite(value) || value < 0) return false;
+    }
+    if (!Number.isInteger(snapshot.age) || snapshot.age < 0 || snapshot.age >= RULES.ages.length) return false;
+    if (!Array.isArray(snapshot.buildings) || snapshot.buildings.length > MAX_BUILDINGS) return false;
+    for (const row of snapshot.buildings) {
+      if (!Array.isArray(row) || row.length !== BUILDING_ROW) return false;
+      for (const value of row) if (!finite(value)) return false;
+      if (row[0] < 0 || row[0] > 1) return false;
+      if (row[1] < 0 || row[1] > descriptor.world.w) return false;
+      if (row[2] < 0 || row[2] > descriptor.world.h) return false;
+      if (row[3] <= 0 || row[3] > row[4]) return false;
     }
     if (!wholeAtLeast(snapshot.score, 0) || !wholeAtLeast(snapshot.gathered, 0)) return false;
     if (!wholeAtLeast(snapshot.kills, 0) || !wholeAtLeast(snapshot.levelsCleared, 0)) return false;
@@ -89,6 +117,7 @@
     if (!finite(snapshot.campHp) || snapshot.campHp <= 0 || snapshot.campHp > descriptor.campHp) return false;
 
     if (snapshot.trainKind !== -1 && snapshot.trainKind !== KIND.VILLAGER && snapshot.trainKind !== KIND.SOLDIER) return false;
+    if (!Number.isInteger(snapshot.trainType) || snapshot.trainType < 0 || snapshot.trainType > 2) return false;
 
     for (let i = 0; i < snapshot.nodes.length; i++) {
       const amount = snapshot.nodes[i];
@@ -99,13 +128,15 @@
       if (!Array.isArray(unit) || unit.length !== ROW) return false;
       for (const value of unit) if (!finite(value)) return false;
       if (unit[0] < 0 || unit[0] > 2) return false;
-      if (unit[1] < 0 || unit[1] > 5) return false;
-      if (unit[2] < -10 || unit[2] > descriptor.world.w + 10) return false;
-      if (unit[3] < -10 || unit[3] > descriptor.world.h + 10) return false;
-      if (unit[4] <= 0 || unit[4] > unit[5]) return false;
-      if (unit[10] < -1 || unit[10] >= descriptor.nodes.length) return false;
-      if (unit[13] < -1 || unit[13] >= MAX_UNITS) return false;
-      if (unit[14] < 0 || unit[14] > 2) return false;
+      if (unit[1] < 0 || unit[1] > 4) return false;
+      if (unit[2] < 0 || unit[2] > 5) return false;
+      if (unit[3] < -10 || unit[3] > descriptor.world.w + 10) return false;
+      if (unit[4] < -10 || unit[4] > descriptor.world.h + 10) return false;
+      if (unit[5] <= 0 || unit[5] > unit[6]) return false;
+      if (unit[12] < -1 || unit[12] >= descriptor.nodes.length) return false;
+      if (unit[15] < -1 || unit[15] >= MAX_UNITS) return false;
+      if (unit[16] < 0 || unit[16] > 3) return false;
+      if (unit[17] < -1 || unit[17] >= MAX_BUILDINGS) return false;
     }
     return true;
   }
@@ -116,7 +147,10 @@
    */
   function applyTo(state, snapshot) {
     state.food = snapshot.food;
+    state.wood = snapshot.wood;
     state.gold = snapshot.gold;
+    state.age = snapshot.age;
+    state.ageResearch = snapshot.ageResearch;
     state.score = snapshot.score;
     state.gathered = snapshot.gathered;
     state.kills = snapshot.kills;
@@ -127,6 +161,7 @@
     state.waveTimer = snapshot.waveTimer;
     state.waveNumber = snapshot.waveNumber;
     state.trainKind = snapshot.trainKind;
+    state.trainType = snapshot.trainType;
     state.trainLeft = snapshot.trainLeft;
     for (let i = 0; i < state.nodes.length; i++) state.nodes[i].amount = snapshot.nodes[i];
 
@@ -134,20 +169,33 @@
     state.free.length = 0;
     for (let i = MAX_UNITS - 1; i >= 0; i--) state.free.push(i);
 
+    for (let i = 0; i < state.buildings.length; i++) state.buildings[i].alive = false;
+    for (let i = 0; i < state.shots.length; i++) state.shots[i].alive = false;
+    for (let i = 0; i < snapshot.buildings.length && i < state.buildings.length; i++) {
+      const row = snapshot.buildings[i];
+      const b = state.buildings[i];
+      b.alive = true;
+      b.kind = row[0]; b.x = row[1]; b.y = row[2];
+      b.hp = row[3]; b.maxHp = row[4]; b.build = row[5];
+      b.cooldown = 0; b.hurt = 0;
+    }
+
     for (const row of snapshot.units) {
       const index = state.free.pop();
       if (index === undefined) break;
       const unit = state.units[index];
       unit.alive = true;
-      unit.kind = row[0]; unit.act = row[1];
-      unit.x = unit.px = row[2]; unit.y = unit.py = row[3];
-      unit.hp = row[4]; unit.maxHp = row[5];
-      unit.speed = row[6]; unit.damage = row[7];
-      unit.tx = row[8]; unit.ty = row[9];
-      unit.nodeId = row[10]; unit.carry = row[11]; unit.carryKind = row[12];
-      unit.targetUnit = row[13]; unit.targetBuilding = row[14]; unit.cooldown = row[15];
+      unit.kind = row[0]; unit.type = row[1]; unit.act = row[2];
+      unit.x = unit.px = row[3]; unit.y = unit.py = row[4];
+      unit.hp = row[5]; unit.maxHp = row[6];
+      unit.speed = row[7]; unit.damage = row[8]; unit.range = row[9];
+      unit.tx = row[10]; unit.ty = row[11];
+      unit.nodeId = row[12]; unit.carry = row[13]; unit.carryKind = row[14];
+      unit.targetUnit = row[15]; unit.targetBuilding = row[16]; unit.targetStruct = row[17];
+      unit.cooldown = row[18];
       unit.selected = false;
       unit.birth = 0;
+      unit.hurt = 0;
       unit.gatherTimer = 0;
     }
     state.acc = 0;

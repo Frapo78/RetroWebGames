@@ -52,7 +52,7 @@ Brick-breaker verticale originale con 100 livelli deterministici e distinti, str
 Percorso: `games/prism-breaker/`
 
 ### The Great Empire
-Strategia in tempo reale essenziale su mappa fissa verticale: contadini che raccolgono cibo e oro, addestramento, ondate nemiche e accampamento avversario da abbattere, con livelli deterministici a difficoltà crescente.
+Strategia in tempo reale su mappa fissa verticale ispirata al primo Age of Empires: tre risorse (cibo, legno, oro), tre Età con unità sbloccabili, case che alzano il tetto di popolazione, torri difensive, arcieri e cavalleria, ondate nemiche e accampamento avversario da abbattere, con livelli deterministici a difficoltà crescente.
 
 Percorso: `games/the-great-empire/`
 

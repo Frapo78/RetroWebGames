@@ -14,10 +14,11 @@
   'use strict';
 
   const WORLD_W = 100;
-  // 100x140 is close to the aspect of a phone play area once the HUD and the
-  // command bar are subtracted, so the fixed camera wastes little space on the
-  // sides. Bands below are expressed as fractions of it, never as pixels.
-  const WORLD_H = 140;
+  // The fixed camera must fit the whole map, so the world aspect decides how
+  // much width is wasted on a phone. With the HUD and the command bar taken
+  // out, a 393x690 screen leaves roughly 100x128 of usable proportion — the
+  // measured value, not a guess. Bands below are fractions of it, never pixels.
+  const WORLD_H = 128;
 
   /** Levels per cycle. After the last one the campaign restarts harder. */
   const CYCLE = 20;
@@ -88,7 +89,10 @@
       raiderSpeed: +clamp(6.2 + step * 0.1, 6.2, 9.4).toFixed(2),
       foodNodes: 3 + (step % 3),
       goldNodes: 2 + (step % 2),
-      nodeAmount: Math.round(320 + step * 26)
+      woodNodes: 4 + (step % 3),
+      nodeAmount: Math.round(320 + step * 26),
+      // Enemy archers join once the player can plausibly own a tower.
+      raiderArcherFrom: 5
     };
   }
 
@@ -109,14 +113,17 @@
       { x: enemyCamp.x, y: enemyCamp.y, pad: 22 }
     ];
 
-    const food = placeNodes(random, t.foodNodes, 'food', { top: WORLD_H * 0.38, bottom: WORLD_H * 0.80 }, taken);
-    const gold = placeNodes(random, t.goldNodes, 'gold', { top: WORLD_H * 0.26, bottom: WORLD_H * 0.70 }, taken);
-    const nodes = food.concat(gold).map((node, index) => ({
+    const food = placeNodes(random, t.foodNodes, 'food', { top: WORLD_H * 0.38, bottom: WORLD_H * 0.77 }, taken);
+    const gold = placeNodes(random, t.goldNodes, 'gold', { top: WORLD_H * 0.27, bottom: WORLD_H * 0.70 }, taken);
+    // Woodland sits closest to home: in Age of Empires wood is the resource you
+    // reach for first and never stop needing, so it must not be the risky trip.
+    const wood = placeNodes(random, t.woodNodes, 'wood', { top: WORLD_H * 0.46, bottom: WORLD_H * 0.76 }, taken);
+    const nodes = food.concat(gold, wood).map((node, index) => ({
       id: index,
       kind: node.kind,
       x: +node.x.toFixed(3),
       y: +node.y.toFixed(3),
-      amount: t.nodeAmount + (node.kind === 'gold' ? -60 : 0)
+      amount: t.nodeAmount + (node.kind === 'gold' ? -60 : node.kind === 'wood' ? -40 : 0)
     }));
 
     let signature = n * 31;
@@ -153,21 +160,47 @@
     getLevel,
     /** Unit and building costs/stats live here so balance stays in one file. */
     RULES: Object.freeze({
-      villagerCost: { food: 50, gold: 0 },
-      soldierCost: { food: 60, gold: 35 },
+      villagerCost: { food: 50, wood: 0, gold: 0 },
       villagerTrainTime: 5.5,
-      soldierTrainTime: 7.5,
       villagerHp: 34,
-      soldierHp: 78,
-      soldierDamage: 9.5,
-      soldierSpeed: 8.4,
       villagerSpeed: 7.6,
       carryCapacity: 12,
       gatherRate: 5.2,
       attackRange: 3.2,
       attackInterval: 0.85,
       townCenterHp: 900,
-      maxPopulation: 14
+
+      /**
+       * Ages, the mechanic Age of Empires is built around. Advancing is
+       * researched at the town center, costs resources and takes time, and
+       * each age unlocks a unit and strengthens everything already trained.
+       */
+      ages: [
+        { name: 'ETÀ DELLA PIETRA', short: 'PIETRA', cost: null, research: 0, bonus: 1, unlocks: 'clubman' },
+        { name: 'ETÀ DEL BRONZO', short: 'BRONZO', cost: { food: 220, wood: 90, gold: 0 }, research: 20, bonus: 1.16, unlocks: 'archer' },
+        { name: 'ETÀ DEL FERRO', short: 'FERRO', cost: { food: 420, wood: 160, gold: 130 }, research: 28, bonus: 1.34, unlocks: 'cavalry' }
+      ],
+
+      /** Military units, each gated behind the age that unlocks it. */
+      units: {
+        clubman: { label: 'GUERRIERO', age: 0, cost: { food: 60, wood: 0, gold: 20 }, train: 7.5, hp: 78, damage: 9.5, speed: 8.4, range: 3.2 },
+        archer:  { label: 'ARCIERE',   age: 1, cost: { food: 50, wood: 35, gold: 0 },  train: 8.5, hp: 58, damage: 8.5, speed: 7.8, range: 22 },
+        cavalry: { label: 'CAVALLERIA',age: 2, cost: { food: 80, wood: 0, gold: 60 },  train: 11,  hp: 132, damage: 14, speed: 11.4, range: 3.4 }
+      },
+
+      /**
+       * Buildings the player raises. Houses lift the population ceiling the
+       * way they do in the original; the tower turns wood into a defence that
+       * keeps working while the army is away attacking.
+       */
+      buildings: {
+        house: { label: 'CASA', cost: { food: 0, wood: 40, gold: 0 }, build: 6, hp: 140, pop: 4, r: 3.4 },
+        tower: { label: 'TORRE', cost: { food: 0, wood: 110, gold: 40 }, build: 10, hp: 260, r: 3.8, range: 26, damage: 13, interval: 1.5 }
+      },
+
+      basePopulation: 4,
+      maxPopulation: 20,
+      maxBuildings: 10
     })
   });
 })();
