@@ -41,7 +41,7 @@ Permanent fix: Canvas-owned `ResizeObserver`, coalesced atomic resizing and stor
 
 ## Local actions
 
-Rotate and hard Drop are square, rounded, adjacent action buttons beside the joystick. Each uses an original inline SVG plus a short text label and a complete `aria-label`. Direction buttons remain hidden adapter targets once the shared joystick mounts.
+Rotate and hard Drop are square, rounded, adjacent action buttons beside the joystick. Each uses an original inline SVG plus a short text label and a complete `aria-label`. Drop explicitly owns a yellow foreground and dark background with `!important` at the game-scoped selector: the dynamically loaded shared action style also uses `!important`, so relying on the old low-specificity dark foreground makes both its icon and label effectively invisible. Direction buttons remain hidden adapter targets once the shared joystick mounts.
 
 ## Required validation
 

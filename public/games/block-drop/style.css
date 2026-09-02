@@ -125,7 +125,7 @@ button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
 }
 #controls button:active { transform: translateY(1px) scale(.98); background: #172748; }
 #controls .rotate { color: var(--cyan); }
-#controls .drop { color: #07111d; background: linear-gradient(135deg, var(--yellow), #fff1a2); font-size: 12px; letter-spacing: .07em; }
+#controls .drop { color: var(--yellow); background: linear-gradient(180deg, rgba(20,32,61,.94), rgba(8,15,32,.94)); font-size: 12px; letter-spacing: .07em; }
 
 #overlay {
   position: absolute;
@@ -186,7 +186,14 @@ body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .rwg-vjoy-
   gap: 2px !important;
 }
 body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .rotate { grid-column: 2 !important; grid-row: 1 !important; }
-body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .drop { grid-column: 3 !important; grid-row: 1 !important; }
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .drop {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  color: #ffe66d !important;
+  border-color: rgba(255,230,109,.42) !important;
+  background: linear-gradient(180deg, rgba(35,39,58,.98), rgba(12,17,32,.98)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 0 20px rgba(255,230,109,.08) !important;
+}
 #controls .rwg-vjoy-action svg {
   width: 25px;
   height: 25px;
