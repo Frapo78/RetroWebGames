@@ -199,7 +199,7 @@ must(agents.includes('exactly **8 firing forms**'), 'AGENTS.md must document Sta
 must(agents.includes('POWER range: **1..20**'), 'AGENTS.md must document Star Swarm 20-level POWER progression');
 must(agents.includes('Do not conflate these two systems'), 'AGENTS.md must retain Weapon vs POWER semantic guardrail');
 
-for (const rel of ['scripts/validate-session.mjs','scripts/validate-avatar.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-neon-snake.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-the-great-empire.mjs','scripts/validate-shared-controls.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs','scripts/validate-lazy-images.mjs','scripts/validate-seo-geo.mjs','scripts/validate-leaderboards.mjs','scripts/validate-security.mjs','scripts/validate-partners.mjs']) {
+for (const rel of ['scripts/validate-session.mjs','scripts/validate-avatar.mjs','scripts/validate-block-drop.mjs','scripts/validate-bubble-burst.mjs','scripts/validate-solitaire.mjs','scripts/validate-neon-snake.mjs','scripts/validate-prism-breaker.mjs','scripts/validate-the-great-empire.mjs','scripts/validate-shared-controls.mjs','scripts/validate-social-sharing.mjs','scripts/validate-analytics.mjs','scripts/validate-icons.mjs','scripts/validate-pwa-install.mjs','scripts/validate-lazy-images.mjs','scripts/validate-seo-geo.mjs','scripts/validate-leaderboards.mjs','scripts/validate-security.mjs','scripts/validate-partners.mjs']) {
   const result = spawnSync(process.execPath, [path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: specialized validator failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -219,6 +219,6 @@ console.log(`  ✓ ${gamePages.length}/${gamePages.length} current games and fut
 console.log('  ✓ Star Swarm campaign/Weapon/POWER/drop/laser invariants are present');
 console.log('  ✓ shared bootstrap/profile/Game Over/session resilience invariants are intact');
 console.log('  ✓ Neon Tilt audited physics/compatibility guards are present');
-console.log('  ✓ Session, Avatar, social sharing, analytics, icons, PWA install, lazy images, Bubble Burst, Neon Snake, Solitario, Prism Breaker and The Great Empire specialized validators are green');
+console.log('  ✓ Session, Avatar, social sharing, analytics, icons, PWA install, lazy images, Block Drop, Bubble Burst, Neon Snake, Solitario, Prism Breaker and The Great Empire specialized validators are green');
 console.log('  ✓ campaign uniqueness, boss roster and lifecycle pause guards are intact');
 console.log('  ✓ PWA install flow, lazy images, icons and complete profile statistics are present');

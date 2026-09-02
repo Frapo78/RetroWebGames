@@ -159,6 +159,44 @@ h1 span { color: var(--yellow); text-shadow: 0 0 20px rgba(255,230,109,.22); }
 }
 .hint { margin-top: 11px; color: #53677f; font-size: 9px; }
 
+
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions {
+  grid-template-columns: minmax(88px, 124px) repeat(2, clamp(50px, 15vw, 58px)) !important;
+  grid-template-rows: 1fr !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .rwg-vjoy {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .rwg-vjoy-action {
+  width: clamp(50px, 15vw, 58px) !important;
+  min-width: 50px !important;
+  height: clamp(50px, 15vw, 58px) !important;
+  min-height: 50px !important;
+  aspect-ratio: 1 !important;
+  padding: 5px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .rotate { grid-column: 2 !important; grid-row: 1 !important; }
+body[data-rwg-game-name="Block Drop"] #controls.rwg-vjoy-host-actions .drop { grid-column: 3 !important; grid-row: 1 !important; }
+#controls .rwg-vjoy-action svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#controls .rwg-vjoy-action span { font-size: 6.5px; line-height: 1; letter-spacing: .08em; }
 @media (min-width: 560px) {
   body { background: #010205; }
   #app { box-shadow: 0 0 80px rgba(0,0,0,.85); }

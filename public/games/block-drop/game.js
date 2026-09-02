@@ -30,7 +30,7 @@
   let board = makeBoard(), current = null, next = null, bag = [];
   let running = false, paused = false, score = 0, lines = 0, level = 1;
   let best = Number(localStorage.getItem('rwgBlockDropBest') || 0);
-  let dropTimer = 0, lastTime = 0, cell = 24, dpr = 1, clearFlash = 0, clearedRows = [];
+  let dropTimer = 0, lastTime = 0, cell = 24, dpr = 1, renderWidth = 1, renderHeight = 1, resizeFrame = 0, clearFlash = 0, clearedRows = [];
   let touchStart = null, touchMoved = false, repeatTimer = null;
 
   function makeBoard() { return Array.from({ length: ROWS }, () => Array(COLS).fill(null)); }
@@ -58,9 +58,20 @@
     scoreEl.textContent = score.toLocaleString('it-IT'); linesEl.textContent = lines; levelEl.textContent = level; bestEl.textContent = best.toLocaleString('it-IT');
   }
   function resize() {
-    const rect = canvas.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.max(1, Math.floor(rect.width * dpr)); canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); cell = Math.min(rect.width / COLS, rect.height / ROWS); draw();
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, rect.width), height = Math.max(1, rect.height);
+    const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pixelWidth = Math.max(1, Math.round(width * nextDpr)), pixelHeight = Math.max(1, Math.round(height * nextDpr));
+    renderWidth = width; renderHeight = height; dpr = nextDpr;
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cell = Math.min(renderWidth / COLS, renderHeight / ROWS);
+    draw(); drawNext();
+  }
+  function scheduleResize() {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; resize(); });
   }
   function collides(piece, dx = 0, dy = 0, matrix = piece.matrix) {
     for (let y = 0; y < matrix.length; y++) for (let x = 0; x < matrix[y].length; x++) {
@@ -136,7 +147,7 @@
     }
   }
   function draw() {
-    const rect = canvas.getBoundingClientRect(), w = rect.width, h = rect.height; ctx.clearRect(0, 0, w, h); drawGrid(w, h);
+    ctx.clearRect(0, 0, renderWidth, renderHeight); drawGrid(renderWidth, renderHeight);
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const type = board[y][x]; if (type) drawBlock(ctx, x * cell, y * cell, cell, COLORS[type]); }
     if (current) { drawPiece(current, ghostY(), 0.18); drawPiece(current); }
     if (clearFlash > 0) { ctx.globalAlpha = Math.min(1, clearFlash * 7); ctx.fillStyle = '#ffffff'; for (const row of clearedRows) ctx.fillRect(0, row * cell, COLS * cell, cell); ctx.globalAlpha = 1; }
@@ -226,6 +237,9 @@
     current = makePiece(); next = next || makePiece(); dropTimer = 0; clearFlash = 0; clearedRows = []; running = true; paused = false;
     overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; lastTime = performance.now(); updateHud(); drawNext(); draw(); markSessionDirty('credit-continue'); requestAnimationFrame(loop);
   });
-  pauseBtn.addEventListener('click', togglePause); startBtn.addEventListener('click', startGame); window.addEventListener('resize', () => { resize(); drawNext(); });
-  updateHud(); resetGame(); resize(); drawNext();
+  pauseBtn.addEventListener('click', togglePause); startBtn.addEventListener('click', startGame);
+  window.addEventListener('resize', scheduleResize); window.visualViewport?.addEventListener('resize', scheduleResize); window.addEventListener('orientationchange', scheduleResize);
+  if ('ResizeObserver' in window) new ResizeObserver(scheduleResize).observe(canvas);
+  window.addEventListener('load', scheduleResize, { once: true }); document.fonts?.ready.then(scheduleResize);
+  updateHud(); resetGame(); resize();
 })();

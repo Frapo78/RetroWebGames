@@ -105,7 +105,7 @@ The shared dock must remain visible inside the visual viewport on small iPhone/S
 
 Current shared adaptations include:
 
-- Block Drop stage/joystick raised above dock reserve;
+- Block Drop stage/joystick raised above dock reserve, Rotate/Drop square and adjacent, and Canvas geometry observed atomically after asynchronous joystick layout changes;
 - Maze Munch joystick host separated from the dock;
 - Neon Snake reserves three non-overlapping vertical regions: playfield, joystick/Turbo strip and common dock; its gesture hint stays between playfield and controls;
 - Neon Rally shortens the real canvas/physics viewport above the common dock, so the player paddle can never render behind Android navigation or shared controls;

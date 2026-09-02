@@ -166,6 +166,7 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `docs/SESSION-PERSISTENCE.md` — source of truth autosave/resume e invalidazione;
 - `docs/STAR-SWARM.md` — source of truth Star Swarm;
 - `docs/BUBBLE-BURST.md` — source of truth Bubble Burst;
+- `docs/BLOCK-DROP.md` — Canvas responsive, controlli e incidente first-load Block Drop;
 - `docs/SOLITAIRE.md` — source of truth Solitario;
 - `docs/PRISM-BREAKER.md` — source of truth Prism Breaker;
 - `docs/SOCIAL-SHARING.md` — metadati pubblici e condivisione dalle intro;
