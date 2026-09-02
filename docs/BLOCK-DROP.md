@@ -43,6 +43,10 @@ Permanent fix: Canvas-owned `ResizeObserver`, coalesced atomic resizing and stor
 
 Rotate and hard Drop are square, rounded, adjacent action buttons beside the joystick. Each uses an original inline SVG plus a short text label and a complete `aria-label`. Drop explicitly owns a yellow foreground and dark background with `!important` at the game-scoped selector: the dynamically loaded shared action style also uses `!important`, so relying on the old low-specificity dark foreground makes both its icon and label effectively invisible. Direction buttons remain hidden adapter targets once the shared joystick mounts.
 
+## Cover-art invariant
+
+The dedicated 1200×630 social cover and both 9:16 home-card derivatives must depict only legal tetrominoes. The orange foreground hero piece is an unmistakable T tetromino made of exactly four equal blocks: three contiguous blocks in one row and one block centred directly below them. Keep this gameplay-authentic silhouette when regenerating or retouching either asset; decorative perspective, glass material, glow and motion trails must never add apparent extra blocks.
+
 ## Required validation
 
 ```bash

@@ -35,6 +35,7 @@ must(css.includes('aspect-ratio: 1 !important') && css.includes('.rotate { grid-
 const scopedDropRule = css.match(/body\[data-rwg-game-name="Block Drop"\] #controls\.rwg-vjoy-host-actions \.drop\s*\{([^}]*)\}/)?.[1] || '';
 must(/color:\s*#ffe66d\s*!important;/.test(scopedDropRule) && /background:[^;]+!important;/.test(scopedDropRule), 'Drop icon and label must retain high-contrast yellow on an explicit dark background');
 must(docs.includes('2026-09-02 first-load rendering incident') && docs.includes('layout race'), 'Block Drop incident and root cause must remain documented');
+must(docs.includes('Cover-art invariant') && docs.includes('exactly four equal blocks') && docs.includes('three contiguous blocks in one row'), 'Block Drop cover must document the legal four-block T tetromino invariant');
 must(/#controls \.rwg-vjoy-action svg\s*\{[\s\S]*?stroke-linejoin:\s*round;\s*\}/.test(css) && css.includes('#controls .rwg-vjoy-action span'), 'action icon and label CSS blocks must be complete');
 
 if (failures.length) {
@@ -46,3 +47,4 @@ console.log('Block Drop validation OK');
 console.log('  ✓ Canvas geometry follows asynchronous shared-control layout changes');
 console.log('  ✓ render dimensions, backing store, DPR and cell size update atomically');
 console.log('  ✓ Rotate and Drop remain square, adjacent, icon-led actions');
+console.log('  ✓ cover art is guarded as a legal four-block T tetromino');
