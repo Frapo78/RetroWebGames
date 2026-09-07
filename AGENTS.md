@@ -183,6 +183,8 @@ Game-specific documentation may define mechanics, content, physics, rendering an
 
 For Solitario specifically, `games/solitaire/pause-overlay.js` must remain a compatibility no-op while referenced. Do not restore its old local pause implementation.
 
+FreeCell is a first-class Solitario variant, not an alternate skin: preserve eight face-up cascades dealt `7/7/7/7/6/6/6/6`, four one-card free cells, empty stock/waste, any-card empty cascades and the sequence capacity `(empty cells + 1) × 2^usable empty cascades`. Resume validation must accept the arbitrary order of the initial FreeCell cascades while still enforcing 52 unique canonical cards.
+
 ### Star Swarm offensive axes — CRITICAL
 
 Do not conflate these two systems.

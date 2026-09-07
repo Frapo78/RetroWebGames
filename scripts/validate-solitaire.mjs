@@ -23,6 +23,9 @@ must(html.indexOf('game.js') < html.indexOf('session-adapter.js') && html.indexO
 must(!html.includes('../../rwg-session.js') && !html.includes('../../rwg-session.css'), 'Solitaire must rely on centralized game-hud session bootstrap, not page-local shared-service preload');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared lifecycle');
 must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose Klondike');
+must(html.includes('FREECELL • 4 CELLE LIBERE'), 'Solitaire intro must expose FreeCell');
+must((html.match(/class="pile-slot freecell-slot"/g) || []).length === 4, 'FreeCell must expose exactly four free-cell slots');
+must(html.includes('data-solitaire-variant="klondike"'), 'Solitaire body must expose the active variant to responsive CSS');
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain return-to-menu action');
 must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets');
 must(html.includes('value="essential" selected'), 'Essential card set must remain markup default');
@@ -50,6 +53,9 @@ must(style.includes('.solitaire-fireworks') && style.includes('@keyframes firewo
 must(style.includes('.new-deal-confirm.visible') && style.includes('.new-deal-confirm-card') && style.includes('#newDealCancelBtn') && style.includes('#newDealConfirmBtn'), 'Solitaire compact new-deal confirmation styling missing');
 must(style.includes('bottom:calc(env(safe-area-inset-bottom) + 62px)'), 'Draw pile dock must remain immediately above the lower game controls');
 must(style.includes('#drawPileDock #waste .playing-card'), 'Waste card must retain dock-local card sizing');
+must(style.includes('body[data-solitaire-variant="freecell"] #upperPiles') && style.includes('grid-template-columns:repeat(8,1fr)'), 'FreeCell upper row must render four cells plus four foundations');
+must(style.includes('body[data-solitaire-variant="freecell"] #drawPileDock{display:none}'), 'FreeCell must hide the Klondike stock/waste dock');
+must(style.includes('repeat(var(--tableau-columns,7),1fr)'), 'Tableau grid must follow the active variant column count');
 
 const inputGuard = read('games/solitaire/input-guard.js');
 for (const marker of ['gesturestart','gesturechange','gestureend','dblclick','touchstart','touchmove','touchend','wheel','preventDefault','passive: false','document.documentElement.style.touchAction']) {
@@ -70,6 +76,13 @@ must(classic?.foundationCount === 4, 'Klondike must use four foundations');
 must(classic?.tableauBuild === 'alternating-descending', 'Klondike tableau rule changed');
 must(classic?.emptyTableau === 'king-only', 'Only Kings may enter empty tableau columns');
 must(classic?.foundationBuild === 'same-suit-ascending', 'Foundation rule changed');
+const freecell = registry?.get?.('freecell');
+must(freecell?.tableauColumns === 8 && freecell?.freeCellCount === 4, 'FreeCell must expose eight cascades and four free cells');
+must(freecell?.drawCount === 0 && freecell?.stockPasses === 0, 'FreeCell must not expose stock drawing');
+must(freecell?.emptyTableau === 'any-card' && freecell?.tableauBuild === 'alternating-descending', 'FreeCell tableau rules changed');
+must(registry?.freeCellMoveCapacity?.([null,null,null,null], [[1],[2],[3]], 0) === 5, 'FreeCell capacity must count four cells when no cascade is empty');
+must(registry?.freeCellMoveCapacity?.([null,null,1,2], [[],[],[3]], 0) === 6, 'An empty destination must be excluded from temporary cascades');
+must(registry?.freeCellMoveCapacity?.([null,null,null,null], [[],[],[3]], 2) === 20, 'A non-empty destination must preserve all usable empty cascades');
 must(Array.isArray(registry?.FUTURE) && registry.FUTURE.length >= 3, 'Variant registry must remain extensible');
 
 const autoSandbox = { window: {} };
@@ -84,6 +97,8 @@ const wrappedChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4
 must(firstChoice?.target?.col === 0 && secondChoice?.target?.col === 2 && wrappedChoice?.target?.col === 0, 'Repeated double taps must cycle through multiple legal tableau destinations');
 const foundationChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: target => target.type === 'foundation' || target.col === 0 });
 must(foundationChoice?.target?.type === 'foundation', 'Automatic move must retain foundation-first ordering when legal');
+const cellChoice = autoMove?.chooseNext?.({ card: redThree, tableauColumns: 0, freeCellCount: 4, cursor: null, isLegal: target => target.type === 'freecell' && target.cell === 2 });
+must(cellChoice?.target?.type === 'freecell' && cellChoice.target.cell === 2, 'Automatic move must reach a legal FreeCell slot');
 must(autoMove?.chooseNext?.({ card: redThree, tableauColumns: 4, cursor: null, isLegal: () => false }) === null, 'Automatic move must be a no-op when no legal destination exists');
 
 const finishSandbox = { window: {} };
@@ -114,6 +129,9 @@ must(autoFinish?.plan?.(stockedFinish) === null, 'Auto-finish must reject a hand
 const faceDownFinish = structuredClone(solvableFinish);
 faceDownFinish.tableau[0][0].faceUp = false;
 must(autoFinish?.plan?.(faceDownFinish) === null, 'Auto-finish must reject any face-down tableau card');
+const cellFinish = structuredClone(solvableFinish);
+cellFinish.freeCells = [cellFinish.tableau[0].pop(), null, null, null];
+must(autoFinish?.plan?.(cellFinish)?.some(step => step.source.type === 'freecell' && step.source.cell === 0), 'Auto-finish must include cards held in a free cell');
 
 const artSandbox = { window: {} };
 vm.createContext(artSandbox);
@@ -151,7 +169,7 @@ for (let rank = 1; rank <= 13; rank++) {
 
 const game = read('games/solitaire/game.js');
 for (const marker of ['createDeck()','canMoveToTableau','canMoveToFoundation','drawStock','autoMoveCard','animateAutoMove','captureCardRects','pushHistory','undo()','findHint()','pointerdown','visibilitychange','checkWin()']) must(game.includes(marker), `Solitaire runtime missing: ${marker}`);
-must(game.includes('return first.rank === 13'), 'Empty-tableau rule must remain King-only');
+must(game.includes("variant.emptyTableau === 'any-card' || first.rank === 13"), 'Empty-tableau rules must preserve Klondike King-only and FreeCell any-card');
 must(game.includes('top.rank === first.rank + 1') && game.includes('cardColor(top) !== cardColor(first)'), 'Tableau rule changed');
 must(game.includes('card.rank === foundations[suit].length + 1'), 'Foundation rule changed');
 must(game.includes('stock = waste.reverse()'), 'Draw-one stock recycling missing');
@@ -172,17 +190,21 @@ for (const marker of ['requestNewGame()','cancelNewGame()','confirmNewGame()',"n
 }
 must(game.includes('!autoFinishActive && !newDealConfirmOpen') && game.includes('autoMoveLocked || newDealConfirmOpen'), 'New-deal confirmation must freeze timer and block board interaction');
 
-for (const marker of ['RESUME_SCHEMA = 1','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
+for (const marker of ['RESUME_SCHEMA = 2','serializeResumeState()','validateResumeState(state)','restoreResumeState(state)','window.RWGResumeAdapter',"id: 'solitaire'",'markSessionDirty','window.RWGSession?.clear?.()']) must(game.includes(marker), `Solitaire logical resume contract missing: ${marker}`);
 must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.map(card => card.id)).size !== 52'), 'Resume validation must require exactly 52 unique cards');
 must(game.includes('state.stock.some(card => card.faceUp)') && game.includes('state.waste.some(card => !card.faceUp)'), 'Resume validation must reject impossible stock/waste visibility');
 must(game.includes('card.suit !== suit || card.rank !== i + 1'), 'Resume validation must verify foundations');
 must(game.includes("markSessionDirty('move')") && game.includes("markSessionDirty('stock')") && game.includes("markSessionDirty('undo')"), 'Discrete card mutations must dirty-save');
 must(game.includes("showToast('PARTITA PRECEDENTE RIPRESA')"), 'Restore path must visibly confirm successful resume');
+for (const marker of ["variant.id === 'freecell'", 'index % variant.tableauColumns', 'freeCellMoveCapacity(targetCol)', 'Variants.freeCellMoveCapacity(freeCells, tableau, targetCol)', 'canMoveToFreeCell(cards, cell)', 'freeCells[target.cell] = movedCards[0]', 'state.freeCells.length !== 4', "resumeVariant.id === 'freecell'"]) must(game.includes(marker), 'FreeCell runtime missing: ' + marker);
+must(game.includes('state.stock.length || state.waste.length') && game.includes('pile.some(card => !card.faceUp)'), 'FreeCell resume validation must reject stock/waste and face-down cascades');
+must(game.includes('freeCells: clone(freeCells)') && game.includes('freeCells = clone(state.freeCells)'), 'FreeCell state must round-trip through resume snapshots');
+must(game.includes('if (!pointerDrag) {') && game.includes('board.contains(event.target)'), 'Tap-selected cards must reach empty foundations, cascades and free cells');
 
 const adapter = read('games/solitaire/session-adapter.js');
 must(adapter.includes('window.RWGResumeAdapter'), 'Solitaire compatibility adapter missing');
-must(/version\s*:\s*2/.test(adapter), 'Solitaire adapter must expose persistence version 2');
-must(/compatibility\s*:\s*['"]solitaire-klondike-state-v2-52cards-draw1['"]/.test(adapter), 'Solitaire compatibility token missing or changed unexpectedly');
+must(/version\s*:\s*3/.test(adapter), 'Solitaire adapter must expose persistence version 3');
+must(/compatibility\s*:\s*['"]solitaire-state-v3-klondike-freecell['"]/.test(adapter), 'Solitaire multivariant compatibility token missing or changed unexpectedly');
 
 const session = read('rwg-session.js'), sessionCss = read('rwg-session.css'), hud = read('game-hud.js');
 for (const marker of ["rwg.session.v2:",'ENVELOPE_SCHEMA = 2','adapter.compatibility','adapter.validate(envelope.payload, envelope)','Vuoi continuare la partita precedente?','pagehide','beforeunload','visibilitychange',"forceLifecycleSave('navigation')",'MAX_SNAPSHOT_BYTES']) must(session.includes(marker), `Shared session v2 missing: ${marker}`);
@@ -202,7 +224,7 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('Solitaire validation OK');
-console.log('  ✓ classic Klondike rules and card artwork');
+console.log('  ✓ classic Klondike and FreeCell rules with shared card artwork');
 console.log('  ✓ browser zoom gestures blocked by viewport + CSS + JS guard');
 console.log('  ✓ stock/waste docked bottom-right as left/right pair');
 console.log('  ✓ cyclic double-tap auto-move with reduced-motion-safe FLIP animation');

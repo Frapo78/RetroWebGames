@@ -33,7 +33,7 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 .stock-slot{padding:0;appearance:none}.stock-slot.has-cards{border:0;background:transparent;box-shadow:0 2px 6px rgba(0,0,0,.28)}
 .stock-slot .card-back-art{position:absolute;inset:0}
 .stock-slot.is-empty::before{content:"↻";position:absolute;inset:0;display:grid;place-items:center;color:rgba(241,213,138,.6);font-size:clamp(20px,7vw,34px)}
-#tableau{position:absolute;left:0;right:0;top:calc((min(100vw, 640px) - 16px - 6*var(--card-gap))/7/.704 + 12px);bottom:0;display:grid;grid-template-columns:repeat(7,1fr);gap:var(--card-gap);touch-action:none!important}
+#tableau{position:absolute;left:0;right:0;top:calc((min(100vw, 640px) - 16px - 6*var(--card-gap))/7/.704 + 12px);bottom:0;display:grid;grid-template-columns:repeat(var(--tableau-columns,7),1fr);gap:var(--card-gap);touch-action:none!important}
 .tableau-col{position:relative;min-width:0;height:100%;border-radius:8px;background:linear-gradient(rgba(255,255,255,.02),transparent 22%)}
 .tableau-col::before{content:"";position:absolute;left:0;right:0;top:0;aspect-ratio:.704;border:1px dashed rgba(241,213,138,.18);border-radius:clamp(5px,1.6vw,9px)}
 .playing-card{position:absolute;left:0;width:100%;aspect-ratio:.704;border-radius:clamp(5px,1.6vw,9px);box-shadow:0 2px 6px rgba(0,0,0,.3);touch-action:none!important;-ms-touch-action:none!important;transition:box-shadow .12s ease,filter .12s ease}
@@ -90,3 +90,20 @@ button,a,select{font:inherit;-webkit-tap-highlight-color:transparent;touch-actio
 .new-deal-confirm-actions button:focus-visible{outline:3px solid #ffe66d;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){#winScreen.slow-reveal{transition-duration:.22s}}
 @media(prefers-reduced-motion:reduce){.playing-card,.win-panel,.new-deal-confirm{transition:none;animation:none}.playing-card.auto-moving-card{will-change:auto}.win-rays{animation:none}}
+
+/* FreeCell variant: four reserve cells, eight cascades, no draw dock. */
+#variantBadge .card-style-control{position:relative;width:34px;height:22px;min-width:34px;aspect-ratio:auto;border:0;border-left:1px solid rgba(241,213,138,.22);border-radius:0;padding-left:7px;background:transparent;box-shadow:none;pointer-events:auto}
+#variantBadge .card-style-icon{font-size:12px}
+#variantBadge .card-style-control small{font-size:5px}
+#upperPiles .freecell-slot{display:none}
+.freecell-slot{place-items:center;overflow:visible;border-color:rgba(103,232,255,.34);background:rgba(3,35,38,.28)}
+.freecell-slot .playing-card{inset:0;top:0!important;width:100%;height:auto}
+.freecell-mark{font-size:clamp(4px,1.35vw,6px);font-weight:900;letter-spacing:.08em;color:rgba(103,232,255,.38);transform:rotate(-12deg)}
+body[data-solitaire-variant="freecell"] #upperPiles{grid-template-columns:repeat(8,1fr)}
+body[data-solitaire-variant="freecell"] #upperPiles .freecell-slot{display:grid}
+body[data-solitaire-variant="freecell"] #upperPiles .pile-spacer{display:none}
+body[data-solitaire-variant="freecell"] #tableau{top:calc((min(100vw, 640px) - 16px - 7*var(--card-gap))/8/.704 + 12px)}
+body[data-solitaire-variant="freecell"] #board{bottom:calc(env(safe-area-inset-bottom) + 70px)}
+body[data-solitaire-variant="freecell"] #drawPileDock{display:none}
+body[data-solitaire-variant="freecell"] #toast{bottom:calc(env(safe-area-inset-bottom) + 72px)}
+@media(max-width:350px){body[data-solitaire-variant="freecell"] #variantBadge{top:calc(env(safe-area-inset-top) + 54px)}}

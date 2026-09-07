@@ -42,7 +42,7 @@ Gravity maze portrait con `DeviceOrientationEvent`, calibrazione, joystick touch
 Percorso: `games/neon-tilt/`
 
 ### Solitario
-Klondike classico pesca-1 con 52 carte, sette colonne, quattro fondazioni, stock/scarti, drag/tap/doppio tap, Undo, hint, timer, punteggio e due stili di carte.
+Klondike classico pesca-1 e FreeCell con 8 cascades e 4 celle libere, entrambi con 52 carte, drag/tap/doppio tap, Undo, hint, timer, punteggio e due stili grafici.
 
 Percorso: `games/solitaire/`
 
@@ -88,7 +88,7 @@ Un salvataggio viene ripristinato solo se coincidono:
 
 Qualsiasi incongruenza elimina automaticamente lo snapshot invece di tentare un ripristino rischioso.
 
-I giochi con contenuto deterministico effettuano controlli aggiuntivi: Bubble Burst verifica la signature del layout, Star Swarm la signature della campagna e l'identità del boss, Solitario verifica le 52 carte canoniche e la struttura Klondike, Prism Breaker verifica la signature del livello e l'identità/configurazione del boss.
+I giochi con contenuto deterministico effettuano controlli aggiuntivi: Bubble Burst verifica la signature del layout, Star Swarm la signature della campagna e l'identità del boss, Solitario verifica le 52 carte canoniche e le strutture Klondike/FreeCell, Prism Breaker verifica la signature del livello e l'identità/configurazione del boss.
 
 Il servizio condiviso evita scritture per frame: debounce attuale 750 ms, heartbeat 5 s tramite `requestIdleCallback` quando disponibile e limite snapshot 384 KiB.
 

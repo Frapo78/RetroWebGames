@@ -21,15 +21,44 @@
         tableauToTableau: 3,
         foundationToTableau: -10
       })
+    }),
+    freecell: Object.freeze({
+      id: 'freecell',
+      name: 'FreeCell',
+      subtitle: 'FreeCell • 4 celle libere',
+      deckCount: 1,
+      drawCount: 0,
+      tableauColumns: 8,
+      foundationCount: 4,
+      freeCellCount: 4,
+      stockPasses: 0,
+      tableauBuild: 'alternating-descending',
+      emptyTableau: 'any-card',
+      foundationBuild: 'same-suit-ascending',
+      scoring: Object.freeze({
+        reveal: 0,
+        toFoundation: 10,
+        tableauToTableau: 3,
+        tableauToFreeCell: 1,
+        freeCellToTableau: 3,
+        freeCellToFoundation: 10,
+        foundationToTableau: -10,
+        foundationToFreeCell: -10
+      })
     })
   });
 
   const FUTURE = Object.freeze([
     { id: 'klondike-draw3', name: 'Classico • pesca 3' },
     { id: 'spider', name: 'Spider' },
-    { id: 'freecell', name: 'FreeCell' },
     { id: 'pyramid', name: 'Piramide' }
   ]);
+
+  function freeCellMoveCapacity(freeCells, tableau, targetCol) {
+    const emptyCells = freeCells.filter(card => card == null).length;
+    const emptyColumns = tableau.reduce((count, pile, col) => count + (!pile.length && col !== targetCol ? 1 : 0), 0);
+    return (emptyCells + 1) * (2 ** emptyColumns);
+  }
 
   const get = id => VARIANTS[id] || VARIANTS.klondike;
   const list = () => Object.values(VARIANTS);
@@ -39,6 +68,7 @@
     VARIANTS,
     FUTURE,
     get,
-    list
+    list,
+    freeCellMoveCapacity
   });
 })();

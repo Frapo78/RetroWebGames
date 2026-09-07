@@ -33,6 +33,10 @@
   const newDealCancelBtn = $('newDealCancelBtn');
   const newDealConfirmBtn = $('newDealConfirmBtn');
   const winScreen = $('winScreen');
+  const winVariantEl = $('winVariant');
+  const ruleDrawEl = $('ruleDraw');
+  const ruleColumnsEl = $('ruleColumns');
+  const ruleDeckEl = $('ruleDeck');
   const winTimeEl = $('winTime');
   const winMovesEl = $('winMoves');
   const winScoreEl = $('winScore');
@@ -46,7 +50,7 @@
   const STORAGE_KEY = 'rwg.solitaire.stats.v1';
   const CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1';
   const HISTORY_LIMIT = 100;
-  const RESUME_SCHEMA = 1;
+  const RESUME_SCHEMA = 2;
   const AUTO_MOVE_DURATION_MS = 210;
   const AUTO_FINISH_MOVE_MS = 118;
   const AUTO_FINISH_CHECK_DELAY_MS = AUTO_MOVE_DURATION_MS + 35;
@@ -58,6 +62,7 @@
   let waste = [];
   let foundations = { s: [], h: [], d: [], c: [] };
   let tableau = Array.from({ length: 7 }, () => []);
+  let freeCells = [null, null, null, null];
   let selected = null;
   let history = [];
   let moves = 0;
@@ -125,6 +130,21 @@
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function markSessionDirty(reason = 'state') { window.RWGSession?.markDirty?.(reason); }
 
+  function syncVariantUI(nextVariant = variant) {
+    document.body.dataset.solitaireVariant = nextVariant.id;
+    variantNameEl.textContent = nextVariant.name.toUpperCase();
+    winVariantEl.textContent = 'SOLITARIO • ' + (nextVariant.id === 'freecell' ? 'FREECELL' : 'KLONDIKE');
+    if (nextVariant.id === 'freecell') {
+      ruleDrawEl.textContent = '4 CELLE';
+      ruleColumnsEl.textContent = '8 COLONNE';
+    } else {
+      ruleDrawEl.textContent = 'PESCA 1';
+      ruleColumnsEl.textContent = '7 COLONNE';
+    }
+    ruleDeckEl.textContent = '52 CARTE';
+    tableauEl.style.setProperty('--tableau-columns', nextVariant.tableauColumns);
+  }
+
   function createDeck() {
     const deck = [];
     for (const suit of SUITS) {
@@ -140,6 +160,19 @@
   function deal() {
     const deck = createDeck();
     tableau = Array.from({ length: variant.tableauColumns }, () => []);
+    freeCells = [null, null, null, null];
+    foundations = { s: [], h: [], d: [], c: [] };
+    waste = [];
+
+    if (variant.id === 'freecell') {
+      deck.forEach((card, index) => {
+        card.faceUp = true;
+        tableau[index % variant.tableauColumns].push(card);
+      });
+      stock = [];
+      return;
+    }
+
     for (let col = 0; col < variant.tableauColumns; col++) {
       for (let i = 0; i <= col; i++) {
         const card = deck.pop();
@@ -148,8 +181,6 @@
       }
     }
     stock = deck.map(card => ({ ...card, faceUp: false }));
-    waste = [];
-    foundations = { s: [], h: [], d: [], c: [] };
   }
 
   function resetAutoMoveCycle() {
@@ -183,7 +214,7 @@
     hideWin();
     pauseBtn.textContent = 'Ⅱ';
     pauseBtn.setAttribute('aria-label', 'Pausa');
-    variantNameEl.textContent = variant.name.toUpperCase();
+    syncVariantUI();
     render();
     markSessionDirty('new-game');
     showToast('NUOVA MANO • BUONA FORTUNA!');
@@ -229,7 +260,7 @@
 
   function snapshot() {
     return {
-      stock: clone(stock), waste: clone(waste), foundations: clone(foundations), tableau: clone(tableau),
+      stock: clone(stock), waste: clone(waste), foundations: clone(foundations), tableau: clone(tableau), freeCells: clone(freeCells),
       moves, score
     };
   }
@@ -246,6 +277,7 @@
     waste = state.waste;
     foundations = state.foundations;
     tableau = state.tableau;
+    freeCells = state.freeCells;
     moves = state.moves;
     score = state.score;
     selected = null;
@@ -257,6 +289,7 @@
 
   function drawStock() {
     if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
+    if (variant.id === 'freecell') return;
     if (!stock.length && !waste.length) return;
     pushHistory();
     selected = null;
@@ -283,6 +316,7 @@
     if (!source) return '';
     if (source.type === 'tableau') return `t:${source.col}:${source.index}`;
     if (source.type === 'foundation') return `f:${source.suit}`;
+    if (source.type === 'freecell') return `c:${source.cell}`;
     return source.type;
   }
 
@@ -302,6 +336,10 @@
       const pile = foundations[source.suit];
       return pile?.length ? [pile[pile.length - 1]] : null;
     }
+    if (source.type === 'freecell') {
+      const card = freeCells[source.cell];
+      return card ? [card] : null;
+    }
     if (source.type === 'tableau') {
       const pile = tableau[source.col];
       if (!pile || source.index < 0 || source.index >= pile.length || !pile[source.index].faceUp) return null;
@@ -311,11 +349,16 @@
     return null;
   }
 
+  function freeCellMoveCapacity(targetCol) {
+    return Variants.freeCellMoveCapacity(freeCells, tableau, targetCol);
+  }
+
   function canMoveToTableau(cards, col) {
     if (!cards?.length || col < 0 || col >= tableau.length) return false;
+    if (variant.id === 'freecell' && cards.length > freeCellMoveCapacity(col)) return false;
     const first = cards[0];
     const target = tableau[col];
-    if (!target.length) return first.rank === 13;
+    if (!target.length) return variant.emptyTableau === 'any-card' || first.rank === 13;
     const top = target[target.length - 1];
     return top.faceUp && top.rank === first.rank + 1 && cardColor(top) !== cardColor(first);
   }
@@ -327,9 +370,18 @@
     return card.rank === foundations[suit].length + 1;
   }
 
+  function canMoveToFreeCell(cards, cell) {
+    return variant.id === 'freecell' && cards?.length === 1 && Number.isInteger(cell) && cell >= 0 && cell < freeCells.length && freeCells[cell] == null;
+  }
+
   function removeSource(source, count) {
     if (source.type === 'waste') return [waste.pop()];
     if (source.type === 'foundation') return [foundations[source.suit].pop()];
+    if (source.type === 'freecell') {
+      const card = freeCells[source.cell];
+      freeCells[source.cell] = null;
+      return card ? [card] : [];
+    }
     if (source.type === 'tableau') return tableau[source.col].splice(source.index, count);
     return [];
   }
@@ -350,6 +402,9 @@
     if (target.type === 'tableau' && source.type === 'waste') return variant.scoring.wasteToTableau;
     if (target.type === 'tableau' && source.type === 'foundation') return variant.scoring.foundationToTableau;
     if (target.type === 'tableau' && source.type === 'tableau') return variant.scoring.tableauToTableau;
+    if (target.type === 'freecell' && source.type === 'tableau') return variant.scoring.tableauToFreeCell || 0;
+    if (target.type === 'freecell' && source.type === 'foundation') return variant.scoring.foundationToFreeCell || 0;
+    if (target.type === 'tableau' && source.type === 'freecell') return variant.scoring.freeCellToTableau || 0;
     return 0;
   }
 
@@ -360,7 +415,9 @@
       ? canMoveToTableau(cards, target.col)
       : target.type === 'foundation'
         ? canMoveToFoundation(cards, target.suit)
-        : false;
+        : target.type === 'freecell'
+          ? canMoveToFreeCell(cards, target.cell)
+          : false;
     if (!valid) {
       if (!silentInvalid) showToast('MOSSA NON VALIDA');
       return false;
@@ -371,6 +428,7 @@
     if (recordHistory) pushHistory();
     const movedCards = removeSource(source, cards.length);
     if (target.type === 'tableau') tableau[target.col].push(...movedCards);
+    else if (target.type === 'freecell') freeCells[target.cell] = movedCards[0];
     else foundations[target.suit].push(...movedCards);
 
     score = Math.max(0, score + moveScoreDelta(source, target));
@@ -431,10 +489,13 @@
     const choice = AutoMove.chooseNext({
       card: leadCard,
       tableauColumns: tableau.length,
+      freeCellCount: variant.id === 'freecell' ? freeCells.length : 0,
       cursor: autoMoveCursor,
       isLegal: target => target.type === 'foundation'
         ? canMoveToFoundation(cards, target.suit)
-        : !(source.type === 'tableau' && source.col === target.col) && canMoveToTableau(cards, target.col)
+        : target.type === 'freecell'
+          ? !(source.type === 'freecell' && source.cell === target.cell) && canMoveToFreeCell(cards, target.cell)
+          : !(source.type === 'tableau' && source.col === target.col) && canMoveToTableau(cards, target.col)
     });
     if (!choice) {
       autoMoveCursor = null;
@@ -459,7 +520,7 @@
     autoFinishTimer = setTimeout(() => {
       if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
       if (autoMoveLocked) return scheduleAutoFinishCheck();
-      const plan = AutoFinish.plan({ stock, waste, foundations, tableau });
+      const plan = AutoFinish.plan({ stock, waste, foundations, tableau, freeCells });
       if (plan?.length) startAutoFinish(plan);
     }, AUTO_FINISH_CHECK_DELAY_MS);
   }
@@ -514,6 +575,7 @@
     const type = card.dataset.source;
     if (type === 'tableau') return { type, col: Number(card.dataset.col), index: Number(card.dataset.index) };
     if (type === 'foundation') return { type, suit: card.dataset.suit };
+    if (type === 'freecell') return { type, cell: Number(card.dataset.cell) };
     if (type === 'waste') return { type };
     return null;
   }
@@ -523,6 +585,7 @@
     if (!drop) return null;
     if (drop.dataset.drop === 'tableau') return { type: 'tableau', col: Number(drop.dataset.col) };
     if (drop.dataset.drop === 'foundation') return { type: 'foundation', suit: drop.dataset.suit };
+    if (drop.dataset.drop === 'freecell') return { type: 'freecell', cell: Number(drop.dataset.cell) };
     return null;
   }
 
@@ -574,7 +637,8 @@
   function layoutMetrics() {
     const width = Math.max(280, board.clientWidth || innerWidth - 16);
     const gap = width <= 350 ? 3 : 4;
-    const cardW = (width - gap * 6) / 7;
+    const columns = variant.tableauColumns;
+    const cardW = (width - gap * (columns - 1)) / columns;
     const cardH = cardW / .704;
     const available = Math.max(cardH + 40, tableauEl.clientHeight || innerHeight * .67);
     let faceGap = Math.min(29, Math.max(17, cardW * .5));
@@ -612,6 +676,16 @@
     }
   }
 
+  function renderFreeCells() {
+    for (let cell = 0; cell < freeCells.length; cell++) {
+      const el = document.getElementById('freecell-' + cell);
+      const card = freeCells[cell];
+      const attrs = 'data-source="freecell" data-cell="' + cell + '"';
+      el.innerHTML = card ? cardMarkup(card, attrs, selectedClass({ type: 'freecell', cell })) : '<span class="freecell-mark">LIBERA</span>';
+      el.setAttribute('aria-label', 'Cella libera ' + (cell + 1) + ': ' + (card ? cardLabel(card) : 'vuota'));
+    }
+  }
+
   function renderTableau() {
     const metrics = layoutMetrics();
     tableauEl.innerHTML = tableau.map((pile, col) => {
@@ -637,6 +711,7 @@
 
   function render() {
     renderStockWaste();
+    renderFreeCells();
     renderFoundations();
     renderTableau();
     renderHud();
@@ -684,6 +759,10 @@
       const card = waste[waste.length - 1];
       if (canMoveToFoundation([card], card.suit)) return { source: wasteSource, target: { type: 'foundation', suit: card.suit }, label: 'Porta lo scarto in fondazione' };
     }
+    for (let cell = 0; cell < freeCells.length; cell++) {
+      const card = freeCells[cell];
+      if (card && canMoveToFoundation([card], card.suit)) return { source: { type: 'freecell', cell }, target: { type: 'foundation', suit: card.suit }, label: 'Porta la cella in fondazione' };
+    }
     for (let col = 0; col < tableau.length; col++) {
       const pile = tableau[col];
       if (!pile.length) continue;
@@ -700,6 +779,12 @@
       const cards = getSourceCards(wasteSource);
       for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source: wasteSource, target: { type: 'tableau', col }, label: 'Sposta lo scarto sul tableau' };
     }
+    for (let cell = 0; cell < freeCells.length; cell++) {
+      const source = { type: 'freecell', cell };
+      const cards = getSourceCards(source);
+      if (!cards) continue;
+      for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source, target: { type: 'tableau', col }, label: 'Libera una cella sulla cascata' };
+    }
     for (let from = 0; from < tableau.length; from++) {
       for (let index = 0; index < tableau[from].length; index++) {
         const source = { type: 'tableau', col: from, index };
@@ -707,6 +792,15 @@
         if (!cards) continue;
         for (let to = 0; to < tableau.length; to++) {
           if (to !== from && canMoveToTableau(cards, to)) return { source, target: { type: 'tableau', col: to }, label: 'C’è una sequenza spostabile' };
+        }
+      }
+    }
+    if (variant.id === 'freecell') {
+      const cell = freeCells.findIndex(card => card == null);
+      if (cell >= 0) {
+        for (let col = 0; col < tableau.length; col++) {
+          const pile = tableau[col];
+          if (pile.length) return { source: { type: 'tableau', col, index: pile.length - 1 }, target: { type: 'freecell', cell }, label: 'Libera la colonna usando una cella' };
         }
       }
     }
@@ -718,6 +812,7 @@
     if (!source) return null;
     if (source.type === 'waste') return wasteEl.querySelector('.playing-card');
     if (source.type === 'foundation') return $(`foundation-${source.suit}`)?.querySelector('.playing-card');
+    if (source.type === 'freecell') return document.getElementById('freecell-' + source.cell)?.querySelector('.playing-card');
     if (source.type === 'tableau') return tableauEl.querySelector(`.playing-card[data-col="${source.col}"][data-index="${source.index}"]`);
     return null;
   }
@@ -726,6 +821,7 @@
     if (!target) return null;
     if (target.type === 'stock') return stockEl;
     if (target.type === 'foundation') return $(`foundation-${target.suit}`);
+    if (target.type === 'freecell') return document.getElementById('freecell-' + target.cell);
     if (target.type === 'tableau') return tableauEl.querySelector(`.tableau-col[data-col="${target.col}"]`);
     return null;
   }
@@ -895,6 +991,7 @@
     const resumeVariant = Variants.get(state.variantId);
     if (!resumeVariant || resumeVariant.id !== state.variantId) return false;
     if (!Array.isArray(state.stock) || !Array.isArray(state.waste) || !Array.isArray(state.tableau) || state.tableau.length !== resumeVariant.tableauColumns) return false;
+    if (!Array.isArray(state.freeCells) || state.freeCells.length !== 4) return false;
     if (!state.foundations || typeof state.foundations !== 'object' || SUITS.some(suit => !Array.isArray(state.foundations[suit]))) return false;
     if (![state.moves, state.score, state.elapsed].every(value => Number.isFinite(Number(value)) && Number(value) >= 0)) return false;
 
@@ -902,10 +999,12 @@
       ...state.stock,
       ...state.waste,
       ...SUITS.flatMap(suit => state.foundations[suit]),
-      ...state.tableau.flat()
+      ...state.tableau.flat(),
+      ...state.freeCells.filter(Boolean)
     ];
     if (allCards.length !== 52 || allCards.some(card => !validResumeCard(card))) return false;
     if (new Set(allCards.map(card => card.id)).size !== 52) return false;
+    if (state.freeCells.some(card => card != null && (!validResumeCard(card) || !card.faceUp))) return false;
     if (state.stock.some(card => card.faceUp) || state.waste.some(card => !card.faceUp)) return false;
 
     for (const suit of SUITS) {
@@ -916,13 +1015,19 @@
       }
     }
 
-    for (const pile of state.tableau) {
-      let firstFaceUp = -1;
-      for (let i = 0; i < pile.length; i++) {
-        if (pile[i].faceUp && firstFaceUp < 0) firstFaceUp = i;
-        if (!pile[i].faceUp && firstFaceUp >= 0) return false;
+    if (resumeVariant.id === 'freecell') {
+      if (state.stock.length || state.waste.length) return false;
+      if (state.tableau.some(pile => pile.some(card => !card.faceUp))) return false;
+    } else {
+      if (state.freeCells.some(Boolean)) return false;
+      for (const pile of state.tableau) {
+        let firstFaceUp = -1;
+        for (let i = 0; i < pile.length; i++) {
+          if (pile[i].faceUp && firstFaceUp < 0) firstFaceUp = i;
+          if (!pile[i].faceUp && firstFaceUp >= 0) return false;
+        }
+        if (firstFaceUp >= 0 && !isValidRun(pile.slice(firstFaceUp))) return false;
       }
-      if (firstFaceUp >= 0 && !isValidRun(pile.slice(firstFaceUp))) return false;
     }
     return true;
   }
@@ -935,6 +1040,7 @@
       waste: clone(waste),
       foundations: clone(foundations),
       tableau: clone(tableau),
+      freeCells: clone(freeCells),
       moves,
       score,
       elapsed: Math.round(elapsed * 1000) / 1000
@@ -950,6 +1056,7 @@
     waste = clone(state.waste);
     foundations = clone(state.foundations);
     tableau = clone(state.tableau);
+    freeCells = clone(state.freeCells);
     moves = Math.floor(Number(state.moves));
     score = Math.floor(Number(state.score));
     elapsed = Number(state.elapsed);
@@ -967,7 +1074,7 @@
     hideWin();
     pauseBtn.textContent = 'Ⅱ';
     pauseBtn.setAttribute('aria-label', 'Pausa');
-    variantNameEl.textContent = variant.name.toUpperCase();
+    syncVariantUI();
     render();
     showToast('PARTITA PRECEDENTE RIPRESA');
     scheduleAutoFinishCheck();
@@ -976,7 +1083,8 @@
 
   function describeResumeState(state) {
     const foundationCount = state?.foundations ? SUITS.reduce((sum, suit) => sum + (state.foundations[suit]?.length || 0), 0) : 0;
-    return `${Math.floor(Number(state?.moves) || 0)} mosse • ${formatTime(Number(state?.elapsed) || 0)} • ${foundationCount}/52 in fondazione`;
+    const label = state?.variantId === 'freecell' ? 'FreeCell' : 'Klondike';
+    return label + ' • ' + Math.floor(Number(state?.moves) || 0) + ' mosse • ' + formatTime(Number(state?.elapsed) || 0) + ' • ' + foundationCount + '/52 in fondazione';
   }
 
   const resumeAdapter = Object.freeze({
@@ -1016,7 +1124,11 @@
   }, { passive: false });
 
   document.addEventListener('pointerup', event => {
-    if (!pointerDrag || pointerDrag.id !== event.pointerId) return;
+    if (!pointerDrag) {
+      if (board.contains(event.target)) handleTap(event.target);
+      return;
+    }
+    if (pointerDrag.id !== event.pointerId) return;
     const drag = pointerDrag;
     pointerDrag = null;
     if (drag.ghost) drag.ghost.remove();
@@ -1070,7 +1182,8 @@
     resizeTimer = setTimeout(() => { if (!autoFinishActive && !newDealConfirmOpen) render(); }, 90);
   });
 
-  variantNameEl.textContent = variant.name.toUpperCase();
+  variantSelect.addEventListener('change', () => syncVariantUI(Variants.get(variantSelect.value)));
+  syncVariantUI();
   cardStyleSelect.addEventListener('change', () => changeCardStyle(cardStyleSelect.value));
   syncCardStyleControl();
   render();

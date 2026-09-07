@@ -1,6 +1,6 @@
-# Solitario — variant architecture and Klondike contract
+# Solitario — variant architecture and Klondike/FreeCell contracts
 
-Solitario is RetroWebGames' extensible card-game shell. The current playable variant is classic Klondike draw-one with a standard 52-card poker deck.
+Solitario is RetroWebGames' extensible card-game shell. The playable variants are classic Klondike draw-one and FreeCell, both using the same standard 52-card poker deck and shared platform lifecycle.
 
 ## Runtime files
 
@@ -23,9 +23,10 @@ Do not hard-code future variants into unrelated UI code. New variants belong in 
 
 Current registry:
 
-- `klondike` — playable
+- `klondike` — playable;
+- `freecell` — playable
 
-Reserved roadmap directions include Klondike draw-3, Spider, FreeCell and Pyramid. They are not claims of current playability.
+Reserved roadmap directions include Klondike draw-3, Spider and Pyramid. They are not claims of current playability.
 
 ## Current classic variant: Klondike draw-one
 
@@ -45,20 +46,26 @@ Rules that MUST remain true unless the variant is intentionally changed:
 - newly exposed tableau cards flip face-up automatically;
 - all 52 cards in foundations is the win condition.
 
+## FreeCell variant
+
+FreeCell uses one shuffled 52-card deck dealt face-up, round-robin, into eight cascades: `7/7/7/7/6/6/6/6`. There is no stock or waste. Four free cells each hold at most one card, while the four foundations retain the same A → K, same-suit rule as Klondike. Cascades build downward with alternating colours, and any card may enter an empty cascade.
+
+Movable ordered sequences follow standard FreeCell capacity: `(empty free cells + 1) × 2 ^ usable empty cascades`. An empty destination cascade is excluded from the temporary-cascade count. The runtime, validator and hint/double-tap systems use this same rule; FreeCell is not a cosmetic alternate deal.
+
 ## Interaction
 
 The engine is mobile-first and also supports mouse/desktop input:
 
-- tap a movable card/sequence to select it, then tap a valid destination;
+- tap a movable card/sequence to select it, then tap a valid destination, including an empty foundation, cascade or free cell;
 - drag a card or valid tableau sequence directly to its destination;
-- double-tap an eligible card or exposed valid sequence to move it automatically: foundation is considered first, followed by legal tableau columns from left to right;
+- double-tap an eligible card or exposed valid sequence to move it automatically: foundation is considered first, followed by legal tableau columns and then free cells from left to right;
 - repeated double taps on the same card continue from the next destination and wrap cyclically, so ambiguous legal placements remain under player control;
 - `ANNULLA` restores card state, moves and score but does not rewind elapsed play time;
 - `AIUTO` highlights one legal immediate move without changing state;
 - `NUOVA` starts a fresh shuffled hand;
 - `pauseBtn` is mandatory because shared `orientation.js` uses it during smartphone rotation.
 
-### Draw pile ergonomics — CRITICAL
+### Draw pile ergonomics — Klondike only — CRITICAL
 
 Stock and waste are deliberately separated from the upper foundation row.
 
@@ -96,7 +103,7 @@ The leading card ID owns the cycle cursor. A different card or a manual state mu
 
 ### Obstruction-free auto-finish
 
-After every committed move and stock draw, `auto-finish.js` receives a read-only snapshot. It returns a plan only when stock is empty, every remaining tableau/waste card is face-up, the state still contains 52 unique canonical cards, and a full simulation can move every remaining exposed top card to its legal same-suit foundation. A merely face-up but blocked layout returns `null` and remains under player control.
+After every committed move and Klondike stock draw, `auto-finish.js` receives a read-only snapshot, including occupied FreeCell cells. It returns a plan only when stock is empty, every remaining tableau/waste card is face-up, the state still contains 52 unique canonical cards, and a full simulation can move every remaining exposed top card to its legal same-suit foundation. A merely face-up but blocked layout returns `null` and remains under player control.
 
 A valid plan locks gameplay, freezes elapsed play time and executes one authoritative `performMove()` per card with a 118 ms FLIP transition. Generated moves preserve scoring/session state but do not fill Undo history because the plan has already proven the hand terminal. The final move defers victory presentation until the whole sequence has completed. Six deterministic firework bursts then play above the board; only afterward does the dedicated victory screen fade in over 1.45 seconds. Reduced-motion users receive a short flash and shortened fade without changing state order. The GA4 event `solitaire_auto_finish` records `phase=start|complete` and the numeric moved-card count through the centralized analytics API.
 
@@ -106,14 +113,15 @@ The in-game `NUOVA` control never discards an active deal immediately. It opens 
 
 An unfinished hand must survive accidental browser/app termination, reload, tab closure and deliberate return to the RetroWebGames menu.
 
-Solitario exposes a logical `RWGResumeAdapter`; `session-adapter.js` wraps it with persistence version `2` and compatibility token `solitaire-klondike-state-v2-52cards-draw1`.
+Solitario exposes a logical `RWGResumeAdapter`; `session-adapter.js` wraps it with persistence version `3` and compatibility token `solitaire-state-v3-klondike-freecell`.
 
 Persisted authoritative state includes:
 
 - variant id;
 - stock and waste order/visibility;
 - all four foundations;
-- all seven tableau columns and face-up state;
+- the active variant tableau (seven Klondike columns or eight FreeCell cascades) and face-up state;
+- all four FreeCell cells;
 - moves;
 - score;
 - elapsed play time.
@@ -155,24 +163,24 @@ Restore requires, at minimum:
 - valid suit/rank/id combinations;
 - stock cards face-down and waste cards face-up;
 - foundations ordered A→K in their own suit;
-- seven valid tableau columns;
-- no face-down card below an exposed face-up sequence;
-- valid descending alternating-color exposed runs;
+- the variant-defined tableau count: seven for Klondike or eight for FreeCell;
+- Klondike: no occupied free cells, no face-down card below an exposed face-up sequence and valid descending alternating-colour exposed runs;
+- FreeCell: empty stock/waste plus four cells, with every cascade/cell card face-up; initial arbitrary cascade order remains valid;
 - finite non-negative moves, score and elapsed time.
 
-Corrupt or incompatible snapshots are removed rather than partially repaired.
+Corrupt or incompatible snapshots are removed rather than partially repaired. The v3 token intentionally rejects v2 Klondike-only snapshots instead of partially migrating an ambiguous state.
 
 The unfinished snapshot is cleared on victory. Starting a deliberate new hand also replaces the previous unfinished state with the new deal.
 
 ## Scoring and local statistics
 
-Klondike awards small positive values for reveals, foundation moves and useful tableau moves, while moving a foundation card back to tableau carries a penalty. Score is clamped to zero.
+Klondike awards small positive values for reveals, foundation moves and useful tableau moves. FreeCell scores foundation, useful cascade and cell moves; retreating a foundation card carries a penalty. Score is clamped to zero.
 
 Local convenience statistics include deals, wins, best completion time and best score. They are not server-authoritative identity or anti-cheat state.
 
 ## Victory lifecycle
 
-Solitario has no forced terminal loss state: an unwinnable or unwanted hand is abandoned by starting a new deal.
+Solitario has no forced terminal loss state in either variant: an unwinnable or unwanted hand is abandoned by starting a new deal.
 
 A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:game-ended`, because that event opens the shared loss/Game Over flow. Victory clears the unfinished-hand snapshot. For an auto-finished hand, leaderboard submission and any first-use nickname prompt are delayed until the fireworks and slow victory fade have finished.
 
@@ -206,8 +214,10 @@ The live card-style selector remains in the third upper slot. `Essential` is the
 After Solitario changes run:
 
 ```bash
+node --check games/solitaire/variants.js
 node --check games/solitaire/input-guard.js
 node --check games/solitaire/auto-move.js
+node --check games/solitaire/auto-finish.js
 node --check games/solitaire/game.js
 node --check games/solitaire/session-adapter.js
 node scripts/validate-solitaire.mjs
@@ -221,6 +231,8 @@ Browser smoke tests should include:
 - double tap on waste/tableau/foundation cards chooses a legal destination;
 - repeated double taps on one ambiguous card cycle through at least two legal tableau destinations and wrap;
 - the 210 ms move animation is smooth and the reduced-motion path remains instantaneous;
+- FreeCell deal counts `7/7/7/7/6/6/6/6`, four cells, any-card empty cascades and capacity-limited sequence moves;
+- FreeCell cell drag/tap/undo, double-tap to foundation and variant-aware resume;
 - stock tap/recycle in the lower-right dock;
 - drag/tap of the waste card from the lower-right dock;
 - dock placement on narrow and short portrait phones;

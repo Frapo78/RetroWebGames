@@ -6,8 +6,8 @@
 
   window.RWGResumeAdapter = Object.freeze({
     ...base,
-    version: 2,
-    compatibility: 'solitaire-klondike-state-v2-52cards-draw1'
+    version: 3,
+    compatibility: 'solitaire-state-v3-klondike-freecell'
   });
 
   const confirmBtn = document.getElementById('newDealConfirmBtn');

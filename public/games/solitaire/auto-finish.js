@@ -14,6 +14,8 @@
   function plan(state) {
     if (!state || !Array.isArray(state.stock) || state.stock.length) return null;
     if (!Array.isArray(state.waste) || !Array.isArray(state.tableau) || !state.foundations) return null;
+    const freeCells = state.freeCells == null ? [null, null, null, null] : state.freeCells;
+    if (!Array.isArray(freeCells) || freeCells.length !== 4 || freeCells.some(card => card != null && (!isCard(card) || !card.faceUp))) return null;
     if (state.waste.some(card => !isCard(card) || !card.faceUp)) return null;
     if (state.tableau.some(pile => !Array.isArray(pile) || pile.some(card => !isCard(card) || !card.faceUp))) return null;
 
@@ -30,11 +32,12 @@
       foundationRanks[suit] = pile.length;
     }
 
-    const allCards = [...foundationCards, ...state.waste, ...state.tableau.flat()];
+    const allCards = [...foundationCards, ...state.waste, ...state.tableau.flat(), ...freeCells.filter(Boolean)];
     if (allCards.length !== 52 || new Set(allCards.map(card => card.id)).size !== 52) return null;
 
     const waste = state.waste.slice();
     const tableau = state.tableau.map(pile => pile.slice());
+    const cells = freeCells.slice();
     const steps = [];
 
     while (steps.length < 52) {
@@ -49,11 +52,18 @@
           candidates.push({ card, source: { type: 'tableau', col, index: tableau[col].length - 1 }, order: col });
         }
       }
+      for (let cell = 0; cell < cells.length; cell++) {
+        const card = cells[cell];
+        if (card && card.rank === foundationRanks[card.suit] + 1) {
+          candidates.push({ card, source: { type: 'freecell', cell }, order: tableau.length + cell });
+        }
+      }
       if (!candidates.length) break;
 
       candidates.sort((a, b) => a.card.rank - b.card.rank || a.order - b.order);
       const next = candidates[0];
       if (next.source.type === 'waste') waste.pop();
+      else if (next.source.type === 'freecell') cells[next.source.cell] = null;
       else tableau[next.source.col].pop();
       foundationRanks[next.card.suit]++;
       steps.push({
@@ -64,7 +74,7 @@
     }
 
     const completed = SUITS.reduce((sum, suit) => sum + foundationRanks[suit], 0) === 52;
-    return completed && !waste.length && tableau.every(pile => !pile.length) ? steps : null;
+    return completed && !waste.length && tableau.every(pile => !pile.length) && cells.every(card => card == null) ? steps : null;
   }
 
   window.RWGSolitaireAutoFinish = Object.freeze({ plan });

@@ -17,11 +17,11 @@
 <link rel="manifest" href="../../manifest.webmanifest" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta property="og:locale" content="it_IT" />
-  <meta name="description" content="Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
+  <meta name="description" content="Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RetroWebGames" />
   <meta property="og:title" content="Solitario gratis online (Solitaire) | RetroWebGames" />
-  <meta property="og:description" content="Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
+  <meta property="og:description" content="Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
   <meta property="og:url" content="https://www.retrowebgames.it/games/solitaire/" />
   <meta property="og:image" content="https://www.retrowebgames.it/assets/social/games/solitaire.jpg" />
   <meta property="og:image:secure_url" content="https://www.retrowebgames.it/assets/social/games/solitaire.jpg" />
@@ -31,14 +31,14 @@
   <meta property="og:image:alt" content="Solitario — carte francesi classiche su un tavolo verde arcade" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Solitario gratis online (Solitaire) | RetroWebGames" />
-  <meta name="twitter:description" content="Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
+  <meta name="twitter:description" content="Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
   <meta name="twitter:image" content="https://www.retrowebgames.it/assets/social/games/solitaire.jpg" />
   <meta name="twitter:image:width" content="1200" />
   <meta name="twitter:image:height" content="630" />
   <meta name="twitter:image:alt" content="Solitario — carte francesi classiche su un tavolo verde arcade" />
 
   <title>Solitario gratis online (Solitaire) | RetroWebGames</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20260907.1" />
   <link rel="stylesheet" href="pause-overlay.css" />
   <link rel="stylesheet" href="../../orientation.css?v=20260831.3" />
   <link rel="stylesheet" href="../../game-hud.css?v=20260831.3" />
@@ -67,7 +67,7 @@
       "@id": "https://www.retrowebgames.it/games/solitaire/#webpage",
       "url": "https://www.retrowebgames.it/games/solitaire/",
       "name": "Solitario gratis online (Solitaire) | RetroWebGames",
-      "description": "Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone.",
+      "description": "Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone.",
       "isPartOf": {
         "@id": "https://www.retrowebgames.it/#website"
       },
@@ -87,7 +87,7 @@
       "@id": "https://www.retrowebgames.it/games/solitaire/#game",
       "name": "Solitario",
       "url": "https://www.retrowebgames.it/games/solitaire/",
-      "description": "Gioca al Solitario gratis online: Solitaire Klondike con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone.",
+      "description": "Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone.",
       "image": "https://www.retrowebgames.it/assets/social/games/solitaire.jpg",
       "genre": [
         "Solitario",
@@ -138,22 +138,23 @@
 }
   </script>
 </head>
-<body data-rwg-game="true" data-rwg-game-name="Solitario">
+<body data-rwg-game="true" data-rwg-game-name="Solitario" data-solitaire-variant="klondike">
   <main id="app">
     <section id="solitaireHud" aria-live="polite">
       <div><span>MOSSE</span><strong id="moves">0</strong></div>
       <div><span>TEMPO</span><strong id="timer">00:00</strong></div>
       <div><span>PUNTI</span><strong id="score">0</strong></div>
     </section>
-    <div id="variantBadge"><span>VARIANTE</span><strong id="variantName">CLASSICO</strong></div>
+    <div id="variantBadge"><span>VARIANTE</span><strong id="variantName">CLASSICO</strong><label class="card-style-control" title="Scegli lo stile delle carte"><span class="card-style-icon" aria-hidden="true">♤</span><small id="cardStyleLabel">MIN.</small><select id="cardStyleSelect" aria-label="Stile delle carte"><option value="classic">CARTE CLASSICHE</option><option value="essential" selected>CARTE ESSENZIALI</option></select></label></div>
     <section id="board" aria-label="Tavolo del Solitario">
       <div id="upperPiles">
+        <div id="freecell-0" class="pile-slot freecell-slot" data-drop="freecell" data-cell="0" aria-label="Cella libera 1"><span class="freecell-mark">LIBERA</span></div>
+        <div id="freecell-1" class="pile-slot freecell-slot" data-drop="freecell" data-cell="1" aria-label="Cella libera 2"><span class="freecell-mark">LIBERA</span></div>
+        <div id="freecell-2" class="pile-slot freecell-slot" data-drop="freecell" data-cell="2" aria-label="Cella libera 3"><span class="freecell-mark">LIBERA</span></div>
+        <div id="freecell-3" class="pile-slot freecell-slot" data-drop="freecell" data-cell="3" aria-label="Cella libera 4"><span class="freecell-mark">LIBERA</span></div>
         <span class="pile-spacer" aria-hidden="true"></span>
         <span class="pile-spacer" aria-hidden="true"></span>
-        <label class="pile-slot card-style-control" title="Scegli lo stile delle carte">
-          <span class="card-style-icon" aria-hidden="true">♤</span><small id="cardStyleLabel">MIN.</small>
-          <select id="cardStyleSelect" aria-label="Stile delle carte"><option value="classic">CARTE CLASSICHE</option><option value="essential" selected>CARTE ESSENZIALI</option></select>
-        </label>
+        <span class="pile-spacer" aria-hidden="true"></span>
         <div id="foundation-s" class="pile-slot foundation-slot" data-drop="foundation" data-suit="s" aria-label="Fondazione picche"><span class="slot-suit">♠</span></div>
         <div id="foundation-h" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="h" aria-label="Fondazione cuori"><span class="slot-suit">♥</span></div>
         <div id="foundation-d" class="pile-slot foundation-slot red-slot" data-drop="foundation" data-suit="d" aria-label="Fondazione quadri"><span class="slot-suit">♦</span></div>
@@ -187,7 +188,7 @@
     <section id="winScreen" aria-hidden="true">
       <div class="win-rays" aria-hidden="true"></div>
       <div class="win-panel">
-        <div class="win-suits" aria-hidden="true">♠ ♥ ♦ ♣</div><p class="win-kicker">SOLITARIO • KLONDIKE</p><h2>PARTITA<br><span>COMPLETATA!</span></h2>
+        <div class="win-suits" aria-hidden="true">♠ ♥ ♦ ♣</div><p id="winVariant" class="win-kicker">SOLITARIO • KLONDIKE</p><h2>PARTITA<br><span>COMPLETATA!</span></h2>
         <div class="win-stats"><div><span>TEMPO</span><strong id="winTime">00:00</strong></div><div><span>MOSSE</span><strong id="winMoves">0</strong></div><div><span>PUNTI</span><strong id="winScore">0</strong></div></div>
         <p id="bestTimeLine">MIGLIOR TEMPO —</p><button id="winNewBtn" class="primary-btn">NUOVA MANO</button><a class="primary-btn secondary-btn" href="/">TORNA AL MENU</a>
       </div>
@@ -195,22 +196,22 @@
     <section id="overlay" class="visible">
       <div class="intro-panel">
         <p class="eyebrow">RETROWEBGAMES • CARTE</p><h1 class="rwg-intro-cover-title"><img src="../../assets/social/games/solitaire.jpg" width="1200" height="630" alt="Solitario" decoding="async" fetchpriority="high" /></h1>
-        <div class="variant-picker"><label for="variantSelect">VARIANTE</label><select id="variantSelect" aria-label="Variante del Solitario"><option value="klondike">CLASSICO • KLONDIKE</option></select><small>Altre varianti verranno aggiunte qui.</small></div>
+        <div class="variant-picker"><label for="variantSelect">VARIANTE</label><select id="variantSelect" aria-label="Variante del Solitario"><option value="klondike">CLASSICO • KLONDIKE</option><option value="freecell">FREECELL • 4 CELLE LIBERE</option></select><small>Scegli la variante prima di iniziare.</small></div>
         <div class="rwg-intro-leaderboard-slot" aria-label="Caricamento High Scores"><span>🏆 HIGH SCORES</span></div>
-        <div class="rules-mini"><span>PESCA 1</span><span>7 COLONNE</span><span>52 CARTE</span></div>
+        <div class="rules-mini"><span id="ruleDraw">PESCA 1</span><span id="ruleColumns">7 COLONNE</span><span id="ruleDeck">52 CARTE</span></div>
         <button id="startBtn" class="primary-btn">GIOCA</button><a class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU</a>
         <p class="hint">Tap per selezionare • trascina per spostare • doppio tap per mossa automatica</p>
       </div>
     </section>
   </main>
-  <script src="variants.js"></script>
+  <script src="variants.js?v=20260907.1"></script>
   <script src="card-art.js"></script>
   <script src="input-guard.js"></script>
-  <script src="auto-move.js"></script>
-  <script src="auto-finish.js"></script>
-  <script src="game.js"></script>
+  <script src="auto-move.js?v=20260907.1"></script>
+  <script src="auto-finish.js?v=20260907.1"></script>
+  <script src="game.js?v=20260907.1"></script>
   <script src="pause-overlay.js"></script>
-  <script src="session-adapter.js"></script>
+  <script src="session-adapter.js?v=20260907.1"></script>
   <script src="../../game-hud.js?v=20260901.1"></script>
   <script src="../../orientation.js?v=20260901.1"></script>
 </body>
