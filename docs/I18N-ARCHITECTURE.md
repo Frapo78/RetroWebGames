@@ -1,6 +1,6 @@
 # ADR — Internationalization architecture
 
-Status: Accepted for incremental implementation (I18N-0)
+Status: Accepted after the I18N-1 proof-of-concept gate
 
 Date: 2026-09-07
 
@@ -51,7 +51,7 @@ Brand names remain unchanged. The controlled international display name for the 
 
 ## Build and deployment boundary
 
-I18N-1 must prove all of the following before Astro is adopted beyond the pilot:
+I18N-1 proved all of the following; evidence is recorded in `docs/I18N-ASTRO-POC.md`:
 
 1. deterministic static output compatible with Appmanager `astro-static` and FraPoVPS `public/`;
 2. unchanged runtime script order and shared lifecycle behavior;
@@ -61,7 +61,7 @@ I18N-1 must prove all of the following before Astro is adopted beyond the pilot:
 6. dependency versions pinned, audited and reproducible;
 7. dry-run deploy and documented rollback both succeed.
 
-Until that gate passes, the current production generator remains authoritative and no localized route is published.
+The gate passed. Astro is accepted for staged page generation, while the current production generator remains authoritative and no localized route is published until its locale is complete.
 
 ## Alternatives considered
 
@@ -87,4 +87,4 @@ Each rollout remains a normal immutable static release. Rollback restores the pr
 
 ## Consequences
 
-I18N-0 introduces contracts, inventory tooling and validation only. It intentionally makes no visible UI, routing, storage, game, database or deployment change. The next phase may scaffold an isolated Astro pilot for home + Block Drop in IT/EN; it may still reject Astro if the gate is not met.
+I18N-0 introduced contracts and inventory tooling. I18N-1 accepted Astro after an isolated Home + Block Drop IT/EN pilot; it made no production-visible, storage, game or database change. I18N-2 extracts the Italian shared platform before any localized route is published.

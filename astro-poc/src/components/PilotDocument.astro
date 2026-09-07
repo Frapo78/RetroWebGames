@@ -1,0 +1,6 @@
+---
+import { renderPilotPage } from '../lib/render-pilot-page.mjs';
+const { page, locale } = Astro.props;
+const document = renderPilotPage(page, locale);
+---
+<Fragment set:html={document} />

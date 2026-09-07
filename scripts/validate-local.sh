@@ -27,10 +27,10 @@ mkdir -p "${TREE}"
 
 # Hardlinks keep this cheap and read-only in practice: validators never write.
 cp -al "${ROOT}/public/." "${TREE}/"
-for dir in scripts docs server ops src; do
+for dir in scripts docs server ops src astro-poc; do
   cp -al "${ROOT}/${dir}" "${TREE}/"
 done
-cp -a "${ROOT}/AGENTS.md" "${ROOT}/README.md" "${ROOT}/TODO.md" "${TREE}/"
+cp -a "${ROOT}/AGENTS.md" "${ROOT}/README.md" "${ROOT}/TODO.md" "${ROOT}/astro.config.mjs" "${ROOT}/package.json" "${ROOT}/package-lock.json" "${TREE}/"
 
 target="${1:-validate-contracts.mjs}"
 cd "${TREE}"

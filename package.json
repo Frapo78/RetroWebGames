@@ -1,0 +1,14 @@
+{
+  "name": "retrowebgames",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:astro-poc": "node scripts/prepare-astro-poc.mjs",
+    "build:astro-poc": "npm run prepare:astro-poc && astro build && node scripts/finalize-astro-poc.mjs",
+    "validate:astro-poc": "node scripts/validate-astro-poc.mjs"
+  },
+  "devDependencies": {
+    "@astrojs/sitemap": "3.7.4",
+    "astro": "7.3.1"
+  }
+}

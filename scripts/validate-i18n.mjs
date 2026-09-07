@@ -60,6 +60,22 @@ collect(path.join(root, fs.existsSync(path.join(root, 'public', 'index.html')) ?
 must(htmlFiles.length === 12, `expected current home + avatar + 10 game pages, found ${htmlFiles.length}`);
 for (const file of htmlFiles) must(/<html\s+lang="it"/.test(fs.readFileSync(file, 'utf8')), `${path.relative(root, file)} baseline lang must remain it`);
 
+
+for (const relative of [
+  'astro.config.mjs', 'package.json', 'package-lock.json', 'docs/I18N-ASTRO-POC.md',
+  'astro-poc/src/components/PilotDocument.astro', 'astro-poc/src/lib/render-pilot-page.mjs',
+  'astro-poc/src/pages/index.astro', 'astro-poc/src/pages/en/index.astro',
+  'astro-poc/src/pages/games/block-drop/index.astro', 'astro-poc/src/pages/en/games/block-drop/index.astro',
+  'scripts/prepare-astro-poc.mjs', 'scripts/finalize-astro-poc.mjs',
+  'scripts/validate-astro-poc.mjs', 'scripts/smoke-astro-poc.mjs', 'scripts/compare-astro-poc.mjs'
+]) must(fs.existsSync(path.join(root, relative)), `missing I18N-1 artifact: ${relative}`);
+const astroConfig = read('astro.config.mjs');
+must(astroConfig.includes("output: 'static'") && astroConfig.includes("prefixDefaultLocale: false"), 'Astro pilot must remain static with unprefixed Italian');
+const packageJson = JSON.parse(read('package.json'));
+must(packageJson.devDependencies?.astro === '7.3.1', 'Astro pilot version must remain pinned');
+must(packageJson.devDependencies?.['@astrojs/sitemap'] === '3.7.4', 'Astro sitemap version must remain pinned');
+const pocDoc = read('docs/I18N-ASTRO-POC.md');
+for (const marker of ['Status: **PASS', 'Astro: YES', '0 vulnerabilities', 'rollback', '12/12 PASS']) must(pocDoc.includes(marker), `I18N-1 evidence missing: ${marker}`);
 if (failures.length) {
   console.error(`I18N validation FAILED (${failures.length})`);
   failures.forEach(item => console.error(`  ✗ ${item}`));
@@ -69,3 +85,4 @@ console.log('I18N-0 validation OK');
 console.log('  ✓ five-locale route, namespace, schema, glossary and placeholder contracts');
 console.log('  ✓ repository-wide string/formatter inventory scanner coverage');
 console.log('  ✓ current Italian routes and visible output remain unchanged');
+console.log("  ✓ isolated Astro I18N-1 scaffold, pinned toolchain and gate evidence");

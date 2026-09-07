@@ -989,7 +989,7 @@ L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più ve
 
 # 20. Internazionalizzazione EN / IT / DE / FR / ES
 
-Stato: **I18N-0 completato; I18N-1 non iniziato**.
+Stato: **I18N-0 e I18N-1 completati; I18N-2 prossimo**.
 
 Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
 
@@ -1031,14 +1031,14 @@ Astro è un generatore di pagine: non entra nei game loop e non diventa un frame
 
 ### Gate Astro obbligatorio
 
-- [ ] Scrivere `docs/I18N-ARCHITECTURE.md` come ADR con scelta, alternative, rischi e rollback.
-- [ ] Fissare una versione Astro/`@astrojs/sitemap` validata e senza vulnerabilità note.
-- [ ] Creare una build pilota isolata e non pubblicata: home + Block Drop in IT/EN.
-- [ ] Dimostrare output compatibile con `/apps/deploy`, Appmanager `astro-static` e convenzione `public/`.
-- [ ] Confrontare DOM, byte, metadata, screenshot e comportamento con la produzione attuale.
-- [ ] Dimostrare che runtime e ordine di bootstrap dei giochi restano invariati.
-- [ ] Provare e documentare il rollback al deploy statico precedente.
-- [ ] Procedere solo con validator e smoke test verdi.
+- [x] Scrivere `docs/I18N-ARCHITECTURE.md` come ADR con scelta, alternative, rischi e rollback.
+- [x] Fissare una versione Astro/`@astrojs/sitemap` validata e senza vulnerabilità note.
+- [x] Creare una build pilota isolata e non pubblicata: home + Block Drop in IT/EN.
+- [x] Dimostrare output compatibile con `/apps/deploy`, Appmanager `astro-static` e convenzione `public/`.
+- [x] Confrontare DOM, byte, metadata, screenshot e comportamento con la produzione attuale.
+- [x] Dimostrare che runtime e ordine di bootstrap dei giochi restano invariati.
+- [x] Provare e documentare il rollback al deploy statico precedente.
+- [x] Procedere solo con validator e smoke test verdi.
 
 ## 20.3 URL, routing e SEO
 
@@ -1225,14 +1225,14 @@ Gate: inventario completo, ADR approvato, nessun cambiamento visibile.
 
 ### I18N-1 — proof of concept Astro
 
-- [ ] Scaffold Astro statico su branch dedicato.
-- [ ] Separare asset sorgente dall'output build `public/`.
-- [ ] Home IT/EN da template comune.
-- [ ] Block Drop IT/EN da template gioco comune.
-- [ ] Metadata, JSON-LD, canonical, alternate e sitemap corretti.
-- [ ] Gioco, sessione, leaderboard e dock invariati.
-- [ ] Confronto Playwright prima/dopo mobile e desktop.
-- [ ] Dry-run deploy FraPoVPS e rollback documentato.
+- [x] Scaffold Astro statico su branch dedicato.
+- [x] Separare asset sorgente dall'output build `public/`.
+- [x] Home IT/EN da template comune.
+- [x] Block Drop IT/EN da template gioco comune.
+- [x] Metadata, JSON-LD, canonical, alternate e sitemap corretti.
+- [x] Gioco, sessione, leaderboard e dock invariati.
+- [x] Confronto Playwright prima/dopo mobile e desktop.
+- [x] Dry-run deploy FraPoVPS e rollback documentato.
 
 Gate: output equivalente e decisione definitiva Astro sì/no.
 
