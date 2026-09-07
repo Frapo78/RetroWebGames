@@ -70,6 +70,12 @@ Credit Continue is distinct from free unfinished-session restore. It revives the
 ## Leaderboards
 `rwg-leaderboard.js` is the only browser leaderboard client. Rankings are scoped by a server-whitelisted `(gameSlug, variantSlug)` pair; games without variants use `default`, while Solitario uses `klondike`/`freecell`. Games and pause code communicate through shared lifecycle events and never call leaderboard HTTP endpoints directly. Variant selectors emit `rwg:leaderboard-scope-change`; run ids, cache and pagination are scope-local. A run id spans unfinished-session restore and credit Continue, while a true new game receives a new id. Offline submission remains idempotently queued.
 
+## Internationalization boundary
+
+The accepted five-locale contract is documented in `I18N-ARCHITECTURE.md`. Italian remains unprefixed; EN/DE/FR/ES use path prefixes. Route locale controls presentation, while profile, credits, avatar, resumable sessions, game/variant IDs, achievements, run IDs and global leaderboard data remain language-neutral.
+
+Catalogs use stable semantic namespaces and named placeholders. Translated text is rendered at the edge and never persisted in authoritative game state. Astro static output is a gated build-time candidate only: game engines, shared lifecycle ordering, Fastify and Nginx ownership remain unchanged. `scripts/validate-i18n.mjs` is part of the repository-wide contract from I18N-0 onward.
+
 ## Orientation
 Orientation guard may pause through the same `#pauseBtn` contract and resume with the shared countdown. It must never create another pause UI or mark the run terminal.
 

@@ -989,7 +989,7 @@ L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più ve
 
 # 20. Internazionalizzazione EN / IT / DE / FR / ES
 
-Stato: **piano approvato, implementazione non iniziata**.
+Stato: **I18N-0 completato; I18N-1 non iniziato**.
 
 Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
 
@@ -1212,14 +1212,14 @@ Eseguire uno spike prima di scegliere manifest unico o manifest localizzati.
 
 ### I18N-0 — inventario e contratti
 
-- [ ] Censire stringhe in HTML, shared JS, giochi, CSS generated content, manifest e API errors.
-- [ ] Classificare brand, SEO, shared, gameplay, accessibilità, analytics e debug-only.
-- [ ] Censire `it-IT`, `toLocaleString`, formatter e concatenazioni.
-- [ ] Definire schema, glossario e naming delle chiavi.
-- [ ] Scrivere ADR i18n.
-- [ ] Aggiungere invarianti ad `AGENTS.md`/architettura solo dopo approvazione.
-- [ ] Creare `scripts/validate-i18n.mjs` iniziale.
-- [ ] Registrare baseline bundle, SEO, screenshot e bootstrap.
+- [x] Censire stringhe in HTML, shared JS, giochi, CSS generated content, manifest e API errors.
+- [x] Classificare brand, SEO, shared, gameplay, accessibilità, analytics e debug-only.
+- [x] Censire `it-IT`, `toLocaleString`, formatter e concatenazioni.
+- [x] Definire schema, glossario e naming delle chiavi.
+- [x] Scrivere ADR i18n.
+- [x] Aggiungere invarianti ad `AGENTS.md`/architettura solo dopo approvazione.
+- [x] Creare `scripts/validate-i18n.mjs` iniziale.
+- [x] Registrare baseline bundle, SEO, screenshot e bootstrap.
 
 Gate: inventario completo, ADR approvato, nessun cambiamento visibile.
 

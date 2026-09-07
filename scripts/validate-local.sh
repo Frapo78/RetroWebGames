@@ -27,7 +27,7 @@ mkdir -p "${TREE}"
 
 # Hardlinks keep this cheap and read-only in practice: validators never write.
 cp -al "${ROOT}/public/." "${TREE}/"
-for dir in scripts docs server ops; do
+for dir in scripts docs server ops src; do
   cp -al "${ROOT}/${dir}" "${TREE}/"
 done
 cp -a "${ROOT}/AGENTS.md" "${ROOT}/README.md" "${ROOT}/TODO.md" "${TREE}/"

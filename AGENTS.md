@@ -168,6 +168,19 @@ Game pages load `game-hud.js` and `orientation.js` with one matching release que
 
 Native browser gestures are a shared gameplay invariant: outside genuine text-entry controls, every game must disable iOS text selection/loupe, WebKit touch callouts, context/drag selection, Safari gesture zoom and double-click zoom through `game-hud.js` plus `rwg-controls.css`. Never apply the block to leaderboard-name inputs or other editable fields.
 
+## 4E. Internationalization boundary
+
+The approved i18n architecture is incremental and build-time first. Before localization work, agents MUST read `docs/I18N-ARCHITECTURE.md` and `docs/I18N-INVENTORY.md` and run `scripts/validate-i18n.mjs`.
+
+- Supported locale IDs are exactly `it`, `en`, `de`, `fr`, `es`; Italian remains the unprefixed default.
+- Locale is presentation only. Never add it to profile, wallet, avatar, session, run, achievement or leaderboard identity keys.
+- Game/variant slugs, compatibility tokens, event names and persisted enums are machine values and MUST NOT be translated.
+- Brand names remain stable; catalog keys are semantic/namespaced and never derived from visible Italian copy.
+- Complete catalogs must match the Italian source shape and named placeholders exactly; arbitrary HTML in translations is forbidden.
+- Route locale is authoritative. Browser language may power a non-invasive suggestion, never an automatic redirect.
+- Do not publish partial locale routes, duplicate game engines per language, introduce a runtime UI framework into game loops or change gameplay/session schemas while extracting copy.
+- Astro remains conditional on the isolated I18N-1 static proof of concept. I18N-0 does not authorize a production framework migration.
+
 ## 5. Game-specific sources of truth
 
 Before modifying a game, read its dedicated documentation when present. Important current contracts include:
