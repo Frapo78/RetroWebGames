@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS rwg_runs (
   id VARCHAR(80) NOT NULL PRIMARY KEY,
   player_id CHAR(36) NOT NULL,
   game_slug VARCHAR(40) NOT NULL,
+  variant_slug VARCHAR(40) NOT NULL DEFAULT 'default',
   nickname VARCHAR(32) NOT NULL,
   outcome VARCHAR(32) NOT NULL,
   score BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -29,6 +30,20 @@ CREATE TABLE IF NOT EXISTS rwg_runs (
   server_updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   accepted TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_rwg_runs_player FOREIGN KEY (player_id) REFERENCES rwg_players(id),
-  INDEX idx_rwg_game_rank (game_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
-  INDEX idx_rwg_player_game (player_id, game_slug)
+  INDEX idx_rwg_game_variant_rank (game_slug, variant_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
+  INDEX idx_rwg_player_game_variant (player_id, game_slug, variant_slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE rwg_runs
+  ADD COLUMN IF NOT EXISTS variant_slug VARCHAR(40) NOT NULL DEFAULT 'default' AFTER game_slug;
+
+UPDATE rwg_runs
+SET variant_slug = CASE
+  WHEN JSON_UNQUOTE(JSON_EXTRACT(metrics, '$.variant')) = 'freecell' THEN 'freecell'
+  ELSE 'klondike'
+END
+WHERE game_slug = 'solitaire' AND variant_slug = 'default';
+
+ALTER TABLE rwg_runs
+  ADD INDEX IF NOT EXISTS idx_rwg_game_variant_rank (game_slug, variant_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
+  ADD INDEX IF NOT EXISTS idx_rwg_player_game_variant (player_id, game_slug, variant_slug);

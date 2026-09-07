@@ -42,7 +42,7 @@ Gravity maze portrait con `DeviceOrientationEvent`, calibrazione, joystick touch
 Percorso: `games/neon-tilt/`
 
 ### Solitario
-Klondike classico pesca-1 e FreeCell con 8 cascades e 4 celle libere, entrambi con 52 carte, drag/tap/doppio tap, Undo, hint, timer, punteggio e due stili grafici.
+Klondike classico pesca-1 e FreeCell con 8 cascades e 4 celle libere, entrambi con 52 carte, drag/tap/doppio tap, Undo, hint, timer, punteggio e due stili grafici. Le classifiche server sono separate per variante.
 
 Percorso: `games/solitaire/`
 

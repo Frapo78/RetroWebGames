@@ -68,7 +68,7 @@ Credit Continue is distinct from free unfinished-session restore. It revives the
 `rwg-profile.js` owns local prototype profile/credit state. `rwg-avatar.js` owns shared player identity; `/avatar/` is the only editor. Games must not maintain local copies. Paid credits require server authority and an idempotent ledger.
 
 ## Leaderboards
-`rwg-leaderboard.js` is the only browser leaderboard client. Games and pause code communicate through shared lifecycle events; they never call leaderboard HTTP endpoints directly. A run id spans unfinished-session restore and credit Continue, while a true new game receives a new id. Offline submission remains idempotently queued.
+`rwg-leaderboard.js` is the only browser leaderboard client. Rankings are scoped by a server-whitelisted `(gameSlug, variantSlug)` pair; games without variants use `default`, while Solitario uses `klondike`/`freecell`. Games and pause code communicate through shared lifecycle events and never call leaderboard HTTP endpoints directly. Variant selectors emit `rwg:leaderboard-scope-change`; run ids, cache and pagination are scope-local. A run id spans unfinished-session restore and credit Continue, while a true new game receives a new id. Offline submission remains idempotently queued.
 
 ## Orientation
 Orientation guard may pause through the same `#pauseBtn` contract and resume with the shared countdown. It must never create another pause UI or mark the run terminal.

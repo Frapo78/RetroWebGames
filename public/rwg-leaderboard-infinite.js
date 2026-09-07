@@ -12,6 +12,8 @@
   const INTRO_SHARE_RESERVE_PX = 54;
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
+  const normalizeVariant = value => /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(value || '').trim().toLowerCase()) ? String(value).trim().toLowerCase() : 'default';
+  let currentVariantSlug = normalizeVariant(document.body.dataset.rwgLeaderboardVariant);
   const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
   let board = null;
   let list = null;
@@ -175,7 +177,7 @@
     const signal = controller?.signal;
     try {
       const safeOffset = Math.max(0, Number(offset) || 0);
-      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?limit=${PAGE_SIZE}&offset=${safeOffset}`;
+      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(currentVariantSlug)}&limit=${PAGE_SIZE}&offset=${safeOffset}`;
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
@@ -203,6 +205,7 @@
 
       track('leaderboard_infinite_page', {
         leaderboard_page: Math.floor(pagination.offset / PAGE_SIZE) + 1,
+        leaderboard_variant: currentVariantSlug,
         row_count: pageRows.length,
         loaded_count: rows.length,
         total_count: pagination.total,
@@ -262,7 +265,15 @@
     guard.observe(list, { childList: true });
 
     window.addEventListener('online', reset);
-    window.addEventListener('rwg:leaderboard-registered', () => setTimeout(reset, 80));
+    window.addEventListener('rwg:leaderboard-scope-change', event => {
+      currentVariantSlug = normalizeVariant(event.detail?.variantSlug || document.body.dataset.rwgLeaderboardVariant);
+      controller?.abort();
+      loading = false;
+      reset();
+    });
+    window.addEventListener('rwg:leaderboard-registered', event => {
+      if (normalizeVariant(event.detail?.variantSlug) === currentVariantSlug) setTimeout(reset, 80);
+    });
     reset();
   }
 

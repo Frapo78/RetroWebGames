@@ -131,7 +131,12 @@
   function markSessionDirty(reason = 'state') { window.RWGSession?.markDirty?.(reason); }
 
   function syncVariantUI(nextVariant = variant) {
+    const previousLeaderboardVariant = document.body.dataset.rwgLeaderboardVariant;
     document.body.dataset.solitaireVariant = nextVariant.id;
+    document.body.dataset.rwgLeaderboardVariant = nextVariant.id;
+    if (previousLeaderboardVariant && previousLeaderboardVariant !== nextVariant.id) {
+      window.dispatchEvent(new CustomEvent('rwg:leaderboard-scope-change', { detail: { gameSlug: 'solitaire', variantSlug: nextVariant.id } }));
+    }
     variantNameEl.textContent = nextVariant.name.toUpperCase();
     winVariantEl.textContent = 'SOLITARIO • ' + (nextVariant.id === 'freecell' ? 'FREECELL' : 'KLONDIKE');
     if (nextVariant.id === 'freecell') {
@@ -218,7 +223,7 @@
     render();
     markSessionDirty('new-game');
     showToast('NUOVA MANO • BUONA FORTUNA!');
-    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: 'Solitario', gameSlug: 'solitaire' } }));
+    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: 'Solitario', gameSlug: 'solitaire', variantSlug: variant.id } }));
   }
 
   function hideNewDealConfirm() {
@@ -839,7 +844,7 @@
 
   function dispatchWinResult() {
     window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
-      game: 'Solitario', gameSlug: 'solitaire', outcome: 'win', score,
+      game: 'Solitario', gameSlug: 'solitaire', variantSlug: variant.id, outcome: 'win', score,
       level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
       achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
     } }));
@@ -1095,7 +1100,8 @@
     validate: validateResumeState,
     restore: restoreResumeState,
     startFresh: newGame,
-    describe: describeResumeState
+    describe: describeResumeState,
+    leaderboardVariant: state => String(state?.variantId || variant.id || 'klondike')
   });
   window.RWGResumeAdapter = resumeAdapter;
   window.RWGSession?.register?.(resumeAdapter);

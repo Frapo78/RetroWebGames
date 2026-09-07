@@ -1,6 +1,6 @@
 # Global leaderboards
 
-RetroWebGames exposes one server-backed global leaderboard per game. The gameplay runtimes remain client-side; ranking persistence is a best-effort competitive feature, not server-authoritative anti-cheat.
+RetroWebGames exposes server-backed global leaderboards by explicit **game + variant** scope. Games without variants use the reserved `default` scope; Solitario uses the distinct `klondike` and `freecell` scopes. The gameplay runtimes remain client-side; ranking persistence is a best-effort competitive feature, not server-authoritative anti-cheat.
 
 ## Shared browser contract
 
@@ -14,13 +14,14 @@ Games MUST NOT create local leaderboard implementations.
 
 The shared client listens to:
 
-- `rwg:game-session-start` — starts a new leaderboard run id;
+- `rwg:game-session-start` — starts a new run id inside the active game/variant scope;
 - `rwg:game-over-summary` — terminal result from the shared Game Over;
-- `rwg:leaderboard-result` — successful completion without Game Over, currently Solitario;
+- `rwg:leaderboard-result` — successful completion without Game Over, currently Solitario; variant games MUST include `variantSlug` (and retain it in metrics for migration/audit compatibility);
+- `rwg:leaderboard-scope-change` — switches the displayed scope in place and resets endless pagination;
 - `rwg:leaderboard-result` also carries eligible interrupted runs from either confirmed pause termination or a rejected saved-session resume, always after synchronous terminal suppression;
 - `online` — retries idempotently queued submissions and refreshes ranking state.
 
-The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and per-game cache as game pages. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
+The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and a per-game/per-variant cache. A multi-variant card declares which representative scope it shows; Solitario currently shows Klondike. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
 
 ## Intro High Scores — dynamic viewport-fitted endless scroll — CRITICAL
 
@@ -81,6 +82,7 @@ Nginx proxies `/api/leaderboards/v1/` to the loopback-only `rwg-leaderboard.serv
 
 Query parameters:
 
+- `variant` — registered variant slug; required semantically, with a server-owned default when omitted for backward compatibility;
 - `limit` — number of ranked rows, bounded to **1..50**;
 - `offset` — zero-based ranking offset, bounded to a non-negative integer.
 
@@ -88,6 +90,7 @@ The compatibility default remains 10 rows when no query is supplied. Game intro 
 
 The response contains:
 
+- `gameSlug` and `variantSlug` — the authoritative ranking scope;
 - `top` — only the requested page;
 - `current` — the current browser's best run when present, even when outside that page;
 - `lastName` — latest stored nickname for the anonymous browser;
@@ -101,7 +104,7 @@ The server computes rank and total with SQL window functions and does not downlo
 
 ### Other endpoints
 
-- `POST /runs` creates or updates an idempotent run and returns the authoritative current placement plus a leaderboard snapshot used by the result flow;
+- `POST /runs` creates or updates an idempotent run inside an allowed game/variant scope and returns the authoritative current placement plus a leaderboard snapshot. Reusing a run id in a different scope is rejected;
 - `GET /health` verifies the process and MariaDB connection.
 
 The service issues a Secure, HttpOnly, SameSite=Lax pseudonymous player cookie. Clearing both cookies and local browser storage loses this anonymous identity. No account, email or hardware fingerprint is collected.
@@ -114,13 +117,13 @@ An interrupted saved run is submitted only when it passes the authoritative shar
 
 - Arcade games: score, level/progression, game-specific tertiary metric, then earliest server timestamp.
 - Neon Rally: win, score differential, maximum rally, then timestamp.
-- Solitario: score, lower elapsed time, lower move count, then timestamp.
+- Solitario: independently inside Klondike or FreeCell, score, lower elapsed time, lower move count, then timestamp.
 
 The ranking is run-based. The paged intro can traverse all accepted runs in ranking order. The server also returns the current browser's best position independently from the requested page.
 
 ## Stored data and privacy
 
-The database stores player/run ids, nickname snapshot, server/client timestamps, score, level, duration, Continue count, outcome, achievements, validated per-game metrics, locale, timezone and coarse input/device class. Raw IP addresses are not stored in leaderboard tables. Existing Nginx operational logs remain governed by VPS retention policy.
+The database stores player/run ids, explicit game and variant slugs, nickname snapshot, server/client timestamps, score, level, duration, Continue count, outcome, achievements, validated per-game metrics, locale, timezone and coarse input/device class. Raw IP addresses are not stored in leaderboard tables. Existing Nginx operational logs remain governed by VPS retention policy.
 
 Client values are validated, bounded and rate-limited. This blocks malformed/common abuse but cannot prove an unmodified JavaScript client; never describe these rankings as cheat-proof.
 
@@ -136,11 +139,11 @@ curl -fsS https://www.retrowebgames.it/api/leaderboards/v1/health
 node scripts/smoke-leaderboard-pagination.mjs
 ```
 
-The production pagination smoke is mandatory after restarting the service. A health-only check is insufficient: an old Node process can remain healthy while still ignoring `offset`. The smoke verifies all games, a distinct second page where available, and a terminal page with `hasMore=false` and `nextOffset=total`.
+The production pagination smoke is mandatory after restarting the service. A health-only check is insufficient: an old Node process can remain healthy while still ignoring `offset` or `variant`. The smoke verifies every registered game/variant scope, a distinct second page where available, and a terminal page with `hasMore=false` and `nextOffset=total`.
 
-The GET endpoint already supports `limit=10&offset=N`; this UI change does not require a database migration. Restart the leaderboard service only when server code itself changes.
+The `variant_slug` migration is idempotent. Existing non-Solitario rows remain `default`; existing Solitario rows become `freecell` only when their stored `metrics.variant` says so, otherwise they become `klondike`. This makes old unlabelled Solitario results deterministic without discarding them.
 
-Credentials live only in `/etc/rwg/leaderboard.env`. The installer is idempotent, applies `schema.sql`, installs locked production dependencies, installs the Nginx proxy snippet and restarts the service. Back up the `rwg_leaderboards` database with the normal MariaDB backup regime.
+Credentials live only in `/etc/rwg/leaderboard.env`. The installer backs up the existing MariaDB leaderboard database before applying `schema.sql`, installs locked production dependencies and the Nginx proxy snippet, then restarts the service.
 
 ## Validation
 

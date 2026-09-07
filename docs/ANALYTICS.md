@@ -55,6 +55,7 @@ Leaderboard funnel:
 - `leaderboard_home_retry` — manual refresh of one home podium, identified only by the low-cardinality game slug;
 - `leaderboard_pause_view` — compact in-game podium became visible for a resume prompt or explicit pause;
 - `leaderboard_retry` — manual refresh requested;
+- `leaderboard_scope_change` — a low-cardinality game variant became active;
 - `leaderboard_load_error` — neither network nor cached ranking was available;
 - `leaderboard_entry_view` — first-use coin-op name prompt shown; the entered name is never sent;
 - `leaderboard_auto_submit_start` — a later result started silent submission with the locally saved nickname;
@@ -66,7 +67,7 @@ Leaderboard funnel:
 - `leaderboard_queue_flush` — aggregate delivered/remaining counts after a retry pass;
 - `post_score` — GA4 recommended gaming event, emitted only after the leaderboard server accepts the result, with numeric `score`, optional `level`, ranking position, Continue count and `delivery=live|queue_retry`.
 
-The name typed by the player, device/profile identifiers, run IDs and raw server messages are deliberately excluded from every Analytics event. Custom parameters such as `delivery`, `row_count`, `leaderboard_position`, `error_type`, `delivered_count` and `remaining_count` require matching GA4 custom dimensions/metrics before they appear in standard reports or Explorations.
+The name typed by the player, device/profile identifiers, run IDs and raw server messages are deliberately excluded from every Analytics event. Custom parameters such as `delivery`, `row_count`, `leaderboard_position`, `leaderboard_variant`, `error_type`, `delivered_count` and `remaining_count` require matching GA4 custom dimensions/metrics before they appear in standard reports or Explorations.
 
 ## Event parameter rules
 

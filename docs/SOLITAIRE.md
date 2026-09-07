@@ -184,6 +184,12 @@ Solitario has no forced terminal loss state in either variant: an unwinnable or 
 
 A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:game-ended`, because that event opens the shared loss/Game Over flow. Victory clears the unfinished-hand snapshot. For an auto-finished hand, leaderboard submission and any first-use nickname prompt are delayed until the fireworks and slow victory fade have finished.
 
+## Leaderboard scope
+
+Klondike and FreeCell never share ranking rows. Solitario declares `data-rwg-leaderboard-variant="klondike"` at bootstrap, updates it when the intro selector changes and emits `rwg:leaderboard-scope-change`. New-run, victory, deliberate-abandon and rejected-resume results all carry the authoritative `variantSlug`. Run ids, cached pages, pause podiums and endless-scroll offsets are consequently isolated per variant. Legacy Solitario rows are migrated to Klondike unless their saved metrics explicitly identify FreeCell.
+
+Future variants must be registered in the server whitelist before the browser may submit them; arbitrary client variant names are rejected.
+
 ## Performance
 
 The game intentionally uses DOM/CSS rather than Canvas:

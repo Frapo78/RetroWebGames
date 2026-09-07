@@ -24,6 +24,7 @@
     return {
       game: 'Solitario',
       gameSlug: 'solitaire',
+      variantSlug: variantId,
       outcome: 'game-over',
       score,
       level: 1,
@@ -63,9 +64,10 @@
     confirmBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
 
-    const runId = window.RWGLeaderboard.getRunId();
+    const variantSlug = String(state?.variantId || 'klondike');
+    const runId = window.RWGLeaderboard.getRunId(variantSlug);
     const onRegistered = registeredEvent => {
-      if (registeredEvent.detail?.gameSlug !== 'solitaire' || registeredEvent.detail?.runId !== runId) return;
+      if (registeredEvent.detail?.gameSlug !== 'solitaire' || registeredEvent.detail?.runId !== runId || registeredEvent.detail?.variantSlug !== variantSlug) return;
       window.removeEventListener('rwg:leaderboard-registered', onRegistered);
       finishRestart();
     };

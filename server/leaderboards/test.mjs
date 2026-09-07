@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeLeaderboardPage, normalizeNickname, normalizeRun } from './ranking.js';
+import { LEADERBOARD_SCOPES, normalizeLeaderboardPage, normalizeNickname, normalizeRun, normalizeVariantSlug } from './ranking.js';
 
 test('nickname arcade', () => {
   assert.equal(normalizeNickname('  Fra 78  '), 'Fra 78');
@@ -25,4 +25,17 @@ test('rally and solitaire use game-specific ranking', () => {
   assert.deepEqual([rally.primary,rally.secondary,rally.tertiary,rally.resultLabel],[1,3,18,'7–4']);
   const solitaire = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88} });
   assert.deepEqual([solitaire.primary,solitaire.secondary,solitaire.tertiary],[900,-120,-88]);
+});
+
+
+test('leaderboard variants are explicit, bounded scopes', () => {
+  assert.equal(normalizeVariantSlug('star-swarm'), 'default');
+  assert.equal(normalizeVariantSlug('solitaire'), 'klondike');
+  assert.equal(normalizeVariantSlug('solitaire', 'freecell'), 'freecell');
+  assert.equal(normalizeVariantSlug('solitaire', '', { variant: 'freecell' }), 'freecell');
+  assert.throws(() => normalizeVariantSlug('solitaire', 'invented'));
+  assert.throws(() => normalizeVariantSlug('unknown', 'default'));
+  assert(LEADERBOARD_SCOPES.some(scope => scope.gameSlug === 'solitaire' && scope.variantSlug === 'freecell'));
+  const freecell = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',variantSlug:'freecell',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88,variant:'freecell'} });
+  assert.equal(freecell.variantSlug, 'freecell');
 });

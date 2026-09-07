@@ -1,4 +1,34 @@
-export const GAMES = new Set(['star-swarm','bubble-burst','block-drop','maze-munch','neon-rally','neon-snake','neon-tilt','prism-breaker','solitaire','the-great-empire']);
+export const LEADERBOARD_VARIANTS = Object.freeze({
+  'star-swarm': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'bubble-burst': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'block-drop': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'maze-munch': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'neon-rally': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'neon-snake': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'neon-tilt': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  'prism-breaker': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) }),
+  solitaire: Object.freeze({ defaultVariant: 'klondike', variants: Object.freeze(['klondike', 'freecell']) }),
+  'the-great-empire': Object.freeze({ defaultVariant: 'default', variants: Object.freeze(['default']) })
+});
+
+export const GAMES = new Set(Object.keys(LEADERBOARD_VARIANTS));
+
+export const LEADERBOARD_SCOPES = Object.freeze(
+  Object.entries(LEADERBOARD_VARIANTS).flatMap(([gameSlug, config]) =>
+    config.variants.map((variantSlug) => Object.freeze({ gameSlug, variantSlug }))
+  )
+);
+
+export function normalizeVariantSlug(gameSlug, value, metrics = {}) {
+  const config = LEADERBOARD_VARIANTS[gameSlug];
+  if (!config) throw new Error('Gioco non valido.');
+  const candidate = value || (config.variants.length > 1 ? metrics?.variant : '') || config.defaultVariant;
+  const variantSlug = String(candidate).trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(variantSlug) || !config.variants.includes(variantSlug)) {
+    throw new Error('Variante non valida.');
+  }
+  return variantSlug;
+}
 
 const integer = (value, min = 0, max = 2_000_000_000) => {
   const number = Number(value);
@@ -25,6 +55,7 @@ export function normalizeRun(body) {
   if (!body || !GAMES.has(body.gameSlug)) throw new Error('Gioco non valido.');
   if (!/^[a-zA-Z0-9-]{16,80}$/.test(String(body.runId || ''))) throw new Error('Partita non valida.');
   const metrics = body.metrics && typeof body.metrics === 'object' && !Array.isArray(body.metrics) ? body.metrics : {};
+  const variantSlug = normalizeVariantSlug(body.gameSlug, body.variantSlug, metrics);
   const score = integer(body.score);
   const level = integer(body.level, 0, 100_000);
   const activeMs = integer(body.activeMs, 0, 604_800_000);
@@ -46,7 +77,7 @@ export function normalizeRun(body) {
     secondary = -elapsed; tertiary = -moves;
   }
   return {
-    runId: String(body.runId), gameSlug: body.gameSlug, nickname: normalizeNickname(body.nickname),
+    runId: String(body.runId), gameSlug: body.gameSlug, variantSlug, nickname: normalizeNickname(body.nickname),
     outcome: String(body.outcome || 'game-over').slice(0, 32), score, level, activeMs, continueCount,
     achievements, metrics, primary, secondary, tertiary, resultLabel,
     clientEndedAt: /^\d{4}-\d\d-\d\dT/.test(String(body.clientEndedAt || '')) ? new Date(body.clientEndedAt) : null,

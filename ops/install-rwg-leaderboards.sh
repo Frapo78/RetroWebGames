@@ -57,6 +57,10 @@ set +a
 [[ "$RWG_DB_PASSWORD" =~ ^[0-9a-f]{48}$ ]] || { echo "Password DB RWG non valida" >&2; exit 1; }
 
 mysql --protocol=socket --execute="CREATE DATABASE IF NOT EXISTS rwg_leaderboards CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'rwg_leaderboard'@'127.0.0.1' IDENTIFIED BY '${RWG_DB_PASSWORD}'; ALTER USER 'rwg_leaderboard'@'127.0.0.1' IDENTIFIED BY '${RWG_DB_PASSWORD}'; GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,REFERENCES ON rwg_leaderboards.* TO 'rwg_leaderboard'@'127.0.0.1'; FLUSH PRIVILEGES;"
+if MYSQL_PWD="$RWG_DB_PASSWORD" mysql --protocol=tcp -h 127.0.0.1 -u "$RWG_DB_USER" "$RWG_DB_NAME" --batch --skip-column-names --execute="SHOW TABLES" | grep -qx rwg_runs; then
+  MYSQL_PWD="$RWG_DB_PASSWORD" mysqldump --protocol=tcp -h 127.0.0.1 -u "$RWG_DB_USER" --single-transaction --skip-lock-tables "$RWG_DB_NAME" | gzip -9 > "$BACKUP/rwg_leaderboards.sql.gz"
+  [[ -s "$BACKUP/rwg_leaderboards.sql.gz" ]] || { echo "Backup DB leaderboard vuoto" >&2; exit 1; }
+fi
 mysql --protocol=tcp -h 127.0.0.1 -u "$RWG_DB_USER" -p"$RWG_DB_PASSWORD" "$RWG_DB_NAME" < "$APP/schema.sql"
 
 runuser -u fra -- npm --prefix "$APP" ci --omit=dev --ignore-scripts

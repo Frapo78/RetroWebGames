@@ -26,6 +26,7 @@ must(html.includes('CLASSICO • KLONDIKE'), 'Solitaire intro must expose Klondi
 must(html.includes('FREECELL • 4 CELLE LIBERE'), 'Solitaire intro must expose FreeCell');
 must((html.match(/class="pile-slot freecell-slot"/g) || []).length === 4, 'FreeCell must expose exactly four free-cell slots');
 must(html.includes('data-solitaire-variant="klondike"'), 'Solitaire body must expose the active variant to responsive CSS');
+must(html.includes('data-rwg-leaderboard-variant="klondike"'), 'Solitaire must declare its initial leaderboard variant');
 must(html.includes('class="primary-btn rwg-intro-secondary" href="/">TORNA AL MENU'), 'Solitaire intro must retain return-to-menu action');
 must(html.includes('id="cardStyleSelect"') && html.includes('value="classic"') && html.includes('value="essential"'), 'Solitaire must expose both card sets');
 must(html.includes('value="essential" selected'), 'Essential card set must remain markup default');
@@ -198,11 +199,13 @@ must(game.includes("markSessionDirty('move')") && game.includes("markSessionDirt
 must(game.includes("showToast('PARTITA PRECEDENTE RIPRESA')"), 'Restore path must visibly confirm successful resume');
 for (const marker of ["variant.id === 'freecell'", 'index % variant.tableauColumns', 'freeCellMoveCapacity(targetCol)', 'Variants.freeCellMoveCapacity(freeCells, tableau, targetCol)', 'canMoveToFreeCell(cards, cell)', 'freeCells[target.cell] = movedCards[0]', 'state.freeCells.length !== 4', "resumeVariant.id === 'freecell'"]) must(game.includes(marker), 'FreeCell runtime missing: ' + marker);
 must(game.includes('state.stock.length || state.waste.length') && game.includes('pile.some(card => !card.faceUp)'), 'FreeCell resume validation must reject stock/waste and face-down cascades');
+must(game.includes("rwg:leaderboard-scope-change") && game.includes('variantSlug: variant.id') && game.includes('leaderboardVariant:'), 'Solitaire must propagate variant scope through selection, results and resume');
 must(game.includes('freeCells: clone(freeCells)') && game.includes('freeCells = clone(state.freeCells)'), 'FreeCell state must round-trip through resume snapshots');
 must(game.includes('if (!pointerDrag) {') && game.includes('board.contains(event.target)'), 'Tap-selected cards must reach empty foundations, cascades and free cells');
 
 const adapter = read('games/solitaire/session-adapter.js');
 must(adapter.includes('window.RWGResumeAdapter'), 'Solitaire compatibility adapter missing');
+must(adapter.includes('variantSlug: variantId') && adapter.includes('getRunId(variantSlug)'), 'abandoned Solitaire deals must preserve their leaderboard variant');
 must(/version\s*:\s*3/.test(adapter), 'Solitaire adapter must expose persistence version 3');
 must(/compatibility\s*:\s*['"]solitaire-state-v3-klondike-freecell['"]/.test(adapter), 'Solitaire multivariant compatibility token missing or changed unexpectedly');
 

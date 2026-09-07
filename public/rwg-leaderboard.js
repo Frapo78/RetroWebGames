@@ -40,17 +40,19 @@
     }
 
     async function load(slug, panel) {
+      const variantSlug = panel.dataset.variantSlug || 'default';
+      const scope = `${slug}:${variantSlug}`;
       panel.classList.add('is-loading');
       try {
-        const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}?variant=${encodeURIComponent(variantSlug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        safeSet(`rwg.leaderboard.cache.v1:${slug}`, JSON.stringify(data));
+        safeSet(`rwg.leaderboard.cache.v2:${scope}`, JSON.stringify(data));
         render(panel, slug, data, false);
         return 'network';
       } catch (_) {
         let cached = null;
-        try { cached = JSON.parse(safeGet(`rwg.leaderboard.cache.v1:${slug}`)); } catch (_) {}
+        try { cached = JSON.parse(safeGet(`rwg.leaderboard.cache.v2:${scope}`)); } catch (_) {}
         if (cached) { render(panel, slug, cached, true); return 'cache'; }
         panel.querySelector('.rwg-home-top3-list').innerHTML = '<li class="is-empty">CLASSIFICA NON DISPONIBILE</li>';
         return 'error';
@@ -62,11 +64,11 @@
       if (!slug) continue;
       const title = card.querySelector('h2')?.textContent?.trim() || slug;
       const stack = document.createElement('div'); stack.className = 'game-card-stack';
-      const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug;
+      const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug; panel.dataset.variantSlug = card.dataset.rwgLeaderboardVariant || 'default';
       panel.setAttribute('aria-label', `Top 3 globale ${title}`);
       panel.innerHTML = `<div class="rwg-home-top3-heading"><span>🏆 TOP 3 GLOBALE</span><button type="button" aria-label="Aggiorna Top 3 ${title}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">CONNESSIONE AL CABINATO…</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
       card.before(stack); stack.append(card, panel); panels.set(slug, panel);
-      panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug }); load(slug, panel); });
+      panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug, leaderboard_variant: panel.dataset.variantSlug }); load(slug, panel); });
     }
 
     Promise.all([...panels].map(([slug, panel]) => load(slug, panel))).then(results => {
@@ -90,8 +92,13 @@
   const QUEUE_KEY = 'rwg.leaderboard.queue.v1';
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
-  const RUN_KEY = `rwg.leaderboard.run.v1:${gameSlug}`;
-  const CACHE_KEY = `rwg.leaderboard.cache.v1:${gameSlug}`;
+  const normalizeVariant = value => /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(value || '').trim().toLowerCase())
+    ? String(value).trim().toLowerCase()
+    : 'default';
+  let currentVariantSlug = normalizeVariant(document.body.dataset.rwgLeaderboardVariant);
+  const scopeKey = variantSlug => `${gameSlug}:${normalizeVariant(variantSlug)}`;
+  const runKey = variantSlug => `rwg.leaderboard.run.v2:${scopeKey(variantSlug)}`;
+  const cacheKey = variantSlug => `rwg.leaderboard.cache.v2:${scopeKey(variantSlug)}`;
   const startBtn = document.getElementById('startBtn');
   let introBoard = null;
   let pauseBoard = null;
@@ -106,12 +113,13 @@
     set(key, value) { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } }
   };
   const uuid = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-  const getRunId = () => {
-    let value = storage.get(RUN_KEY);
-    if (!/^[a-zA-Z0-9-]{16,80}$/.test(value)) { value = uuid(); storage.set(RUN_KEY, value); }
+  const getRunId = (variantSlug = currentVariantSlug) => {
+    const key = runKey(variantSlug);
+    let value = storage.get(key);
+    if (!/^[a-zA-Z0-9-]{16,80}$/.test(value)) { value = uuid(); storage.set(key, value); }
     return value;
   };
-  const startNewRun = () => storage.set(RUN_KEY, uuid());
+  const startNewRun = (variantSlug = currentVariantSlug) => storage.set(runKey(variantSlug), uuid());
   const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
   const readJson = (key, fallback) => { try { return JSON.parse(storage.get(key, '')) || fallback; } catch (_) { return fallback; } };
   const gameLabel = () => (document.body.dataset.rwgGameName || gameSlug).trim();
@@ -150,7 +158,7 @@
     introBoard = makeBoard();
     if (slot) slot.replaceWith(introBoard);
     else menu.insertAdjacentElement('afterend', introBoard);
-    const cached = readJson(CACHE_KEY, null);
+    const cached = readJson(cacheKey(currentVariantSlug), null);
     if (cached) renderBoard(cached, true);
   }
 
@@ -223,23 +231,26 @@
   }
 
   async function loadBoard() {
+    const requestedVariant = currentVariantSlug;
     introBoard?.classList.add('is-loading');
     try {
-      const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(gameSlug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(requestedVariant)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      storage.set(CACHE_KEY, JSON.stringify(data));
+      if (requestedVariant !== currentVariantSlug) return;
+      storage.set(cacheKey(requestedVariant), JSON.stringify(data));
       renderBoard(data, false);
       track('leaderboard_view', {
-        delivery: 'network', row_count: Number(data.top?.length || 0),
+        delivery: 'network', leaderboard_variant: requestedVariant, row_count: Number(data.top?.length || 0),
         has_personal_rank: Number(Boolean(data.current)),
         personal_in_top_10: Number(Boolean(data.current && data.top?.some(row => row.runId === data.current.runId)))
       });
     } catch (_) {
-      const cached = readJson(CACHE_KEY, null);
+      if (requestedVariant !== currentVariantSlug) return;
+      const cached = readJson(cacheKey(requestedVariant), null);
       if (cached) {
         renderBoard(cached, true);
-        track('leaderboard_view', { delivery: 'cache', row_count: Number(cached.top?.length || 0) });
+        track('leaderboard_view', { delivery: 'cache', leaderboard_variant: currentVariantSlug, row_count: Number(cached.top?.length || 0) });
       } else {
         if (introBoard) introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
         if (pauseBoard) pauseBoard.querySelector('.rwg-lb-pause-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE</li>';
@@ -288,7 +299,7 @@
     delete metrics.achievements;
     delete metrics.metrics;
     return {
-      runId: getRunId(), gameSlug, nickname: storage.get(NAME_KEY), outcome: detail.outcome || 'game-over',
+      runId: getRunId(detail.variantSlug || detail.metrics?.variant || currentVariantSlug), gameSlug, variantSlug: normalizeVariant(detail.variantSlug || detail.metrics?.variant || currentVariantSlug), nickname: storage.get(NAME_KEY), outcome: detail.outcome || 'game-over',
       score: Number(detail.score || 0), level: Number(detail.level || 0), activeMs: Number(detail.activeMs || 0),
       continueCount: Number(detail.continueCount || 0), achievements: Array.isArray(detail.achievements) ? detail.achievements : [],
       metrics, clientEndedAt: new Date().toISOString(), locale: navigator.language || '',
@@ -330,7 +341,7 @@
           delivered += 1;
           track('post_score', {
             score: Number(payload.score || 0), level: Number(payload.level || 0),
-            leaderboard_position: Number(data.current?.position || 0), continues: Number(payload.continueCount || 0), delivery: 'queue_retry'
+            leaderboard_position: Number(data.current?.position || 0), continues: Number(payload.continueCount || 0), leaderboard_variant: payload.variantSlug, delivery: 'queue_retry'
           });
         } catch (error) {
           if (error.validation) discarded += 1;
@@ -358,10 +369,13 @@
       position = Number(data.current?.position || 0);
       showRankCard(position, { solitaire });
       if (status) status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
-      if (data.leaderboard) { storage.set(CACHE_KEY, JSON.stringify(data.leaderboard)); renderBoard(data.leaderboard); }
+      if (data.leaderboard) {
+        storage.set(cacheKey(payload.variantSlug), JSON.stringify(data.leaderboard));
+        if (payload.variantSlug === currentVariantSlug) renderBoard(data.leaderboard);
+      }
       track('post_score', {
         score: Number(payload.score || 0), level: Number(payload.level || 0),
-        leaderboard_position: position, continues: Number(payload.continueCount || 0), delivery
+        leaderboard_position: position, leaderboard_variant: payload.variantSlug, continues: Number(payload.continueCount || 0), delivery
       });
     } catch (error) {
       if (error.validation) {
@@ -384,7 +398,7 @@
     section?.classList.add('is-registered');
     setGameOverLocked(false);
     submitting = false;
-    window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug } }));
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug, variantSlug: payload.variantSlug } }));
     if (section) setTimeout(() => section.remove(), 450);
   }
 
@@ -435,7 +449,7 @@
     });
   }
 
-  window.addEventListener('rwg:game-session-start', () => { pendingGameOverDetail = null; clearRankCard(); startNewRun(); });
+  window.addEventListener('rwg:game-session-start', event => { pendingGameOverDetail = null; clearRankCard(); startNewRun(event.detail?.variantSlug || currentVariantSlug); });
   window.addEventListener('rwg:game-over-summary', event => { clearRankCard(); pendingGameOverDetail = event.detail || {}; });
   window.addEventListener('rwg:game-over-revealed', () => {
     if (!pendingGameOverDetail) return;
@@ -444,6 +458,16 @@
     showRegistration(detail, false);
   });
   window.addEventListener('rwg:leaderboard-result', event => showRegistration(event.detail || {}, true));
+  window.addEventListener('rwg:leaderboard-scope-change', event => {
+    const nextVariant = normalizeVariant(event.detail?.variantSlug || document.body.dataset.rwgLeaderboardVariant);
+    if (nextVariant === currentVariantSlug) return;
+    currentVariantSlug = nextVariant;
+    latestBoard = null;
+    const cached = readJson(cacheKey(currentVariantSlug), null);
+    if (cached) renderBoard(cached, true);
+    track('leaderboard_scope_change', { leaderboard_variant: currentVariantSlug });
+    loadBoard();
+  });
   window.addEventListener('online', () => { retryQueue(); loadBoard(); });
   document.addEventListener('click', event => {
     if (!document.documentElement.classList.contains('rwg-leaderboard-required')) return;
@@ -462,6 +486,6 @@
   loadBoard();
   retryQueue();
   getRunId();
-  window.RWGLeaderboard = Object.freeze({ load: loadBoard, getRunId, startNewRun, retryQueue });
+  window.RWGLeaderboard = Object.freeze({ load: loadBoard, getRunId, startNewRun, retryQueue, getVariant: () => currentVariantSlug });
   window.dispatchEvent(new CustomEvent('rwg:leaderboard-ready'));
 })();
