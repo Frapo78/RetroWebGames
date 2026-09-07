@@ -21,7 +21,7 @@ The shared client listens to:
 - `rwg:leaderboard-result` also carries eligible interrupted runs from either confirmed pause termination or a rejected saved-session resume, always after synchronous terminal suppression;
 - `online` — retries idempotently queued submissions and refreshes ranking state.
 
-The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and a per-game/per-variant cache. A multi-variant card declares which representative scope it shows; Solitario currently shows Klondike. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
+The home loads the same base client and stylesheet directly. It attaches a live Top 3 below each game card, using the same endpoint and a per-game/per-variant cache. A multi-variant card requests the read-only `all-variants` view. Its Top 3 ranks every accepted run across those variants while labelling each row with its variant; persisted variant rankings remain separate. On game pages a compact Top 3 appears above the playfield whenever `RWGSession` asks whether to restore a run or `#pauseBtn` exposes the shared paused state `▶`; it disappears on resume and is suppressed by Game Over.
 
 ## Intro High Scores — dynamic viewport-fitted endless scroll — CRITICAL
 
@@ -83,6 +83,7 @@ Nginx proxies `/api/leaderboards/v1/` to the loopback-only `rwg-leaderboard.serv
 Query parameters:
 
 - `variant` — registered variant slug; required semantically, with a server-owned default when omitted for backward compatibility;
+- `view=all-variants` — read-only aggregate view for home podiums; each row retains its `variantSlug` and submissions can never target this synthetic scope;
 - `limit` — number of ranked rows, bounded to **1..50**;
 - `offset` — zero-based ranking offset, bounded to a non-negative integer.
 
@@ -91,7 +92,7 @@ The compatibility default remains 10 rows when no query is supplied. Game intro 
 The response contains:
 
 - `gameSlug` and `variantSlug` — the authoritative ranking scope;
-- `top` — only the requested page;
+- `top` — only the requested page; every row includes its real `variantSlug`;
 - `current` — the current browser's best run when present, even when outside that page;
 - `lastName` — latest stored nickname for the anonymous browser;
 - `pagination.limit`;
@@ -119,7 +120,7 @@ An interrupted saved run is submitted only when it passes the authoritative shar
 - Neon Rally: win, score differential, maximum rally, then timestamp.
 - Solitario: independently inside Klondike or FreeCell, score, lower elapsed time, lower move count, then timestamp.
 
-The ranking is run-based. The paged intro can traverse all accepted runs in ranking order. The server also returns the current browser's best position independently from the requested page.
+The ranking is run-based. Game intros traverse accepted runs only within the selected variant. The home aggregate Top 3 may compare variants of the same game because they share one ranking formula, but this never changes their stored scope or per-variant positions. The server also returns the current browser's best position independently from the requested page.
 
 ## Stored data and privacy
 

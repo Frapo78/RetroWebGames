@@ -86,7 +86,10 @@ must(server.includes('game_slug=? AND variant_slug=?') && server.includes('varia
 must(client.includes('rwg.leaderboard.run.v2:') && client.includes('rwg.leaderboard.cache.v2:') && client.includes('rwg:leaderboard-scope-change'), 'client run/cache lifecycle must be scoped by game+variant');
 must(infinite.includes('variant=') && infinite.includes('rwg:leaderboard-scope-change'), 'endless leaderboard must reload and paginate the active variant');
 must(productionSmoke.includes('LEADERBOARD_SCOPES') && productionSmoke.includes('response scope mismatch'), 'production smoke must validate every registered game/variant scope');
-must(hub.includes('data-rwg-leaderboard-variant="klondike"'), 'home Solitaire podium must explicitly select the Klondike scope');
+must(hub.includes('data-rwg-leaderboard-view="all-variants"'), 'home Solitaire podium must explicitly select the aggregate variant view');
+must(server.includes("view === 'all-variants'") && server.includes("variantSlug: aggregateVariants ? 'all'") && server.includes('variant_slug,nickname'), 'API must expose a labelled read-only all-variants view');
+must(client.includes('rwg-home-variant') && client.includes('rwg-home-continue') && client.includes("view=all-variants"), 'home aggregate Top 3 must render variant and Continue usage');
+must(css.includes('.rwg-home-top3.is-aggregate') && css.includes('.rwg-home-variant') && css.includes('.rwg-home-continue'), 'aggregate Top 3 responsive styling missing');
 const tests = spawnSync(process.execPath, ['--test', path.join(root, 'server/leaderboards/test.mjs')], { encoding: 'utf8' });
 must(tests.status === 0, `leaderboard tests failed: ${tests.stderr || tests.stdout}`);
 if (failures.length) { console.error(`Leaderboard validation FAILED (${failures.length})`); failures.forEach(item => console.error(`  ✗ ${item}`)); process.exit(1); }

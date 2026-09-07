@@ -42,29 +42,31 @@ async function ensurePlayer(id) {
 }
 function publicRow(row, playerId) {
   return {
-    position: Number(row.position), runId: row.id, nickname: row.nickname, score: Number(row.score),
+    position: Number(row.position), runId: row.id, variantSlug: row.variant_slug, nickname: row.nickname, score: Number(row.score),
     level: Number(row.level_no), continueCount: Number(row.continue_count), resultLabel: row.result_label || '',
     achievementsCount: Number(row.achievements_count || 0), playedAt: row.server_updated_at,
     isCurrent: row.player_id === playerId
   };
 }
-async function leaderboard(gameSlug, variantSlug, playerId, page = {}) {
+async function leaderboard(gameSlug, variantSlug, playerId, page = {}, { aggregateVariants = false } = {}) {
   const { limit, offset } = normalizeLeaderboardPage(page, { limit: 10 });
   const end = offset + limit;
+  const scopeWhere = aggregateVariants ? 'game_slug=?' : 'game_slug=? AND variant_slug=?';
+  const scopeParams = aggregateVariants ? [gameSlug] : [gameSlug, variantSlug];
   const [rows] = await pool.query(`WITH ranked AS (
-    SELECT id,player_id,nickname,score,level_no,continue_count,result_label,server_updated_at,
+    SELECT id,player_id,variant_slug,nickname,score,level_no,continue_count,result_label,server_updated_at,
       JSON_LENGTH(achievements) achievements_count,
       ROW_NUMBER() OVER (ORDER BY ${ORDER_SQL}) position,
       COUNT(*) OVER () total_count
-    FROM rwg_runs WHERE game_slug=? AND variant_slug=? AND accepted=1
-  ) SELECT * FROM ranked WHERE (position>? AND position<=?) OR player_id=? ORDER BY position`, [gameSlug, variantSlug, offset, end, playerId]);
+    FROM rwg_runs WHERE ${scopeWhere} AND accepted=1
+  ) SELECT * FROM ranked WHERE (position>? AND position<=?) OR player_id=? ORDER BY position`, [...scopeParams, offset, end, playerId]);
   const top = rows.filter(row => Number(row.position) > offset && Number(row.position) <= end).map(row => publicRow(row, playerId));
   const own = rows.filter(row => row.player_id === playerId).sort((a, b) => Number(a.position) - Number(b.position))[0];
   const total = Number(rows[0]?.total_count || 0);
   const [[player]] = await pool.query('SELECT last_name FROM rwg_players WHERE id=?', [playerId]);
   return {
     gameSlug,
-    variantSlug,
+    variantSlug: aggregateVariants ? 'all' : variantSlug,
     generatedAt: new Date().toISOString(),
     top,
     current: own ? publicRow(own, playerId) : null,
@@ -83,11 +85,16 @@ app.get('/health', async () => { await pool.query('SELECT 1'); return { ok: true
 app.get('/games/:slug', async (request, reply) => {
   const { slug } = request.params;
   if (!GAMES.has(slug)) return reply.code(404).send({ message: 'Gioco non trovato.' });
-  let variantSlug;
-  try { variantSlug = normalizeVariantSlug(slug, request.query?.variant); }
-  catch (error) { return reply.code(400).send({ message: error.message }); }
+  const view = String(request.query?.view || 'variant');
+  if (!['variant', 'all-variants'].includes(view)) return reply.code(400).send({ message: 'Vista classifica non valida.' });
+  const aggregateVariants = view === 'all-variants';
+  let variantSlug = 'all';
+  if (!aggregateVariants) {
+    try { variantSlug = normalizeVariantSlug(slug, request.query?.variant); }
+    catch (error) { return reply.code(400).send({ message: error.message }); }
+  }
   const playerId = playerFor(request, reply); await ensurePlayer(playerId);
-  return leaderboard(slug, variantSlug, playerId, normalizeLeaderboardPage(request.query || {}, { limit: 10 }));
+  return leaderboard(slug, variantSlug, playerId, normalizeLeaderboardPage(request.query || {}, { limit: 10 }), { aggregateVariants });
 });
 app.post('/runs', { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } }, async (request, reply) => {
   let run;

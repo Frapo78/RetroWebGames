@@ -23,15 +23,25 @@
       return slug === 'neon-rally' && row.resultLabel ? row.resultLabel : number(row.score);
     }
 
+    function variantText(value) {
+      const labels = { klondike: 'KLONDIKE', freecell: 'FREECELL', default: 'STANDARD' };
+      return labels[value] || String(value || 'STANDARD').replaceAll('-', ' ').toUpperCase();
+    }
+
     function render(panel, slug, data, stale = false) {
       const list = panel.querySelector('.rwg-home-top3-list');
       list.replaceChildren();
+      const aggregate = panel.dataset.view === 'all-variants';
       for (const row of (data.top || []).slice(0, 3)) {
         const item = document.createElement('li');
         const rank = document.createElement('span'); rank.textContent = `#${row.position}`;
+        const variant = document.createElement('em'); variant.className = 'rwg-home-variant'; variant.textContent = variantText(row.variantSlug);
         const name = document.createElement('strong'); name.textContent = row.nickname;
         const score = document.createElement('b'); score.textContent = resultText(slug, row);
-        item.append(rank, name, score); list.appendChild(item);
+        if (Number(row.continueCount) > 0) {
+          const used = document.createElement('small'); used.className = 'rwg-home-continue'; used.textContent = `CONT.×${row.continueCount}`; score.appendChild(used);
+        }
+        item.append(rank, ...(aggregate ? [variant] : []), name, score); list.appendChild(item);
       }
       if (!list.children.length) {
         const empty = document.createElement('li'); empty.className = 'is-empty'; empty.textContent = 'NESSUN RECORD • IL PODIO TI ASPETTA'; list.appendChild(empty);
@@ -41,10 +51,12 @@
 
     async function load(slug, panel) {
       const variantSlug = panel.dataset.variantSlug || 'default';
-      const scope = `${slug}:${variantSlug}`;
+      const aggregate = panel.dataset.view === 'all-variants';
+      const scope = `${slug}:${aggregate ? 'all' : variantSlug}`;
+      const query = aggregate ? 'view=all-variants' : `variant=${encodeURIComponent(variantSlug)}`;
       panel.classList.add('is-loading');
       try {
-        const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}?variant=${encodeURIComponent(variantSlug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}?${query}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         safeSet(`rwg.leaderboard.cache.v2:${scope}`, JSON.stringify(data));
@@ -64,11 +76,11 @@
       if (!slug) continue;
       const title = card.querySelector('h2')?.textContent?.trim() || slug;
       const stack = document.createElement('div'); stack.className = 'game-card-stack';
-      const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug; panel.dataset.variantSlug = card.dataset.rwgLeaderboardVariant || 'default';
+      const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug; panel.dataset.variantSlug = card.dataset.rwgLeaderboardVariant || 'default'; panel.dataset.view = card.dataset.rwgLeaderboardView || 'variant'; panel.classList.toggle('is-aggregate', panel.dataset.view === 'all-variants');
       panel.setAttribute('aria-label', `Top 3 globale ${title}`);
-      panel.innerHTML = `<div class="rwg-home-top3-heading"><span>🏆 TOP 3 GLOBALE</span><button type="button" aria-label="Aggiorna Top 3 ${title}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">CONNESSIONE AL CABINATO…</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
+      panel.innerHTML = `<div class="rwg-home-top3-heading"><span>🏆 TOP 3 GLOBALE${panel.dataset.view === 'all-variants' ? ' • VARIANTI' : ''}</span><button type="button" aria-label="Aggiorna Top 3 ${title}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">CONNESSIONE AL CABINATO…</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
       card.before(stack); stack.append(card, panel); panels.set(slug, panel);
-      panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug, leaderboard_variant: panel.dataset.variantSlug }); load(slug, panel); });
+      panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug, leaderboard_variant: panel.dataset.view === 'all-variants' ? 'all' : panel.dataset.variantSlug }); load(slug, panel); });
     }
 
     Promise.all([...panels].map(([slug, panel]) => load(slug, panel))).then(results => {

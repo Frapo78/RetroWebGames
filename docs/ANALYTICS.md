@@ -51,7 +51,7 @@ Useful controls are grouped under `game_control` (Undo, Hint, New Deal, calibrat
 Leaderboard funnel:
 
 - `leaderboard_view` — intro Top 10 loaded from network or cache, with row count and anonymous personal-rank flags;
-- `leaderboard_home_top3` — aggregate home load result across all game podiums, with network/cache/error counts;
+- `leaderboard_home_top3` — aggregate home load result across all game podiums, with network/cache/error counts; multi-variant podiums report the low-cardinality synthetic value `leaderboard_variant=all`;
 - `leaderboard_home_retry` — manual refresh of one home podium, identified only by the low-cardinality game slug;
 - `leaderboard_pause_view` — compact in-game podium became visible for a resume prompt or explicit pause;
 - `leaderboard_retry` — manual refresh requested;

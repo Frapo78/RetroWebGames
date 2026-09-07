@@ -186,7 +186,7 @@ A completed hand uses its dedicated victory presentation and MUST NOT emit `rwg:
 
 ## Leaderboard scope
 
-Klondike and FreeCell never share ranking rows. Solitario declares `data-rwg-leaderboard-variant="klondike"` at bootstrap, updates it when the intro selector changes and emits `rwg:leaderboard-scope-change`. New-run, victory, deliberate-abandon and rejected-resume results all carry the authoritative `variantSlug`. Run ids, cached pages, pause podiums and endless-scroll offsets are consequently isolated per variant. Legacy Solitario rows are migrated to Klondike unless their saved metrics explicitly identify FreeCell.
+Klondike and FreeCell never share ranking rows. Solitario declares `data-rwg-leaderboard-variant="klondike"` at bootstrap, updates it when the intro selector changes and emits `rwg:leaderboard-scope-change`. New-run, victory, deliberate-abandon and rejected-resume results all carry the authoritative `variantSlug`. Run ids, cached pages, pause podiums and endless-scroll offsets are consequently isolated per variant. Only the main-site Solitario Top 3 uses an aggregate read-only view and prints `position, variant, nickname, score` plus `CONT.×N` when a Continue was used. Legacy Solitario rows are migrated to Klondike unless their saved metrics explicitly identify FreeCell.
 
 Future variants must be registered in the server whitelist before the browser may submit them; arbitrary client variant names are rejected.
 

@@ -47,4 +47,12 @@ for (const { gameSlug: game, variantSlug: variant } of LEADERBOARD_SCOPES) {
   console.log(`${game}/${variant}: pagination OK (${total} records)`);
 }
 
+const aggregateResponse = await fetch(`${base}/games/solitaire?view=all-variants&limit=3&offset=0`, { headers: { Accept: 'application/json' } });
+if (!aggregateResponse.ok) fail(`solitaire/all: HTTP ${aggregateResponse.status}`);
+const aggregate = await aggregateResponse.json();
+if (aggregate.variantSlug !== 'all') fail('solitaire/all: response scope mismatch');
+if (!Array.isArray(aggregate.top) || aggregate.top.length > 3) fail('solitaire/all: invalid Top 3 payload');
+if (aggregate.top.some(row => !['klondike', 'freecell'].includes(row.variantSlug))) fail('solitaire/all: row lost its real variant');
+console.log(`solitaire/all: aggregate Top 3 OK (${aggregate.pagination?.total || 0} records)`);
+
 console.log('Leaderboard production pagination smoke OK');
