@@ -1,11 +1,12 @@
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const VARIANTS = Object.freeze({
     klondike: Object.freeze({
       id: 'klondike',
-      name: 'Classico',
-      subtitle: 'Klondike • pesca 1',
+      name: t('games.solitaire.variantClassic'),
+      subtitle: t('games.solitaire.subtitleKlondike'),
       deckCount: 1,
       drawCount: 1,
       tableauColumns: 7,
@@ -24,8 +25,8 @@
     }),
     freecell: Object.freeze({
       id: 'freecell',
-      name: 'FreeCell',
-      subtitle: 'FreeCell • 4 celle libere',
+      name: t('games.solitaire.variantFreeCell'),
+      subtitle: t('games.solitaire.subtitleFreeCell'),
       deckCount: 1,
       drawCount: 0,
       tableauColumns: 8,

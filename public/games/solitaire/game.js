@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const Variants = window.RWGSolitaireVariants;
   if (!Variants?.get) throw new Error('Solitaire variants module missing');
@@ -113,7 +114,7 @@
 
   function syncCardStyleControl() {
     cardStyleSelect.value = cardStyle;
-    cardStyleLabel.textContent = cardStyle === 'essential' ? 'MIN.' : 'CLASS.';
+    cardStyleLabel.textContent = t(cardStyle === 'essential' ? 'games.solitaire.minimal' : 'games.solitaire.classic');
   }
 
   function changeCardStyle(nextStyle) {
@@ -121,7 +122,7 @@
     try { localStorage.setItem(CARD_STYLE_KEY, cardStyle); } catch (_) {}
     syncCardStyleControl();
     render();
-    showToast(cardStyle === 'essential' ? 'MAZZO ESSENZIALE' : 'MAZZO CLASSICO');
+    showToast(t(cardStyle === 'essential' ? 'games.solitaire.essentialDeck' : 'games.solitaire.classicDeck'));
   }
 
   function cardColor(card) { return RED_SUITS.has(card.suit) ? 'red' : 'black'; }
@@ -137,16 +138,16 @@
     if (previousLeaderboardVariant && previousLeaderboardVariant !== nextVariant.id) {
       window.dispatchEvent(new CustomEvent('rwg:leaderboard-scope-change', { detail: { gameSlug: 'solitaire', variantSlug: nextVariant.id } }));
     }
-    variantNameEl.textContent = nextVariant.name.toUpperCase();
-    winVariantEl.textContent = 'SOLITARIO • ' + (nextVariant.id === 'freecell' ? 'FREECELL' : 'KLONDIKE');
+    variantNameEl.textContent = t(nextVariant.id === 'freecell' ? 'games.solitaire.variantFreeCell' : 'games.solitaire.variantClassic').toUpperCase();
+    winVariantEl.textContent = t('games.solitaire.gameVariant',{variant:nextVariant.id === 'freecell' ? 'FREECELL' : 'KLONDIKE'});
     if (nextVariant.id === 'freecell') {
-      ruleDrawEl.textContent = '4 CELLE';
-      ruleColumnsEl.textContent = '8 COLONNE';
+      ruleDrawEl.textContent = t('games.solitaire.fourCells');
+      ruleColumnsEl.textContent = t('games.solitaire.eightColumns');
     } else {
-      ruleDrawEl.textContent = 'PESCA 1';
-      ruleColumnsEl.textContent = '7 COLONNE';
+      ruleDrawEl.textContent = t('games.solitaire.drawOne');
+      ruleColumnsEl.textContent = t('games.solitaire.sevenColumns');
     }
-    ruleDeckEl.textContent = '52 CARTE';
+    ruleDeckEl.textContent = t('games.solitaire.cards52');
     tableauEl.style.setProperty('--tableau-columns', nextVariant.tableauColumns);
   }
 
@@ -218,12 +219,12 @@
     overlay.classList.remove('visible');
     hideWin();
     pauseBtn.textContent = 'Ⅱ';
-    pauseBtn.setAttribute('aria-label', 'Pausa');
+    pauseBtn.setAttribute('aria-label', t('core.pause'));
     syncVariantUI();
     render();
     markSessionDirty('new-game');
-    showToast('NUOVA MANO • BUONA FORTUNA!');
-    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: 'Solitario', gameSlug: 'solitaire', variantSlug: variant.id } }));
+    showToast(t('games.solitaire.newDealGoodLuck'));
+    window.dispatchEvent(new CustomEvent('rwg:game-session-start', { detail: { game: t('games.solitaire.title'), gameSlug: 'solitaire', variantSlug: variant.id } }));
   }
 
   function hideNewDealConfirm() {
@@ -289,7 +290,7 @@
     resetAutoMoveCycle();
     render();
     markSessionDirty('undo');
-    showToast('MOSSA ANNULLATA');
+    showToast(t('games.solitaire.moveUndone'));
   }
 
   function drawStock() {
@@ -310,7 +311,7 @@
       stock = waste.reverse().map(card => ({ ...card, faceUp: false }));
       waste = [];
       moves++;
-      showToast('MAZZO RICARICATO');
+      showToast(t('games.solitaire.stockReloaded'));
     }
     render();
     markSessionDirty('stock');
@@ -424,7 +425,7 @@
           ? canMoveToFreeCell(cards, target.cell)
           : false;
     if (!valid) {
-      if (!silentInvalid) showToast('MOSSA NON VALIDA');
+      if (!silentInvalid) showToast(t('games.solitaire.invalidMove'));
       return false;
     }
 
@@ -544,14 +545,14 @@
     clearHint();
     board.classList.add('auto-finish-active', 'auto-move-active');
     renderHud();
-    showToast('VIA LIBERA • COMPLETAMENTO AUTOMATICO!');
+    showToast(t('games.solitaire.autoFinishReady'));
     window.RWGAnalytics?.track?.('solitaire_auto_finish', { phase: 'start', cards_moved: plan.length });
 
     for (const step of plan) {
       const cards = getSourceCards(step.source);
       if (cards?.length !== 1 || cards[0].id !== step.cardId) {
         releaseAutoFinish();
-        showToast('COMPLETAMENTO INTERROTTO');
+        showToast(t('games.solitaire.autoFinishInterrupted'));
         return false;
       }
       const fromRects = captureCardRects(cards);
@@ -562,7 +563,7 @@
         deferWin: true
       })) {
         releaseAutoFinish();
-        showToast('COMPLETAMENTO INTERROTTO');
+        showToast(t('games.solitaire.autoFinishInterrupted'));
         return false;
       }
       const elements = await playCardTransition(cards, fromRects, AUTO_FINISH_MOVE_MS);
@@ -631,7 +632,7 @@
   }
 
   function cardMarkup(card, attrs = '', extraClass = '', top = 0, z = 1) {
-    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" data-card-id="${card.id}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="Carta coperta">${CardArt.getCardBackSvg()}</div>`;
+    if (!card.faceUp) return `<div class="playing-card card-back ${extraClass}" data-card-id="${card.id}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="${t('games.solitaire.coveredCard')}">${CardArt.getCardBackSvg()}</div>`;
     return `<div class="playing-card face-up ${cardColor(card)} ${extraClass}" data-card-id="${card.id}" ${attrs} style="top:${top}px;z-index:${z}" aria-label="${cardLabel(card)}">${cardInner(card)}</div>`;
   }
 
@@ -665,7 +666,7 @@
   function renderStockWaste() {
     stockEl.className = `pile-slot stock-slot ${stock.length ? 'has-cards' : 'is-empty'}`;
     stockEl.innerHTML = stock.length ? CardArt.getCardBackSvg() : '';
-    stockEl.setAttribute('aria-label', stock.length ? `Mazzo: ${stock.length} carte` : waste.length ? 'Ricarica il mazzo' : 'Mazzo vuoto');
+    stockEl.setAttribute('aria-label', stock.length ? t('games.solitaire.stock',{count:stock.length}) : waste.length ? t('games.solitaire.reloadStock') : t('games.solitaire.emptyStock'));
     const top = waste[waste.length - 1];
     wasteEl.innerHTML = top ? cardMarkup(top, 'data-source="waste"', selectedClass({ type: 'waste' })) : '';
   }
@@ -677,7 +678,7 @@
       const top = pile[pile.length - 1];
       const placeholder = `<span class="slot-suit">${SUIT_SYMBOL[suit]}</span>`;
       el.innerHTML = top ? `${placeholder}${cardMarkup(top, `data-source="foundation" data-suit="${suit}"`, selectedClass({ type: 'foundation', suit }))}` : placeholder;
-      el.setAttribute('aria-label', `Fondazione ${SUIT_SYMBOL[suit]}: ${pile.length ? cardLabel(top) : 'vuota'}`);
+      el.setAttribute('aria-label', t('games.solitaire.foundation',{suit:SUIT_SYMBOL[suit],card:pile.length ? cardLabel(top) : t('games.solitaire.empty')}));
     }
   }
 
@@ -686,8 +687,8 @@
       const el = document.getElementById('freecell-' + cell);
       const card = freeCells[cell];
       const attrs = 'data-source="freecell" data-cell="' + cell + '"';
-      el.innerHTML = card ? cardMarkup(card, attrs, selectedClass({ type: 'freecell', cell })) : '<span class="freecell-mark">LIBERA</span>';
-      el.setAttribute('aria-label', 'Cella libera ' + (cell + 1) + ': ' + (card ? cardLabel(card) : 'vuota'));
+      el.innerHTML = card ? cardMarkup(card, attrs, selectedClass({ type: 'freecell', cell })) : `<span class="freecell-mark">${t('games.solitaire.free')}</span>`;
+      el.setAttribute('aria-label', t('games.solitaire.freeCell',{cell:cell+1,card:card ? cardLabel(card) : t('games.solitaire.empty')}));
     }
   }
 
@@ -701,13 +702,13 @@
         if (index < pile.length - 1) top += card.faceUp ? metrics.faceGap : metrics.backGap;
         return html;
       }).join('');
-      return `<div class="tableau-col" data-drop="tableau" data-col="${col}" aria-label="Colonna ${col + 1}">${cards}</div>`;
+      return `<div class="tableau-col" data-drop="tableau" data-col="${col}" aria-label="${t('games.solitaire.column',{column:col+1})}">${cards}</div>`;
     }).join('');
   }
 
   function renderHud() {
     movesEl.textContent = moves;
-    scoreEl.textContent = score.toLocaleString('it-IT');
+    scoreEl.textContent = window.RWGI18n.number(score);
     undoBtn.disabled = !history.length || !running || paused || won || autoFinishActive || newDealConfirmOpen;
     hintBtn.disabled = !running || paused || won || autoFinishActive || newDealConfirmOpen;
     newDealBtn.disabled = autoFinishActive || victoryPresentationPending || newDealConfirmOpen || (!running && !won);
@@ -762,11 +763,11 @@
     const wasteSource = waste.length ? { type: 'waste' } : null;
     if (wasteSource) {
       const card = waste[waste.length - 1];
-      if (canMoveToFoundation([card], card.suit)) return { source: wasteSource, target: { type: 'foundation', suit: card.suit }, label: 'Porta lo scarto in fondazione' };
+      if (canMoveToFoundation([card], card.suit)) return { source: wasteSource, target: { type: 'foundation', suit: card.suit }, label: t('games.solitaire.hintWasteFoundation') };
     }
     for (let cell = 0; cell < freeCells.length; cell++) {
       const card = freeCells[cell];
-      if (card && canMoveToFoundation([card], card.suit)) return { source: { type: 'freecell', cell }, target: { type: 'foundation', suit: card.suit }, label: 'Porta la cella in fondazione' };
+      if (card && canMoveToFoundation([card], card.suit)) return { source: { type: 'freecell', cell }, target: { type: 'foundation', suit: card.suit }, label: t('games.solitaire.hintCellFoundation') };
     }
     for (let col = 0; col < tableau.length; col++) {
       const pile = tableau[col];
@@ -776,19 +777,19 @@
         for (let i = index; i < pile.length; i++) {
           const source = { type: 'tableau', col, index: i };
           const cards = getSourceCards(source);
-          if (cards?.length === 1 && canMoveToFoundation(cards, cards[0].suit)) return { source, target: { type: 'foundation', suit: cards[0].suit }, label: 'Carta disponibile per la fondazione' };
+          if (cards?.length === 1 && canMoveToFoundation(cards, cards[0].suit)) return { source, target: { type: 'foundation', suit: cards[0].suit }, label: t('games.solitaire.hintFoundation') };
         }
       }
     }
     if (wasteSource) {
       const cards = getSourceCards(wasteSource);
-      for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source: wasteSource, target: { type: 'tableau', col }, label: 'Sposta lo scarto sul tableau' };
+      for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source: wasteSource, target: { type: 'tableau', col }, label: t('games.solitaire.hintWasteTableau') };
     }
     for (let cell = 0; cell < freeCells.length; cell++) {
       const source = { type: 'freecell', cell };
       const cards = getSourceCards(source);
       if (!cards) continue;
-      for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source, target: { type: 'tableau', col }, label: 'Libera una cella sulla cascata' };
+      for (let col = 0; col < tableau.length; col++) if (canMoveToTableau(cards, col)) return { source, target: { type: 'tableau', col }, label: t('games.solitaire.hintFreeCellTableau') };
     }
     for (let from = 0; from < tableau.length; from++) {
       for (let index = 0; index < tableau[from].length; index++) {
@@ -796,7 +797,7 @@
         const cards = getSourceCards(source);
         if (!cards) continue;
         for (let to = 0; to < tableau.length; to++) {
-          if (to !== from && canMoveToTableau(cards, to)) return { source, target: { type: 'tableau', col: to }, label: 'C’è una sequenza spostabile' };
+          if (to !== from && canMoveToTableau(cards, to)) return { source, target: { type: 'tableau', col: to }, label: t('games.solitaire.hintSequence') };
         }
       }
     }
@@ -805,11 +806,11 @@
       if (cell >= 0) {
         for (let col = 0; col < tableau.length; col++) {
           const pile = tableau[col];
-          if (pile.length) return { source: { type: 'tableau', col, index: pile.length - 1 }, target: { type: 'freecell', cell }, label: 'Libera la colonna usando una cella' };
+          if (pile.length) return { source: { type: 'tableau', col, index: pile.length - 1 }, target: { type: 'freecell', cell }, label: t('games.solitaire.hintFreeColumn') };
         }
       }
     }
-    if (stock.length || waste.length) return { source: null, target: { type: 'stock' }, label: stock.length ? 'Pesca una carta' : 'Ricarica il mazzo' };
+    if (stock.length || waste.length) return { source: null, target: { type: 'stock' }, label: stock.length ? t('games.solitaire.hintDraw') : t('games.solitaire.hintReload') };
     return null;
   }
 
@@ -835,7 +836,7 @@
     if (!running || paused || won || autoFinishActive || newDealConfirmOpen) return;
     clearHint();
     const hint = findHint();
-    if (!hint) return showToast('NESSUN SUGGERIMENTO IMMEDIATO');
+    if (!hint) return showToast(t('games.solitaire.noHint'));
     sourceElement(hint.source)?.classList.add('hint-source');
     targetElement(hint.target)?.classList.add('hint-target');
     showToast(hint.label.toUpperCase());
@@ -844,7 +845,7 @@
 
   function dispatchWinResult() {
     window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
-      game: 'Solitario', gameSlug: 'solitaire', variantSlug: variant.id, outcome: 'win', score,
+      game: t('games.solitaire.title'), gameSlug: 'solitaire', variantSlug: variant.id, outcome: 'win', score,
       level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
       achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
     } }));
@@ -915,8 +916,8 @@
     renderHud();
     winTimeEl.textContent = formatTime(elapsed);
     winMovesEl.textContent = moves;
-    winScoreEl.textContent = score.toLocaleString('it-IT');
-    bestTimeLine.textContent = `MIGLIOR TEMPO ${formatTime(stats.bestTime)}`;
+    winScoreEl.textContent = window.RWGI18n.number(score);
+    bestTimeLine.textContent = t('games.solitaire.bestTime',{time:formatTime(stats.bestTime)});
     const sequence = ++victorySequence;
     if (staged) launchVictoryFireworks().then(() => {
       if (won && sequence === victorySequence) revealWinScreen(true, sequence);
@@ -955,12 +956,12 @@
     selected = null;
     resetAutoMoveCycle();
     pauseBtn.textContent = paused ? '▶' : 'Ⅱ';
-    pauseBtn.setAttribute('aria-label', paused ? 'Riprendi' : 'Pausa');
+    pauseBtn.setAttribute('aria-label', paused ? t('games.solitaire.resumeAction') : t('core.pause'));
     lastFrame = performance.now();
     render();
     if (paused) {
       window.RWGSession?.saveNow?.('pause');
-      showToast('PAUSA');
+      showToast(t('games.solitaire.pause'));
     }
   }
 
@@ -1078,10 +1079,10 @@
     overlay.classList.remove('visible');
     hideWin();
     pauseBtn.textContent = 'Ⅱ';
-    pauseBtn.setAttribute('aria-label', 'Pausa');
+    pauseBtn.setAttribute('aria-label', t('core.pause'));
     syncVariantUI();
     render();
-    showToast('PARTITA PRECEDENTE RIPRESA');
+    showToast(t('games.solitaire.resumed'));
     scheduleAutoFinishCheck();
     return true;
   }
@@ -1089,7 +1090,7 @@
   function describeResumeState(state) {
     const foundationCount = state?.foundations ? SUITS.reduce((sum, suit) => sum + (state.foundations[suit]?.length || 0), 0) : 0;
     const label = state?.variantId === 'freecell' ? 'FreeCell' : 'Klondike';
-    return label + ' • ' + Math.floor(Number(state?.moves) || 0) + ' mosse • ' + formatTime(Number(state?.elapsed) || 0) + ' • ' + foundationCount + '/52 in fondazione';
+    return t('games.solitaire.resume',{variant:label,score:window.RWGI18n.number(Math.floor(Number(state?.score)||0)),time:formatTime(Number(state?.elapsed)||0)})+' • '+t('games.solitaire.moves',{count:Math.floor(Number(state?.moves)||0)})+' • '+t('games.solitaire.foundationProgress',{count:foundationCount});
   }
 
   const resumeAdapter = Object.freeze({
@@ -1176,7 +1177,7 @@
       paused = true;
       selected = null;
       pauseBtn.textContent = '▶';
-      pauseBtn.setAttribute('aria-label', 'Riprendi');
+      pauseBtn.setAttribute('aria-label', t('games.solitaire.resumeAction'));
       render();
     }
     lastFrame = performance.now();

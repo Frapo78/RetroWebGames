@@ -1,5 +1,6 @@
 (() => {
 'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 const d=n=>document.getElementById(n);
 const M=window.MM={
   dom:{canvas:d('game'),score:d('score'),level:d('level'),lives:d('lives'),best:d('best'),status:d('statusPill'),overlay:d('overlay'),overlayText:d('overlayText'),start:d('startBtn'),pause:d('pauseBtn'),mute:d('muteBtn')},
@@ -37,9 +38,9 @@ M.center=v=>Math.floor(v)+.5;
 M.near=(v,e=.09)=>Math.abs(v-M.center(v))<e;
 M.status=t=>{M.dom.status.textContent=t;};
 M.hud=()=>{
-  M.dom.score.textContent=M.score.toLocaleString('it-IT');
+  M.dom.score.textContent=window.RWGI18n.number(M.score);
   M.dom.level.textContent=M.level; M.dom.lives.textContent=M.lives;
-  M.dom.best.textContent=M.best.toLocaleString('it-IT');
+  M.dom.best.textContent=window.RWGI18n.number(M.best);
 };
 M.ensureAudio=()=>{
   if(M.audio)return;

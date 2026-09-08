@@ -15,6 +15,7 @@
  */
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const { KIND, TYPE, BUILD, ACT } = window.GreatEmpireState;
 
@@ -304,7 +305,7 @@
       c.fill();
 
       this.bar(px, py + rr * 1.02, rr * 1.9, hp / maxHp, PALETTE.hp);
-      this.label('CENTRO CITTÀ', px, py + rr * 1.85, 'rgba(233,247,236,.85)');
+      this.label(t('games.theGreatEmpire.cityCenter'), px, py + rr * 1.85, 'rgba(233,247,236,.85)');
     }
 
     enemyCamp(x, y, r, hp, maxHp) {
@@ -348,7 +349,7 @@
       c.fill();
 
       this.bar(px, py + rr * 0.95, rr * 1.9, hp / maxHp, PALETTE.enemy);
-      this.label('ACCAMPAMENTO', px, py + rr * 1.75, 'rgba(255,214,208,.9)');
+      this.label(t('games.theGreatEmpire.camp'), px, py + rr * 1.75, 'rgba(255,214,208,.9)');
     }
 
     // ── Player buildings ───────────────────────────────────────────────────

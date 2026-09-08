@@ -1,5 +1,6 @@
 (() => {
-'use strict'; const M=window.MM;
+'use strict';
+const t = (key, params = {}) => window.RWGI18n.t(key, params); const M=window.MM;
 M.resetBoard=()=>{
   M.map=M.MAP.map(r=>r.replace('P',' ').split(''));M.pellets=new Set();M.power=new Set();
   for(let y=0;y<M.ROWS;y++)for(let x=0;x<M.COLS;x++){
@@ -12,7 +13,7 @@ M.resetActors=(inv=1.4)=>{
   M.frightened=0;M.combo=0;M.hunters.forEach((h,i)=>{
     h.x=h.spawnX;h.y=h.spawnY;h.dir=i%2?'left':'right';h.eyes=0;h.release=i*Math.max(.75,1.6-M.level*.07);
   });
-  M.ready=.85;M.status('PRONTO');
+  M.ready=.85;M.status(t('games.mazeMunch.ready'));
 };
 M.resetGame=()=>{M.score=0;M.level=1;M.lives=3;M.resetBoard();M.resetActors();M.hud();};
 M.canMove=(e,dir)=>{
@@ -35,7 +36,7 @@ function bonusCheck(){
   if(due&&!M.bonus){M.bonusStage++;M.bonus={x:9.5,y:13.5,life:8,value:350+M.level*150};M.tone(520,.09,'triangle',.025,760);}
 }
 function nextLevel(){
-  M.running=false;M.score+=1000*M.level;M.level++;M.hud();M.tone(440,.28,'triangle',.04,880);M.status('LIVELLO COMPLETO');
+  M.running=false;M.score+=1000*M.level;M.level++;M.hud();M.tone(440,.28,'triangle',.04,880);M.status(t('games.mazeMunch.levelComplete'));
   setTimeout(()=>{if(M.dom.overlay.classList.contains('visible'))return;M.resetBoard();M.resetActors();M.running=true;},650);
 }
 function eat(){
@@ -50,8 +51,8 @@ function eat(){
 }
 function endGame(){
   M.running=false;M.paused=false;M.best=Math.max(M.best,M.score);localStorage.setItem('mazeMunchBest',String(M.best));M.hud();
-  M.dom.overlayText.innerHTML=`Caccia terminata.<br>Punteggio <strong>${M.score.toLocaleString('it-IT')}</strong> • livello ${M.level}.`;
-  M.dom.start.textContent='RIGIOCA';M.dom.overlay.classList.add('visible');
+  M.dom.overlayText.innerHTML=`${t('games.mazeMunch.ended')}<br>${t('games.mazeMunch.summary',{score:`<strong>${window.RWGI18n.number(M.score)}</strong>`,level:M.level})}`;
+  M.dom.start.textContent=t('core.replay');M.dom.overlay.classList.add('visible');
   const detail={game:'Maze Munch',score:M.score,level:M.level,best:M.best,maxCombo:M.combo};
   window.dispatchEvent(new CustomEvent('rwg:game-ended',{detail}));requestAnimationFrame(()=>window.RWGGameOver?.open?.(detail));
 }
@@ -97,7 +98,7 @@ function hunter(h,dt){
   if(h.eyes&&Math.hypot(h.x-h.spawnX,h.y-h.spawnY)<.45){h.x=h.spawnX;h.y=h.spawnY;h.eyes=0;h.release=.9;h.dir='up';}
 }
 M.update=dt=>{
-  if(!M.running||M.paused)return;if(M.ready>0){M.ready-=dt;M.player.inv=Math.max(0,M.player.inv-dt);if(M.ready<=0)M.status('VAI!');return;}
+  if(!M.running||M.paused)return;if(M.ready>0){M.ready-=dt;M.player.inv=Math.max(0,M.player.inv-dt);if(M.ready<=0)M.status(t('games.mazeMunch.go'));return;}
   M.player.inv=Math.max(0,M.player.inv-dt);M.frightened=Math.max(0,M.frightened-dt);M.player.speed=Math.min(7.2,6.05+M.level*.08);
   M.move(M.player,dt,true);eat();
   if(M.bonus){M.bonus.life-=dt;if(Math.hypot(M.player.x-M.bonus.x,M.player.y-M.bonus.y)<.58){M.score+=M.bonus.value;M.tone(760,.13,'triangle',.035,1280);M.status(`BONUS +${M.bonus.value}`);M.bonus=null;M.hud();}else if(M.bonus.life<=0)M.bonus=null;}

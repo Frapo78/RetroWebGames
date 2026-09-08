@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -55,7 +56,7 @@
     clearFlash = 0; clearedRows = []; current = makePiece(); next = makePiece(); updateHud(); drawNext();
   }
   function updateHud() {
-    scoreEl.textContent = score.toLocaleString('it-IT'); linesEl.textContent = lines; levelEl.textContent = level; bestEl.textContent = best.toLocaleString('it-IT');
+    scoreEl.textContent = window.RWGI18n.number(score); linesEl.textContent = lines; levelEl.textContent = level; bestEl.textContent = window.RWGI18n.number(best);
   }
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -160,8 +161,8 @@
   }
   function endGame() {
     running = false; paused = false; best = Math.max(best, score); localStorage.setItem('rwgBlockDropBest', String(best)); updateHud();
-    overlayText.innerHTML = `Partita terminata.<br>Punteggio <strong>${score.toLocaleString('it-IT')}</strong> • ${lines} linee • livello ${level}.`;
-    startBtn.textContent = 'RIGIOCA'; overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ';
+    overlayText.innerHTML = `${t('games.blockDrop.ended')}<br>${t('games.blockDrop.summary', { score: `<strong>${window.RWGI18n.number(score)}</strong>`, lines, level })}`;
+    startBtn.textContent = t('core.replay'); overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ';
     const detail = { game: 'Block Drop', score, lines, level, best }; window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail })); requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
   function startGame() {
@@ -204,13 +205,13 @@
     if (!validateResumeState(s)) return false;
     board = s.board.map(row => row.slice()); current = structuredClone(s.current); next = structuredClone(s.next); bag = s.bag.slice();
     score = Math.floor(s.score); lines = Math.floor(s.lines); level = Math.floor(s.level); dropTimer = s.dropTimer; clearFlash = 0; clearedRows = [];
-    running = true; paused = false; overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; lastTime = performance.now();
+    running = true; paused = false; overlay.classList.remove('visible'); startBtn.textContent = t('core.replay'); pauseBtn.textContent = 'Ⅱ'; lastTime = performance.now();
     updateHud(); drawNext(); resize(); draw(); requestAnimationFrame(loop); return true;
   }
   const resumeAdapter = Object.freeze({
     id: 'block-drop', version: 1, compatibility: 'block-drop-state-v1-10x20-7bag',
     isInProgress: () => running, serialize: serializeResumeState, validate: validateResumeState, restore: restoreResumeState, startFresh: startGame,
-    describe: s => `${Math.floor(s.lines || 0)} linee • livello ${Math.floor(s.level || 1)} • ${Math.floor(s.score || 0).toLocaleString('it-IT')} punti`
+    describe: s => t('games.blockDrop.resume', { lines: Math.floor(s.lines || 0), level: Math.floor(s.level || 1), score: window.RWGI18n.number(Math.floor(s.score || 0)) })
   });
   window.RWGResumeAdapter = resumeAdapter; window.RWGSession?.register?.(resumeAdapter);
 
@@ -235,7 +236,7 @@
   window.addEventListener('rwg:continue-game', e => {
     score = Math.max(0, Math.floor(e.detail?.score ?? score)); for (let y = 0; y < 6; y++) board[y] = Array(COLS).fill(null);
     current = makePiece(); next = next || makePiece(); dropTimer = 0; clearFlash = 0; clearedRows = []; running = true; paused = false;
-    overlay.classList.remove('visible'); startBtn.textContent = 'RIGIOCA'; pauseBtn.textContent = 'Ⅱ'; lastTime = performance.now(); updateHud(); drawNext(); draw(); markSessionDirty('credit-continue'); requestAnimationFrame(loop);
+    overlay.classList.remove('visible'); startBtn.textContent = t('core.replay'); pauseBtn.textContent = 'Ⅱ'; lastTime = performance.now(); updateHud(); drawNext(); draw(); markSessionDirty('credit-continue'); requestAnimationFrame(loop);
   });
   pauseBtn.addEventListener('click', togglePause); startBtn.addEventListener('click', startGame);
   window.addEventListener('resize', scheduleResize); window.visualViewport?.addEventListener('resize', scheduleResize); window.addEventListener('orientationchange', scheduleResize);

@@ -6,17 +6,24 @@
   <meta name="theme-color" content="#070c25" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+
+  <link rel="alternate" hreflang="it" href="https://www.retrowebgames.it/games/prism-breaker/" />
+  <link rel="alternate" hreflang="en" href="https://www.retrowebgames.it/en/games/prism-breaker/" />
+  <link rel="alternate" hreflang="x-default" href="https://www.retrowebgames.it/games/prism-breaker/" />
   <link rel="canonical" href="https://www.retrowebgames.it/games/prism-breaker/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
-  <link rel="shortcut icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../../icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../../icons/favicon-16.png" />
+  <link rel="shortcut icon" href="../../favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../../apple-touch-icon.png" />
   <meta name="msapplication-TileColor" content="#050816" />
   <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
 <link rel="manifest" href="../../manifest.webmanifest" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta property="og:locale" content="it_IT" />
+  <meta property="og:locale:alternate" content="en_US" />
+
   <meta name="description" content="Gioca gratis a Prism Breaker, videogame brick breaker con 100 livelli originali, power-up, mattoni speciali e boss arcade." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RetroWebGames" />
@@ -41,7 +48,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="../../orientation.css?v=20260831.3" />
   <link rel="stylesheet" href="../../game-hud.css?v=20260831.3" />
-  <script src="/rwg-i18n.js?v=20260908.1"></script>
+  <script src="/i18n/it/games/prism-breaker.js?v=20260908.2"></script>
   <script id="rwg-seo-graph" type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -134,6 +141,7 @@
   ]
 }
   </script>
+  <link rel="stylesheet" href="../../rwg-language-switcher.css?v=20260908.1" />
 </head>
 <body data-rwg-game="true" data-rwg-game-name="Prism Breaker">
   <main id="app">
@@ -159,6 +167,7 @@
     <section id="overlay" class="visible">
       <div class="panel">
         <p class="eyebrow">RETROWEBGAMES • BRICK BREAKER</p>
+        <nav class="rwg-language-switcher" aria-label="Language"><a href="/games/prism-breaker/" data-rwg-language="it" aria-current="page">IT</a><a href="/en/games/prism-breaker/" data-rwg-language="en">EN</a></nav>
         <h1 class="rwg-intro-cover-title"><img src="../../assets/social/games/prism-breaker.jpg" width="1200" height="630" alt="Prism Breaker" decoding="async" fetchpriority="high" /></h1>
         <p id="overlayText" class="rwg-intro-runtime-copy" aria-live="polite"></p>
         <div class="rwg-intro-leaderboard-slot" aria-label="Caricamento High Scores"><span>🏆 HIGH SCORES</span></div>
@@ -170,9 +179,9 @@
       </div>
     </section>
   </main>
-  <script src="levels.js"></script>
-  <script src="bosses.js"></script>
-  <script src="engine.js"></script>
+  <script src="levels.js?v=20260908.2"></script>
+  <script src="bosses.js?v=20260908.2"></script>
+  <script src="engine.js?v=20260908.2"></script>
   <script src="../../game-hud.js?v=20260908.1"></script>
   <script src="../../orientation.js?v=20260908.1"></script>
 </body>

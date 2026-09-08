@@ -4,6 +4,8 @@ import path from 'node:path';
 import process from 'node:process';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
+import italianGames from '../src/i18n/it/games.mjs';
+import englishGames from '../src/i18n/en/games.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -65,7 +67,7 @@ for (const marker of ['gesturestart','gesturechange','gestureend','dblclick','to
 must(inputGuard.includes('event.touches?.length > 1'), 'Solitaire input guard must explicitly suppress multi-touch pinch gestures');
 must(inputGuard.includes('closeInTime') && inputGuard.includes('closeInSpace'), 'Solitaire input guard must suppress same-area rapid double taps without blocking unrelated taps');
 
-const sandbox = { window: {} };
+const sandbox = { window: { RWGI18n: { t: key => key } } };
 vm.createContext(sandbox);
 vm.runInContext(read('games/solitaire/variants.js'), sandbox, { filename: 'solitaire/variants.js' });
 const registry = sandbox.window.RWGSolitaireVariants;
@@ -196,7 +198,7 @@ must(game.includes('allCards.length !== 52') && game.includes('new Set(allCards.
 must(game.includes('state.stock.some(card => card.faceUp)') && game.includes('state.waste.some(card => !card.faceUp)'), 'Resume validation must reject impossible stock/waste visibility');
 must(game.includes('card.suit !== suit || card.rank !== i + 1'), 'Resume validation must verify foundations');
 must(game.includes("markSessionDirty('move')") && game.includes("markSessionDirty('stock')") && game.includes("markSessionDirty('undo')"), 'Discrete card mutations must dirty-save');
-must(game.includes("showToast('PARTITA PRECEDENTE RIPRESA')"), 'Restore path must visibly confirm successful resume');
+must(game.includes("showToast(t('games.solitaire.resumed'))") && italianGames.solitaire.resumed && englishGames.solitaire.resumed, 'Restore path must visibly confirm successful resume in both locales');
 for (const marker of ["variant.id === 'freecell'", 'index % variant.tableauColumns', 'freeCellMoveCapacity(targetCol)', 'Variants.freeCellMoveCapacity(freeCells, tableau, targetCol)', 'canMoveToFreeCell(cards, cell)', 'freeCells[target.cell] = movedCards[0]', 'state.freeCells.length !== 4', "resumeVariant.id === 'freecell'"]) must(game.includes(marker), 'FreeCell runtime missing: ' + marker);
 must(game.includes('state.stock.length || state.waste.length') && game.includes('pile.some(card => !card.faceUp)'), 'FreeCell resume validation must reject stock/waste and face-down cascades');
 must(game.includes("rwg:leaderboard-scope-change") && game.includes('variantSlug: variant.id') && game.includes('leaderboardVariant:'), 'Solitaire must propagate variant scope through selection, results and resume');

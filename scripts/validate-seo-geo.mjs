@@ -7,7 +7,11 @@ import { GAMES, SITE } from './seo-catalog.mjs';
 
 const root = process.cwd();
 const failures = [];
-const pages = [{ rel: 'index.html', url: SITE.origin + '/', kind: 'home' }, ...GAMES.map(game => ({ rel: 'games/' + game.slug + '/index.html', url: SITE.origin + '/games/' + game.slug + '/', kind: 'game', game })), { rel: 'avatar/index.html', url: SITE.origin + '/avatar/', kind: 'utility' }];
+const localizedPages=locale=>{
+  const prefix=locale==='it'?'':`${locale}/`,urlPrefix=locale==='it'?'':`${locale}/`;
+  return [{rel:`${prefix}index.html`,url:`${SITE.origin}/${urlPrefix}`,kind:'home',locale},...GAMES.map(game=>({rel:`${prefix}games/${game.slug}/index.html`,url:`${SITE.origin}/${urlPrefix}games/${game.slug}/`,kind:'game',game,locale})),{rel:`${prefix}avatar/index.html`,url:`${SITE.origin}/${urlPrefix}avatar/`,kind:'utility',locale}];
+};
+const pages=[...localizedPages('it'),...localizedPages('en')];
 const titles = new Map();
 const descriptions = new Map();
 
@@ -28,7 +32,9 @@ for (const page of pages) {
   must(title.length >= 25 && title.length <= 65, page.rel + ': title must be useful and 25–65 characters');
   must(description.length >= 100 && description.length <= 170, page.rel + ': description must be useful and 100–170 characters');
   must(canonical === page.url, page.rel + ': canonical URL mismatch');
-  must(/<meta\s+property=["']og:locale["']\s+content=["']it_IT["']/i.test(html), page.rel + ': og:locale it_IT missing');
+  const expectedOgLocale=page.locale==='it'?'it_IT':'en_US';
+  must(new RegExp(`<meta\\s+property=["']og:locale["']\\s+content=["']${expectedOgLocale}["']`,'i').test(html), page.rel + ': og:locale mismatch');
+  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="x-default"'),page.rel+': reciprocal hreflang set missing');
   must(!/<meta\s+name=["']keywords["']/i.test(html), page.rel + ': obsolete meta keywords must not be added');
   must(scripts.length === 1, page.rel + ': exactly one rwg-seo-graph JSON-LD block required');
   if (page.kind === 'utility') must(/^noindex,follow/.test(robots), page.rel + ': thin utility must remain noindex,follow');
@@ -46,17 +52,18 @@ for (const page of pages) {
       const website = nodeOf(graph, 'WebSite');
       const webPage = nodeOf(graph, 'WebPage');
       must(website?.name === SITE.name && website?.alternateName === SITE.alternateName, page.rel + ': WebSite identity missing');
-      must(webPage?.url === page.url && webPage?.inLanguage === SITE.language, page.rel + ': WebPage URL/language mismatch');
+      must(webPage?.url === page.url && webPage?.inLanguage === (page.locale==='it'?SITE.language:'en'), page.rel + ': WebPage URL/language mismatch');
       if (page.kind === 'home') {
         const list = nodeOf(graph, 'ItemList');
         must(list?.numberOfItems === GAMES.length && list?.itemListElement?.length === GAMES.length, page.rel + ': home ItemList must contain every current game');
-        must(/videogame gratis/i.test(title) && /retrogame/i.test(title), page.rel + ': primary discovery intent missing from home title');
-        must(html.includes('class="seo-discovery"') && html.includes('Snake gratis online') && html.includes('Solitario Klondike (Solitaire)'), page.rel + ': useful visible discovery content missing');
+        must(page.locale==='it'?(/videogame gratis/i.test(title)&&/retrogame/i.test(title)):(/free videogames/i.test(title)&&/retrogame/i.test(title)), page.rel + ': primary discovery intent missing from home title');
+        must(html.includes('class="seo-discovery"') && (page.locale==='it'?html.includes('Snake gratis online')&&html.includes('Solitario Klondike (Solitaire)'):html.includes('free online Snake')&&html.includes('Klondike Solitaire')), page.rel + ': useful visible discovery content missing');
       }
       if (page.kind === 'game') {
         const game = nodeOf(graph, 'VideoGame');
         const breadcrumbs = nodeOf(graph, 'BreadcrumbList');
-        must(game?.name === page.game.name && game?.url === page.url, page.rel + ': VideoGame identity mismatch');
+        const expectedName=page.locale==='en'&&page.game.slug==='solitaire'?'Solitaire':page.game.name;
+        must(game?.name === expectedName && game?.url === page.url, page.rel + ': VideoGame identity mismatch');
         must(game?.isAccessibleForFree === true && game?.playMode === 'SinglePlayer', page.rel + ': VideoGame access/play mode facts missing');
         must(Array.isArray(game?.gamePlatform) && game.gamePlatform.includes('Web browser'), page.rel + ': web game platform missing');
         must(breadcrumbs?.itemListElement?.length === 2, page.rel + ': BreadcrumbList missing');
@@ -72,7 +79,7 @@ const sitemap = read('sitemap.xml');
 const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
 const sitemapDates = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map(match => match[1]);
 const expectedUrls = pages.filter(page => page.kind !== 'utility').map(page => page.url).sort();
-must(/<urlset\s+xmlns=["']http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9["']>/.test(sitemap), 'sitemap.xml: standard urlset namespace missing');
+must(/<urlset\s+[^>]*xmlns=["']http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9["'][^>]*>/.test(sitemap), 'sitemap.xml: standard urlset namespace missing');
 must(JSON.stringify(sitemapUrls.slice().sort()) === JSON.stringify(expectedUrls), 'sitemap.xml: must contain exactly all indexable canonical routes');
 must(sitemapDates.length === sitemapUrls.length && sitemapDates.every(date => /^\d{4}-\d{2}-\d{2}$/.test(date)), 'sitemap.xml: every URL needs a valid lastmod date');
 must(!sitemap.includes('<priority>') && !sitemap.includes('<changefreq>'), 'sitemap.xml: omit ignored priority/changefreq noise');

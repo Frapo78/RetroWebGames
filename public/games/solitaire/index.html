@@ -6,17 +6,24 @@
   <meta name="theme-color" content="#0b3f32" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+
+  <link rel="alternate" hreflang="it" href="https://www.retrowebgames.it/games/solitaire/" />
+  <link rel="alternate" hreflang="en" href="https://www.retrowebgames.it/en/games/solitaire/" />
+  <link rel="alternate" hreflang="x-default" href="https://www.retrowebgames.it/games/solitaire/" />
   <link rel="canonical" href="https://www.retrowebgames.it/games/solitaire/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
-  <link rel="shortcut icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../../icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../../icons/favicon-16.png" />
+  <link rel="shortcut icon" href="../../favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../../apple-touch-icon.png" />
   <meta name="msapplication-TileColor" content="#050816" />
   <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
 <link rel="manifest" href="../../manifest.webmanifest" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta property="og:locale" content="it_IT" />
+  <meta property="og:locale:alternate" content="en_US" />
+
   <meta name="description" content="Gioca al Solitario gratis online: Solitaire Klondike e FreeCell con 52 carte, drag, tap, undo e suggerimenti, ottimizzato per smartphone." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RetroWebGames" />
@@ -42,7 +49,7 @@
   <link rel="stylesheet" href="pause-overlay.css" />
   <link rel="stylesheet" href="../../orientation.css?v=20260831.3" />
   <link rel="stylesheet" href="../../game-hud.css?v=20260831.3" />
-  <script src="/rwg-i18n.js?v=20260908.1"></script>
+  <script src="/i18n/it/games/solitaire.js?v=20260908.2"></script>
   <script id="rwg-seo-graph" type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -138,6 +145,7 @@
   ]
 }
   </script>
+  <link rel="stylesheet" href="../../rwg-language-switcher.css?v=20260908.1" />
 </head>
 <body data-rwg-game="true" data-rwg-game-name="Solitario" data-solitaire-variant="klondike" data-rwg-leaderboard-variant="klondike">
   <main id="app">
@@ -196,7 +204,8 @@
     </section>
     <section id="overlay" class="visible">
       <div class="intro-panel">
-        <p class="eyebrow">RETROWEBGAMES • CARTE</p><h1 class="rwg-intro-cover-title"><img src="../../assets/social/games/solitaire.jpg" width="1200" height="630" alt="Solitario" decoding="async" fetchpriority="high" /></h1>
+        <p class="eyebrow">RETROWEBGAMES • CARTE</p>
+        <nav class="rwg-language-switcher" aria-label="Language"><a href="/games/solitaire/" data-rwg-language="it" aria-current="page">IT</a><a href="/en/games/solitaire/" data-rwg-language="en">EN</a></nav><h1 class="rwg-intro-cover-title"><img src="../../assets/social/games/solitaire.jpg" width="1200" height="630" alt="Solitario" decoding="async" fetchpriority="high" /></h1>
         <div class="variant-picker"><label for="variantSelect">VARIANTE</label><select id="variantSelect" aria-label="Variante del Solitario"><option value="klondike">CLASSICO • KLONDIKE</option><option value="freecell">FREECELL • 4 CELLE LIBERE</option></select><small>Scegli la variante prima di iniziare.</small></div>
         <div class="rwg-intro-leaderboard-slot" aria-label="Caricamento High Scores"><span>🏆 HIGH SCORES</span></div>
         <div class="rules-mini"><span id="ruleDraw">PESCA 1</span><span id="ruleColumns">7 COLONNE</span><span id="ruleDeck">52 CARTE</span></div>
@@ -205,14 +214,14 @@
       </div>
     </section>
   </main>
-  <script src="variants.js?v=20260907.1"></script>
-  <script src="card-art.js"></script>
-  <script src="input-guard.js"></script>
-  <script src="auto-move.js?v=20260907.1"></script>
-  <script src="auto-finish.js?v=20260907.1"></script>
-  <script src="game.js?v=20260907.3"></script>
-  <script src="pause-overlay.js"></script>
-  <script src="session-adapter.js?v=20260907.3"></script>
+  <script src="variants.js?v=20260908.2"></script>
+  <script src="card-art.js?v=20260908.2"></script>
+  <script src="input-guard.js?v=20260908.2"></script>
+  <script src="auto-move.js?v=20260908.2"></script>
+  <script src="auto-finish.js?v=20260908.2"></script>
+  <script src="game.js?v=20260908.2"></script>
+  <script src="pause-overlay.js?v=20260908.2"></script>
+  <script src="session-adapter.js?v=20260908.2"></script>
   <script src="../../game-hud.js?v=20260908.1"></script>
   <script src="../../orientation.js?v=20260908.1"></script>
 </body>

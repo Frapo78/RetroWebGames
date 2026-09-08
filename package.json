@@ -6,7 +6,11 @@
     "prepare:astro-poc": "node scripts/prepare-astro-poc.mjs",
     "build:astro-poc": "npm run build:i18n && npm run prepare:astro-poc && astro build && node scripts/finalize-astro-poc.mjs",
     "validate:astro-poc": "node scripts/validate-astro-poc.mjs",
-    "build:i18n": "node scripts/build-i18n.mjs"
+    "build:i18n": "node scripts/build-i18n.mjs",
+    "prepare:astro-site": "node scripts/prepare-astro-site.mjs",
+    "build:site": "npm run build:i18n && npm run prepare:astro-site && astro build && node scripts/finalize-astro-site.mjs",
+    "publish:site": "npm run build:site && node scripts/publish-astro-site.mjs",
+    "smoke:i18n-site": "node scripts/smoke-i18n-site.mjs"
   },
   "devDependencies": {
     "@astrojs/sitemap": "3.7.4",

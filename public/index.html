@@ -6,6 +6,11 @@
   <meta name="theme-color" content="#050816" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+
+  <link rel="alternate" hreflang="it" href="https://www.retrowebgames.it/" />
+  <link rel="alternate" hreflang="en" href="https://www.retrowebgames.it/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://www.retrowebgames.it/" />
   <link rel="canonical" href="https://www.retrowebgames.it/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
@@ -16,6 +21,10 @@
   <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta property="og:locale" content="it_IT" />
+  <meta property="og:locale:alternate" content="en_US" />
+
+
+
   <meta name="description" content="Gioca gratis online a videogame e retrogame originali: arcade, Snake, Solitario, puzzle, shooter e web game ottimizzati per smartphone." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="RetroWebGames" />
@@ -42,13 +51,13 @@
   <link rel="stylesheet" href="brand.css" />
   <link rel="stylesheet" href="hub-games.css" />
   <link rel="stylesheet" href="hub-partners.css" />
-  <link rel="stylesheet" href="rwg-leaderboard.css?v=20260907.3" />
+  <link rel="stylesheet" href="/rwg-leaderboard.css?v=20260907.3" />
   <link rel="stylesheet" href="hub-share.css" />
   <link rel="stylesheet" href="pwa-install.css" />
-  <script src="/rwg-i18n.js?v=20260908.1"></script>
+  <script src="/rwg-i18n.js?v=20260908.2"></script>
   <script src="/rwg-lazy-images.js" defer></script>
   <script src="/pwa-install.js?v=20260908.1" defer></script>
-  <script src="/rwg-analytics.js" defer></script>
+  <script src="/rwg-analytics.js?v=20260908.2" defer></script>
   <script src="/rwg-leaderboard.js?v=20260908.1" defer></script>
   <script id="rwg-seo-graph" type="application/ld+json">
 {
@@ -292,6 +301,7 @@
   ]
 }
   </script>
+  <link rel="stylesheet" href="/rwg-language-switcher.css?v=20260908.1" />
 </head>
 <body>
   <aside id="pwaInstallNotice" class="pwa-install-notice" hidden role="status" aria-live="polite" aria-label="Installa RetroWebGames" data-rwg-i18n-aria="pwa.noticeAria">
@@ -304,6 +314,7 @@
   <main class="shell">
     <header class="hero">
       <p class="eyebrow" data-rwg-i18n="home.eyebrow">ARCADE MOBILE • ZERO INSTALLAZIONE</p>
+      <nav class="rwg-language-switcher" aria-label="Language"><a href="/" data-rwg-language="it" aria-current="page">IT</a><a href="/en/" data-rwg-language="en">EN</a></nav>
       <h1 class="hero-wordmark" aria-label="RetroWebGames"><img data-rwg-src="/assets/brand/retrowebgames-wordmark.png" width="1600" height="250" alt="" loading="lazy" decoding="async" /></h1>
       <p class="intro" data-rwg-i18n="home.intro">Videogame gratis e retrogame originali da giocare subito nel browser. Scegli un web game e parti: controlli touch, sessioni veloci e record salvati sul dispositivo.</p>
       <div class="counter" data-rwg-i18n="home.gamesAvailable" data-rwg-i18n-params='{"count":9}'>9 GIOCHI DISPONIBILI</div>

@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const base = window.RWGResumeAdapter;
   if (!base) throw new Error('Solitaire resume adapter missing');
@@ -22,7 +23,7 @@
     const variantId = String(state?.variantId || 'klondike');
     const cardStyle = document.getElementById('cardStyleSelect')?.value || 'essential';
     return {
-      game: 'Solitario',
+      game: t('games.solitaire.title'),
       gameSlug: 'solitaire',
       variantSlug: variantId,
       outcome: 'game-over',

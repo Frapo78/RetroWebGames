@@ -4,6 +4,17 @@
 
 Sito ufficiale: `https://www.retrowebgames.it/`
 
+## Lingue e build statica
+
+Il sito completo è disponibile in italiano sulle route canoniche senza prefisso e in inglese su `/en/`. Home, Avatar e tutti i dieci giochi sono generati staticamente da Astro; i motori restano JavaScript/Canvas o DOM senza framework runtime.
+
+```bash
+npm run build:site      # output verificabile in .work/astro-site/public
+npm run publish:site    # pubblica le 24 route generate e la sitemap in public/
+```
+
+I cataloghi sorgente sono in `src/i18n/{it,en}/`; `public/rwg-i18n*.js` e `public/i18n/*` sono generati e non vanno modificati a mano. Il selettore lingua conserva profilo, crediti, sessioni e classifiche perché tutti gli identificatori persistiti restano language-neutral. Contratto e rollout: `docs/I18N-ARCHITECTURE.md` e `docs/I18N-EN-ROLLOUT.md`.
+
 ## Giochi
 
 ### Star Swarm
@@ -151,7 +162,7 @@ Home, editor avatar e pagine gioco espongono metadati statici Open Graph e Twitt
 
 ## SEO e ricerca generativa
 
-Home e nove giochi hanno title/description unici, canonical HTTPS, direttive rich-preview e grafi JSON-LD Schema.org (`WebSite`, `WebPage`, `ItemList`, `VideoGame`, breadcrumb). `scripts/seo-catalog.mjs` è la sorgente centralizzata; `scripts/apply-seo.mjs` rigenera il markup in modo idempotente, `scripts/generate-sitemap.mjs` crea la sitemap con `lastmod` Git e `scripts/validate-seo-geo.mjs` impedisce regressioni. L’editor avatar è intenzionalmente `noindex,follow`. Strategia, fonti ufficiali e limiti sono in `docs/SEO-GEO.md`.
+Home e dieci giochi hanno title/description unici, canonical HTTPS, direttive rich-preview e grafi JSON-LD Schema.org (`WebSite`, `WebPage`, `ItemList`, `VideoGame`, breadcrumb). Astro genera le route IT/EN, i canonical reciproci, `hreflang` e la sitemap localizzata; `scripts/validate-seo-geo.mjs` e `scripts/validate-i18n.mjs` impediscono regressioni. Le route Avatar sono intenzionalmente `noindex,follow`. Strategia, fonti ufficiali e limiti sono in `docs/SEO-GEO.md`.
 
 ## Modalità verticale
 
@@ -171,6 +182,8 @@ Neon Tilt richiede inoltre un secure context e una `Permissions-Policy` che non 
 - `docs/PRISM-BREAKER.md` — source of truth Prism Breaker;
 - `docs/SOCIAL-SHARING.md` — metadati pubblici e condivisione dalle intro;
 - `docs/SEO-GEO.md` — strategia SEO/GEO, fonti e policy di indicizzazione;
+- `docs/I18N-ARCHITECTURE.md` — route, cataloghi e confine language-neutral;
+- `docs/I18N-EN-ROLLOUT.md` — build, gate, cache e rollback del rollout inglese;
 - `docs/WASM-EVALUATION.md` — criteri per eventuale WASM;
 - `scripts/validate-contracts.mjs` — validazione repository-wide;
 - `scripts/validate-session.mjs` — coverage automatica autosave presente/futuro;

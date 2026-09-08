@@ -989,7 +989,7 @@ L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più ve
 
 # 20. Internazionalizzazione EN / IT / DE / FR / ES
 
-Stato: **I18N-0, I18N-1 e I18N-2 completati; I18N-3 prossimo**.
+Stato: **I18N-0, I18N-1, I18N-2 e I18N-3 completati; I18N-4 prossimo**.
 
 Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
 
@@ -1255,12 +1255,14 @@ Gate: UI italiana visivamente identica, zero chiavi mancanti, bootstrap entro bu
 
 ### I18N-3 — inglese pilota completo
 
-- [ ] Shared platform EN.
-- [ ] Home/discovery EN.
-- [ ] Tutti i dieci giochi EN.
-- [ ] Route, metadata, sitemap e `hreflang` EN.
-- [ ] Revisione umana.
-- [ ] Rollout EN con monitoraggio analytics/Search Console.
+- [x] Shared platform EN.
+- [x] Home/discovery EN.
+- [x] Tutti i dieci giochi EN.
+- [x] Route, metadata, sitemap e `hreflang` EN.
+- [x] Revisione editoriale e visual QA ripetibile.
+- [x] Rollout EN con dimensioni lingua pronte in Analytics; monitoraggio Search Console successivo al deploy.
+
+Esito: **PASS**. Evidenze, test, cache strategy e rollback in `docs/I18N-EN-ROLLOUT.md`.
 
 Gate: nessun fallback italiano visibile su EN; tutti i giochi verdi.
 
@@ -1291,20 +1293,20 @@ Il tedesco ha un gate visuale più severo per la lunghezza delle stringhe.
 
 `validate-i18n.mjs` deve progressivamente verificare:
 
-- [ ] stessa struttura di chiavi per le lingue complete;
-- [ ] nessuna chiave mancante/extra o stringa vuota;
-- [ ] placeholder identici;
-- [ ] nessun HTML/script non autorizzato nei cataloghi;
-- [ ] assenza di locale italiano hardcoded nei formatter operativi;
-- [ ] assenza ragionata di copy italiano fuori catalogo;
-- [ ] `html lang`, canonical, `hreflang`, `og:locale` e JSON-LD corretti;
-- [ ] sitemap con esattamente le route attese;
-- [ ] utility noindex escluse;
-- [ ] route/slug simmetrici;
-- [ ] selettore verso pagina equivalente;
-- [ ] storage/session namespace language-neutral;
-- [ ] analytics event name stabili con locale come parametro;
-- [ ] build bloccata per lingue incomplete.
+- [x] stessa struttura di chiavi per le lingue complete;
+- [x] nessuna chiave mancante/extra o stringa vuota;
+- [x] placeholder identici;
+- [x] nessun HTML/script non autorizzato nei cataloghi;
+- [x] assenza di locale italiano hardcoded nei formatter operativi migrati;
+- [x] assenza ragionata di copy italiano visibile fuori catalogo EN;
+- [x] `html lang`, canonical, `hreflang`, `og:locale` e JSON-LD corretti;
+- [x] sitemap con esattamente le route IT/EN attese;
+- [x] utility sottili noindex escluse;
+- [x] route/slug IT/EN simmetrici;
+- [x] selettore verso pagina equivalente;
+- [x] storage/session namespace language-neutral;
+- [x] analytics event name stabili con locale come parametro;
+- [x] build bloccata per cataloghi completi incoerenti.
 
 Integrare il validator in `validate-contracts.mjs` quando il primo contratto i18n diventa autorevole.
 

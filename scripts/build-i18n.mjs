@@ -1,9 +1,50 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import catalog from '../src/i18n/it/shared.mjs';
+import itShared from '../src/i18n/it/shared.mjs';
+import enShared from '../src/i18n/en/shared.mjs';
+import itGames from '../src/i18n/it/games.mjs';
+import enGames from '../src/i18n/en/games.mjs';
 
-const target = path.resolve('public/rwg-i18n.js');
-const payload = JSON.stringify(catalog);
-const runtime = `(() => {\n  'use strict';\n  if (window.RWGI18n) return;\n  const bootstrapStartedAt = performance.now();\n  const catalog = Object.freeze(${payload});\n  const get = key => String(key || '').split('.').reduce((value, part) => value && value[part], catalog);\n  const interpolate = (message, params) => message.replace(/\\{([A-Za-z][A-Za-z0-9_]*)\\}/g, (_, key) => Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : '{' + key + '}');\n  const t = (key, params = {}) => { const value = get(key); if (typeof value !== 'string') throw new Error('RWGI18n missing key: ' + key); return interpolate(value, params); };\n  const locale = 'it';\n  let numberFormat;\n  let dateFormat;\n  let pluralRules;\n  const duration = value => { const total = Math.max(0, Math.round(Number(value || 0) / 1000)); const min = Math.floor(total / 60); const sec = total % 60; return min ? min + ':' + String(sec).padStart(2, '0') : sec + 's'; };\n  const localize = (root = document) => {\n    root.querySelectorAll?.('[data-rwg-i18n]').forEach(node => {\n      const key = node.dataset.rwgI18n;\n      const params = node.dataset.rwgI18nParams ? JSON.parse(node.dataset.rwgI18nParams) : {};\n      node.textContent = t(key, params);\n    });\n    root.querySelectorAll?.('[data-rwg-i18n-aria]').forEach(node => node.setAttribute('aria-label', t(node.dataset.rwgI18nAria)));\n    root.querySelectorAll?.('[data-rwg-i18n-title]').forEach(node => node.setAttribute('title', t(node.dataset.rwgI18nTitle)));\n  };\n  window.RWGI18n = Object.freeze({ locale, languageTag: 'it-IT', catalog, t, localize, number: value => (numberFormat ||= new Intl.NumberFormat('it-IT')).format(Number(value || 0)), date: value => (dateFormat ||= new Intl.DateTimeFormat('it-IT')).format(value instanceof Date ? value : new Date(value)), duration, pluralCategory: value => (pluralRules ||= new Intl.PluralRules('it-IT')).select(Number(value || 0)), bootstrapMs: performance.now() - bootstrapStartedAt });\n  if (document.documentElement.lang === 'it') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => localize(), { once: true }); else localize(); }\n  window.dispatchEvent(new CustomEvent('rwg:i18n-ready', { detail: { locale, bootstrapMs: window.RWGI18n.bootstrapMs } }));\n})();\n`;
-fs.writeFileSync(target, runtime);
-console.log(`Generated ${path.relative(process.cwd(), target)}`);
+const locales = Object.freeze({
+  it: { languageTag: 'it-IT', shared: itShared, games: itGames },
+  en: { languageTag: 'en-US', shared: enShared, games: enGames }
+});
+const slugKeys = Object.freeze({
+  'block-drop':'blockDrop','bubble-burst':'bubbleBurst','maze-munch':'mazeMunch','neon-rally':'neonRally','neon-snake':'neonSnake',
+  'neon-tilt':'neonTilt','prism-breaker':'prismBreaker','solitaire':'solitaire','star-swarm':'starSwarm','the-great-empire':'theGreatEmpire'
+});
+
+function runtime(locale, languageTag, catalog) {
+  const payload=JSON.stringify(catalog);
+  return `(() => {
+  'use strict';
+  if (window.RWGI18n) return;
+  const bootstrapStartedAt = performance.now();
+  const catalog = Object.freeze(${payload});
+  const get = key => String(key || '').split('.').reduce((value, part) => value && value[part], catalog);
+  const interpolate = (message, params) => message.replace(/\\{([A-Za-z][A-Za-z0-9_]*)\\}/g, (_, key) => Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : '{' + key + '}');
+  const t = (key, params = {}) => { const value = get(key); if (typeof value !== 'string') throw new Error('RWGI18n missing key: ' + key); return interpolate(value, params); };
+  let numberFormat;
+  let dateFormat;
+  let pluralRules;
+  const duration = value => { const total = Math.max(0, Math.round(Number(value || 0) / 1000)); const min = Math.floor(total / 60); const sec = total % 60; return min ? min + ':' + String(sec).padStart(2, '0') : sec + 's'; };
+  const localize = (root = document) => {
+    root.querySelectorAll?.('[data-rwg-i18n]').forEach(node => { const key=node.dataset.rwgI18n; const params=node.dataset.rwgI18nParams ? JSON.parse(node.dataset.rwgI18nParams) : {}; node.textContent=t(key,params); });
+    root.querySelectorAll?.('[data-rwg-i18n-aria]').forEach(node => node.setAttribute('aria-label', t(node.dataset.rwgI18nAria)));
+    root.querySelectorAll?.('[data-rwg-i18n-title]').forEach(node => node.setAttribute('title', t(node.dataset.rwgI18nTitle)));
+  };
+  window.RWGI18n = Object.freeze({ locale: '${locale}', languageTag: '${languageTag}', catalog, t, localize, number: value => (numberFormat ||= new Intl.NumberFormat('${languageTag}')).format(Number(value || 0)), date: value => (dateFormat ||= new Intl.DateTimeFormat('${languageTag}')).format(value instanceof Date ? value : new Date(value)), duration, pluralCategory: value => (pluralRules ||= new Intl.PluralRules('${languageTag}')).select(Number(value || 0)), bootstrapMs: performance.now() - bootstrapStartedAt });
+  if (document.documentElement.lang === '${locale}') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => localize(), { once: true }); else localize(); }
+  window.dispatchEvent(new CustomEvent('rwg:i18n-ready', { detail: { locale: '${locale}', bootstrapMs: window.RWGI18n.bootstrapMs } }));
+})();
+`;
+}
+
+function write(relative, contents) {
+  const target=path.resolve('public',relative); fs.mkdirSync(path.dirname(target),{recursive:true}); fs.writeFileSync(target,contents); console.log(`Generated ${path.relative(process.cwd(),target)}`);
+}
+write('rwg-i18n.js',runtime('it',locales.it.languageTag,locales.it.shared));
+write('rwg-i18n.en.js',runtime('en',locales.en.languageTag,locales.en.shared));
+for (const [locale, config] of Object.entries(locales)) for (const [slug,key] of Object.entries(slugKeys)) {
+  write(`i18n/${locale}/games/${slug}.js`,runtime(locale,config.languageTag,{...config.shared,games:{[key]:config.games[key]}}));
+}

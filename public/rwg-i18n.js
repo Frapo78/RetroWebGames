@@ -6,21 +6,16 @@
   const get = key => String(key || '').split('.').reduce((value, part) => value && value[part], catalog);
   const interpolate = (message, params) => message.replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (_, key) => Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : '{' + key + '}');
   const t = (key, params = {}) => { const value = get(key); if (typeof value !== 'string') throw new Error('RWGI18n missing key: ' + key); return interpolate(value, params); };
-  const locale = 'it';
   let numberFormat;
   let dateFormat;
   let pluralRules;
   const duration = value => { const total = Math.max(0, Math.round(Number(value || 0) / 1000)); const min = Math.floor(total / 60); const sec = total % 60; return min ? min + ':' + String(sec).padStart(2, '0') : sec + 's'; };
   const localize = (root = document) => {
-    root.querySelectorAll?.('[data-rwg-i18n]').forEach(node => {
-      const key = node.dataset.rwgI18n;
-      const params = node.dataset.rwgI18nParams ? JSON.parse(node.dataset.rwgI18nParams) : {};
-      node.textContent = t(key, params);
-    });
+    root.querySelectorAll?.('[data-rwg-i18n]').forEach(node => { const key=node.dataset.rwgI18n; const params=node.dataset.rwgI18nParams ? JSON.parse(node.dataset.rwgI18nParams) : {}; node.textContent=t(key,params); });
     root.querySelectorAll?.('[data-rwg-i18n-aria]').forEach(node => node.setAttribute('aria-label', t(node.dataset.rwgI18nAria)));
     root.querySelectorAll?.('[data-rwg-i18n-title]').forEach(node => node.setAttribute('title', t(node.dataset.rwgI18nTitle)));
   };
-  window.RWGI18n = Object.freeze({ locale, languageTag: 'it-IT', catalog, t, localize, number: value => (numberFormat ||= new Intl.NumberFormat('it-IT')).format(Number(value || 0)), date: value => (dateFormat ||= new Intl.DateTimeFormat('it-IT')).format(value instanceof Date ? value : new Date(value)), duration, pluralCategory: value => (pluralRules ||= new Intl.PluralRules('it-IT')).select(Number(value || 0)), bootstrapMs: performance.now() - bootstrapStartedAt });
+  window.RWGI18n = Object.freeze({ locale: 'it', languageTag: 'it-IT', catalog, t, localize, number: value => (numberFormat ||= new Intl.NumberFormat('it-IT')).format(Number(value || 0)), date: value => (dateFormat ||= new Intl.DateTimeFormat('it-IT')).format(value instanceof Date ? value : new Date(value)), duration, pluralCategory: value => (pluralRules ||= new Intl.PluralRules('it-IT')).select(Number(value || 0)), bootstrapMs: performance.now() - bootstrapStartedAt });
   if (document.documentElement.lang === 'it') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => localize(), { once: true }); else localize(); }
-  window.dispatchEvent(new CustomEvent('rwg:i18n-ready', { detail: { locale, bootstrapMs: window.RWGI18n.bootstrapMs } }));
+  window.dispatchEvent(new CustomEvent('rwg:i18n-ready', { detail: { locale: 'it', bootstrapMs: window.RWGI18n.bootstrapMs } }));
 })();

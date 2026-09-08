@@ -26,6 +26,7 @@ Core navigation / acquisition:
 - `pwa_install_prompt` — installability prompt became available.
 - `pwa_install` — web app installed.
 - `pwa_install_cta` — install CTA outcome or platform-specific guidance shown.
+- `language_selected` — explicit IT/EN selector use (`from_locale`, `to_locale`, `source=language_switcher`).
 
 Gameplay funnel:
 
@@ -72,6 +73,14 @@ The name typed by the player, device/profile identifiers, run IDs and raw server
 ## Event parameter rules
 
 Use low-cardinality dimensions where possible: `game_id`, `game_name`, `page_kind`, `method`, `result`, `phase`, `control`, `variant`. Score, level, time and counters stay numeric.
+
+Every centralized event also carries:
+
+- `ui_locale` — active `RWGI18n` locale;
+- `content_language` — document language;
+- `browser_language` — browser preference, for aggregate mismatch analysis only.
+
+Event names and stable enum values never change with locale. Configure these three fields and `from_locale`/`to_locale` as GA4 custom dimensions before using them in reports.
 
 Do not send:
 

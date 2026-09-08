@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const Levels = window.BubbleBurstLevels;
   if (!Levels?.getLevel) throw new Error('Bubble Burst levels module missing');
@@ -135,8 +136,8 @@
     levelTimerEl.textContent = formatLevelTime(levelElapsed);
     levelTimerEl.className = `is-${tier}`;
     const optimal = Math.max(1, Number(boardMeta?.optimalSeconds) || 60);
-    levelTimerEl.setAttribute('aria-label', `Tempo livello ${formatLevelTime(levelElapsed)}. Tempo ottimale ${formatLevelTime(optimal)}.`);
-    levelTimerEl.title = `Tempo ottimale: ${formatLevelTime(optimal)} • soglia +25%: ${formatLevelTime(optimal * ORANGE_DEADLINE_MULTIPLIER)}`;
+    levelTimerEl.setAttribute('aria-label', t('games.bubbleBurst.levelTimer',{elapsed:formatLevelTime(levelElapsed),optimal:formatLevelTime(optimal)}));
+    levelTimerEl.title = t('games.bubbleBurst.levelTimerTitle',{optimal:formatLevelTime(optimal),threshold:formatLevelTime(optimal * ORANGE_DEADLINE_MULTIPLIER)});
   }
 
   function resetLevelMetrics() {
@@ -250,9 +251,9 @@
   }
 
   function shotLabel(shot) {
-    if (shot.kind === SHOT_BOMB) return 'BOMBA';
-    if (shot.kind === SHOT_COLOR_CLEAR) return 'COLOR WIPE';
-    return 'NORMALE';
+    if (shot.kind === SHOT_BOMB) return t('games.bubbleBurst.bomb');
+    if (shot.kind === SHOT_COLOR_CLEAR) return t('games.bubbleBurst.colorClear');
+    return t('games.bubbleBurst.normal');
   }
 
   function applyPendingBombReward() {
@@ -269,7 +270,7 @@
     poppingShotStreak++;
     if (poppingShotStreak < 5) return;
     poppingShotStreak = 0; rewardBombsPending++; applyPendingBombReward();
-    banner = 'COMBO ×5 • BOMBA PRONTA!'; bannerTime = 1.35; tone(1040, .12, 'triangle', .04, 360); navigator.vibrate?.([12, 18, 28]);
+    banner = t('games.bubbleBurst.comboBomb'); bannerTime = 1.35; tone(1040, .12, 'triangle', .04, 360); navigator.vibrate?.([12, 18, 28]);
   }
 
   function updateNextPreview() {
@@ -280,7 +281,7 @@
     nextDot.style.color = nextShot.color;
     if (nextShot.kind === SHOT_BOMB) { nextDot.classList.add('is-bomb'); nextDot.textContent = '✦'; }
     if (nextShot.kind === SHOT_COLOR_CLEAR) { nextDot.classList.add('is-color-clear'); nextDot.textContent = '◆'; }
-    nextBubbleEl?.setAttribute('aria-label', `Prossima bolla: ${shotLabel(nextShot)}`);
+    nextBubbleEl?.setAttribute('aria-label', t('games.bubbleBurst.nextBubble',{bubble:shotLabel(nextShot)}));
   }
 
   function spawnBoard() {
@@ -311,12 +312,12 @@
     particles.length = 0; falling.length = 0; operatorPulse = 0; crewMood = 'idle'; crewMoodTime = 0; poppingShotStreak = 0; rewardBombsPending = 0;
     hideLevelClear(); resetPressure(); spawnBoard(); resetLevelMetrics(); resetShotTimer();
     currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
-    banner = `LIVELLO 001 • ${boardMeta.name}`; bannerTime = 1.6; updateHud();
+    banner = t('games.bubbleBurst.levelBanner',{level:'001',name:boardMeta.name}); bannerTime = 1.6; updateHud();
   }
 
   function updateHud() {
-    scoreEl.textContent = score.toLocaleString('it-IT'); levelEl.textContent = level; missesEl.textContent = `${misses}/${missLimit}`;
-    bestEl.textContent = best.toLocaleString('it-IT'); updateNextPreview(); updateLevelTimer();
+    scoreEl.textContent = window.RWGI18n.number(score); levelEl.textContent = level; missesEl.textContent = `${misses}/${missLimit}`;
+    bestEl.textContent = window.RWGI18n.number(best); updateNextPreview(); updateLevelTimer();
   }
 
   function burst(x, y, color, count = 10, speed = 140) {
@@ -403,14 +404,32 @@
     const optimal = Math.max(1, Number(boardMeta?.optimalSeconds) || 60); if (levelElapsed <= optimal) return LEVEL_BONUS_FAST; if (levelElapsed <= optimal * ORANGE_DEADLINE_MULTIPLIER) return LEVEL_BONUS_GOOD; return 0;
   }
 
+  function renderLevelClearSummary(summary) {
+    levelClearTitleEl.textContent = t('games.bubbleBurst.levelComplete',{level});
+    clearPointsEl.textContent = t('games.bubbleBurst.levelPoints',{points:window.RWGI18n.number(summary.levelPoints)});
+    clearTimeEl.textContent = t('games.bubbleBurst.time',{time:formatLevelTime(levelElapsed)});
+    clearBonusEl.textContent = summary.bonusRate > 0 ? t('games.bubbleBurst.bonus',{rate:Math.round(summary.bonusRate*100),points:window.RWGI18n.number(summary.bonusPoints)}) : t('games.bubbleBurst.noBonus');
+    clearTotalEl.textContent = t('games.bubbleBurst.total',{points:window.RWGI18n.number(summary.levelTotal)});
+  }
+
+  function deriveLevelClearSummary() {
+    const bonusRate = levelBonusRate(), awarded = Math.max(0, Math.floor(score - levelStartScore));
+    let levelPoints = bonusRate > 0 ? Math.max(0, Math.round(awarded / (1 + bonusRate))) : awarded;
+    for (let delta = -3; delta <= 3; delta++) {
+      const candidate = Math.max(0, levelPoints + delta);
+      if (candidate + Math.round(candidate * bonusRate) === awarded) { levelPoints = candidate; break; }
+    }
+    const bonusPoints = Math.max(0, awarded - levelPoints);
+    return { levelPoints, bonusRate, bonusPoints, levelTotal: levelPoints + bonusPoints };
+  }
+
   function completeLevel() {
     if (levelClearActive || !running) return;
     setCrewMood('joy', 2.2);
     const clearAward = 700 + Math.min(2300, (level + 1) * 22); score += clearAward;
     const levelPoints = Math.max(0, score - levelStartScore), bonusRate = levelBonusRate(), bonusPoints = Math.round(levelPoints * bonusRate), levelTotal = levelPoints + bonusPoints; score += bonusPoints; updateHud();
     levelClearActive = true; paused = true; aiming = false; moving = null; levelClearCelebrationStartedAt = performance.now(); levelClearPanelShown = false; levelClearReadyAt = levelClearCelebrationStartedAt + LEVEL_CLEAR_CELEBRATION_MS + 2200;
-    levelClearTitleEl.textContent = `LIVELLO ${level} COMPLETATO!`; clearPointsEl.textContent = `Punti livello: ${levelPoints.toLocaleString('it-IT')}`; clearTimeEl.textContent = `Tempo: ${formatLevelTime(levelElapsed)}`;
-    clearBonusEl.textContent = bonusRate > 0 ? `Bonus: +${Math.round(bonusRate * 100)}% (+${bonusPoints.toLocaleString('it-IT')})` : 'Bonus: NO BONUS!'; clearTotalEl.textContent = `Totale: ${levelTotal.toLocaleString('it-IT')} punti!`;
+    renderLevelClearSummary({levelPoints,bonusRate,bonusPoints,levelTotal});
     levelClearEl.classList.remove('is-visible'); levelClearEl.setAttribute('aria-hidden', 'true');
     window.RWGSession?.saveNow?.('level-clear');
     tone(620, .09, 'square', .03, 260); setTimeout(() => tone(760, .08, 'square', .03, 220), 360); setTimeout(() => tone(920, .09, 'triangle', .035, 320), 720); setTimeout(() => tone(bonusRate ? 1180 : 330, .13, bonusRate ? 'triangle' : 'square', .04, bonusRate ? 420 : -70), 1320);
@@ -448,8 +467,8 @@
 
   function startNextLevel() {
     hideLevelClear(); level++; misses = 0; missLimit = level >= 80 ? 3 : level >= 28 ? 4 : 5; resetPressure(); spawnBoard(); resetLevelMetrics(); resetShotTimer(); currentShot = makeQueuedShot(); nextShot = makeQueuedShot();
-    const intro = level === 8 ? 'ARMOR BUBBLES!' : level === 18 ? 'STAR BUBBLES!' : level === 35 ? 'PRISM BUBBLES!' : null;
-    banner = intro || `LIVELLO ${String(level).padStart(3, '0')} • ${boardMeta.name}`; bannerTime = intro ? 2 : 1.5; paused = false; tone(480, .18, 'triangle', .045, 480); updateHud(); last = performance.now(); markSessionDirty('next-level');
+    const intro = level === 8 ? t('games.bubbleBurst.armor') : level === 18 ? t('games.bubbleBurst.star') : level === 35 ? t('games.bubbleBurst.prism') : null;
+    banner = intro || t('games.bubbleBurst.levelBanner',{level:String(level).padStart(3,'0'),name:boardMeta.name}); bannerTime = intro ? 2 : 1.5; paused = false; tone(480, .18, 'triangle', .045, 480); updateHud(); last = performance.now(); markSessionDirty('next-level');
   }
 
   function checkDanger() {
@@ -457,7 +476,7 @@
   }
 
   function applyPressureDrop() {
-    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressureDrops++; pressureInterval = pressureIntervalFor(level, pressureDrops); pressurePulse = .85; setCrewMood('fear', 1.3); banner = '↓ STRUTTURA IN DISCESA!'; bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
+    pressureDue = false; pressureElapsed = 0; pressureRows += pressureStepFor(level); pressureDrops++; pressureInterval = pressureIntervalFor(level, pressureDrops); pressurePulse = .85; setCrewMood('fear', 1.3); banner = t('games.bubbleBurst.structureDown'); bannerTime = 1.15; tone(128, .13, 'sawtooth', .032, -40); navigator.vibrate?.([18, 22, 28]); markSessionDirty('pressure'); checkDanger();
   }
   function updatePressure(dt) { pressureElapsed += dt; pressurePulse = Math.max(0, pressurePulse - dt); if (pressureElapsed >= pressureInterval) pressureDue = true; if (pressureDue && !moving) applyPressureDrop(); }
 
@@ -473,7 +492,7 @@
 
   function endGame() {
     if (!running || levelClearActive) return; running = false; paused = false; aiming = false; moving = null; best = Math.max(best, score); localStorage.setItem('bubbleBurstBest', String(best)); updateHud();
-    overlayText.innerHTML = `Le bolle hanno raggiunto la linea di pericolo.<br>Punteggio <strong>${score.toLocaleString('it-IT')}</strong> • livello ${level}.`; startBtn.textContent = 'RIGIOCA'; overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ'; tone(95, .25, 'sawtooth', .05, -55);
+    overlayText.innerHTML = `${t('games.bubbleBurst.danger')}<br>${t('games.bubbleBurst.summary',{score:`<strong>${window.RWGI18n.number(score)}</strong>`,level})}`; startBtn.textContent = t('core.replay'); overlay.classList.add('visible'); pauseBtn.textContent = 'Ⅱ'; tone(95, .25, 'sawtooth', .05, -55);
     const detail = { game: 'Bubble Burst', score, level, best, layout: boardMeta?.id || level, levelTime: levelElapsed }; window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail })); requestAnimationFrame(() => window.RWGGameOver?.open?.(detail));
   }
 
@@ -741,9 +760,9 @@
     }
     ctx.globalAlpha = Math.min(1, intro * 1.8); ctx.translate(W / 2, H * .32); ctx.rotate(titleRotation); ctx.scale(titleScale, titleScale);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 ' + clamp(W * .078, 25, 34) + 'px ui-monospace, monospace'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#071124'; ctx.lineWidth = 9; ctx.shadowColor = '#65e7ff'; ctx.shadowBlur = 22; ctx.strokeText('LIVELLO', 0, -20); ctx.strokeText('COMPLETATO!', 0, 20);
+    ctx.strokeStyle = '#071124'; ctx.lineWidth = 9; ctx.shadowColor = '#65e7ff'; ctx.shadowBlur = 22; ctx.strokeText(t('games.bubbleBurst.levelWord'), 0, -20); ctx.strokeText(t('games.bubbleBurst.completedWord'), 0, 20);
     const gradient = ctx.createLinearGradient(-W * .32, -35, W * .32, 35); gradient.addColorStop(0, '#65e7ff'); gradient.addColorStop(.48, '#ffffff'); gradient.addColorStop(.72, '#ffe66d'); gradient.addColorStop(1, '#ff5f9e');
-    ctx.fillStyle = gradient; ctx.fillText('LIVELLO', 0, -20); ctx.fillText('COMPLETATO!', 0, 20); ctx.restore();
+    ctx.fillStyle = gradient; ctx.fillText(t('games.bubbleBurst.levelWord'), 0, -20); ctx.fillText(t('games.bubbleBurst.completedWord'), 0, 20); ctx.restore();
     const crewWidth = clamp(W * .25, 76, 104), crewTop = H * .61;
     if (crewSheetsReady === 2) {
       drawLevelClearCharacter('operator', W * .26, crewTop, crewWidth, progress);
@@ -758,10 +777,10 @@
   function drawLauncher(focusPoint){drawMangaChibiCrew(focusPoint);const v=aimVector();ctx.save();ctx.translate(launcherX,launcherY);ctx.rotate(v.angle+Math.PI/2);const g=ctx.createLinearGradient(-8,0,8,0);g.addColorStop(0,'#37445f');g.addColorStop(.45,'#e7f2ff');g.addColorStop(.65,'#65e7ff');g.addColorStop(1,'#3d4c68');ctx.fillStyle=g;ctx.fillRect(-8,-43,16,45);ctx.strokeStyle='rgba(101,231,255,.5)';ctx.lineWidth=1.5;ctx.strokeRect(-8,-43,16,45);ctx.restore();ctx.fillStyle='#18233b';ctx.beginPath();ctx.arc(launcherX,launcherY+3,R+10,Math.PI,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.22)';ctx.stroke();if(!moving)drawBubble(launcherX,launcherY-5,currentShot.color,R,currentShot.kind,0);}
 
   function buildBackgroundCache(){const c=document.createElement('canvas');c.width=Math.ceil(W);c.height=Math.ceil(H);const g=c.getContext('2d'),grad=g.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#122d54');grad.addColorStop(.46,'#08142d');grad.addColorStop(1,'#03050d');g.fillStyle=grad;g.fillRect(0,0,W,H);for(let i=0;i<70;i++){const x=(i*83.17)%W,y=TOP+((i*47.31)%Math.max(20,launcherY-TOP));g.globalAlpha=.08+(i%5)*.025;g.fillStyle=i%7===0?'#ff5ecf':'#65e7ff';g.fillRect(x,y,i%4===0?2:1,i%4===0?2:1);}g.globalAlpha=.08;g.strokeStyle='#65e7ff';g.lineWidth=1;for(let y=TOP+12;y<launcherY-40;y+=38){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}g.globalAlpha=1;return c;}
-  function drawPressureStatus(){if(!running||levelClearActive)return;const remaining=Math.max(0,pressureInterval-pressureElapsed);if(remaining>6&&pressurePulse<=0)return;const dangerY=launcherY-R*3.4,label=pressurePulse>0?'↓ STRUTTURA IN DISCESA':`↓ DISCESA IN ${Math.max(1,Math.ceil(remaining))}s`;ctx.save();ctx.font='900 9px ui-monospace, monospace';ctx.textAlign='center';const width=ctx.measureText(label).width+18,y=dangerY-19;ctx.globalAlpha=pressurePulse>0?.95:.72+Math.sin(performance.now()*.012)*.18;ctx.fillStyle='rgba(44,8,20,.82)';ctx.fillRect(W/2-width/2,y-11,width,17);ctx.fillStyle='#ff9aaa';ctx.fillText(label,W/2,y+1);ctx.restore();}
+  function drawPressureStatus(){if(!running||levelClearActive)return;const remaining=Math.max(0,pressureInterval-pressureElapsed);if(remaining>6&&pressurePulse<=0)return;const dangerY=launcherY-R*3.4,label=pressurePulse>0?t('games.bubbleBurst.structureDown'):t('games.bubbleBurst.descentIn',{seconds:Math.max(1,Math.ceil(remaining))});ctx.save();ctx.font='900 9px ui-monospace, monospace';ctx.textAlign='center';const width=ctx.measureText(label).width+18,y=dangerY-19;ctx.globalAlpha=pressurePulse>0?.95:.72+Math.sin(performance.now()*.012)*.18;ctx.fillStyle='rgba(44,8,20,.82)';ctx.fillRect(W/2-width/2,y-11,width,17);ctx.fillStyle='#ff9aaa';ctx.fillText(label,W/2,y+1);ctx.restore();}
   function drawAutoShootCountdown(){if(!running||paused||moving||levelClearActive)return;const remaining=autoShootDelayFor(level)-shotElapsed;if(remaining<=0||remaining>3)return;const count=Math.ceil(remaining),phase=count-remaining,eased=1-Math.pow(1-phase,3),scale=1.7-.72*eased,alpha=1-.72*eased;ctx.save();ctx.translate(launcherX,launcherY-R*1.35);ctx.scale(scale,scale);ctx.globalAlpha=alpha;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`900 ${Math.round(R*2.8)}px ui-monospace, monospace`;ctx.lineWidth=6;ctx.strokeStyle='rgba(3,7,20,.95)';ctx.shadowColor='#ff5f73';ctx.shadowBlur=20;ctx.strokeText(String(count),0,0);ctx.fillStyle='#fff3a6';ctx.fillText(String(count),0,0);ctx.restore();}
-  function drawBackground(){if(backgroundCache)ctx.drawImage(backgroundCache,0,0,W,H);else{ctx.fillStyle='#071126';ctx.fillRect(0,0,W,H);}const dangerY=launcherY-R*3.4,top=ceilingY();ctx.save();ctx.strokeStyle='rgba(255,230,109,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,top);ctx.lineTo(W,top);ctx.stroke();ctx.setLineDash([5,8]);ctx.strokeStyle='rgba(255,95,115,.42)';ctx.beginPath();ctx.moveTo(0,dangerY);ctx.lineTo(W,dangerY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,95,115,.62)';ctx.font='8px ui-monospace, monospace';ctx.fillText('DANGER',10,dangerY-6);ctx.restore();}
-  function draw(now = performance.now()){const aimPrediction=running&&!paused&&!moving&&!levelClearActive?predictAimTrajectory():null;if(aimPrediction)lastAimFocus=predictAimFocusPoint(aimPrediction);ctx.clearRect(0,0,W,H);drawBackground();traceAim(aimPrediction);for(const b of grid.values()){const p=cellPos(b.r,b.c);drawBubble(p.x,p.y,b.color,R,b.type,b.armor);}for(const b of falling)drawBubble(b.x,b.y,b.color,R*.92,b.type,b.armor);drawMovingBubble();drawLauncher(lastAimFocus);drawAutoShootCountdown();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);}ctx.globalAlpha=1;drawPressureStatus();if(bannerTime>0&&running&&!levelClearActive){ctx.save();ctx.globalAlpha=Math.min(1,bannerTime*2);ctx.textAlign='center';ctx.font='900 17px ui-monospace, monospace';ctx.fillStyle='#f7fbff';ctx.shadowBlur=15;ctx.shadowColor='#65e7ff';ctx.fillText(banner,W/2,H*.55);ctx.restore();}if(paused&&running&&!levelClearActive){ctx.fillStyle='rgba(2,5,14,.62)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.font='900 22px ui-monospace, monospace';ctx.fillStyle='#fff';ctx.fillText('PAUSA',W/2,H/2);}if(levelClearActive&&!levelClearPanelShown)drawLevelClearCelebration(now);}
+  function drawBackground(){if(backgroundCache)ctx.drawImage(backgroundCache,0,0,W,H);else{ctx.fillStyle='#071126';ctx.fillRect(0,0,W,H);}const dangerY=launcherY-R*3.4,top=ceilingY();ctx.save();ctx.strokeStyle='rgba(255,230,109,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,top);ctx.lineTo(W,top);ctx.stroke();ctx.setLineDash([5,8]);ctx.strokeStyle='rgba(255,95,115,.42)';ctx.beginPath();ctx.moveTo(0,dangerY);ctx.lineTo(W,dangerY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,95,115,.62)';ctx.font='8px ui-monospace, monospace';ctx.fillText(t('games.bubbleBurst.dangerLabel'),10,dangerY-6);ctx.restore();}
+  function draw(now = performance.now()){const aimPrediction=running&&!paused&&!moving&&!levelClearActive?predictAimTrajectory():null;if(aimPrediction)lastAimFocus=predictAimFocusPoint(aimPrediction);ctx.clearRect(0,0,W,H);drawBackground();traceAim(aimPrediction);for(const b of grid.values()){const p=cellPos(b.r,b.c);drawBubble(p.x,p.y,b.color,R,b.type,b.armor);}for(const b of falling)drawBubble(b.x,b.y,b.color,R*.92,b.type,b.armor);drawMovingBubble();drawLauncher(lastAimFocus);drawAutoShootCountdown();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);}ctx.globalAlpha=1;drawPressureStatus();if(bannerTime>0&&running&&!levelClearActive){ctx.save();ctx.globalAlpha=Math.min(1,bannerTime*2);ctx.textAlign='center';ctx.font='900 17px ui-monospace, monospace';ctx.fillStyle='#f7fbff';ctx.shadowBlur=15;ctx.shadowColor='#65e7ff';ctx.fillText(banner,W/2,H*.55);ctx.restore();}if(paused&&running&&!levelClearActive){ctx.fillStyle='rgba(2,5,14,.62)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.font='900 22px ui-monospace, monospace';ctx.fillStyle='#fff';ctx.fillText(t('games.bubbleBurst.pauseLabel'),W/2,H/2);}if(levelClearActive&&!levelClearPanelShown)drawLevelClearCelebration(now);}
   function frame(ts){const dt=Math.min(.033,Math.max(0,(ts-last)/1000||0));last=ts;update(dt);updateLevelClearPresentation(ts);draw(ts);requestAnimationFrame(frame);}
   function pointerPos(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*(W/rect.width),y:(e.clientY-rect.top)*(H/rect.height)};}
   function setAim(e){const p=pointerPos(e);aimX=clamp(p.x,R,W-R);aimY=Math.min(launcherY-40,p.y);}
@@ -779,13 +798,13 @@
     if(!s.levelClearActive&&!s.grid.length)return false;
     if(s.moving!==null&&(!validShot(s.moving)||![s.moving.x,s.moving.y,s.moving.vx,s.moving.vy].every(Number.isFinite)))return false;
     if(typeof s.pressureDue!=='boolean'||typeof s.levelClearActive!=='boolean')return false;
-    if(s.levelClearActive&&(!s.clearSummary||['title','points','time','bonus','total'].some(k=>typeof s.clearSummary[k]!=='string')))return false;
+    if(s.levelClearActive){const summary=s.clearSummary||{},numeric=['levelPoints','bonusRate','bonusPoints','levelTotal'].every(k=>Number.isFinite(summary[k])),legacy=['title','points','time','bonus','total'].every(k=>typeof summary[k]==='string');if(!numeric&&!legacy)return false;}
     return true;
   }
-  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureDrops,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,shotElapsed,levelClearActive,clearSummary:levelClearActive?{title:levelClearTitleEl.textContent,points:clearPointsEl.textContent,time:clearTimeEl.textContent,bonus:clearBonusEl.textContent,total:clearTotalEl.textContent}:null,grid:[...grid.values()].map(b=>({...b}))};}
-  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureDrops=s.pressureDrops;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;shotElapsed=s.shotElapsed;lastAutoCountdown=0;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){levelClearTitleEl.textContent=s.clearSummary.title;clearPointsEl.textContent=s.clearSummary.points;clearTimeEl.textContent=s.clearSummary.time;clearBonusEl.textContent=s.clearSummary.bonus;clearTotalEl.textContent=s.clearSummary.total;levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
-  function startFreshResume(){ensureAudio();window.RWGSession?.clear?.();resetGame();running=true;paused=false;startBtn.textContent='GIOCA';overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';last=performance.now();markSessionDirty('new-game');}
-  const resumeAdapter=Object.freeze({id:'bubble-burst',version:3,compatibility:'bubble-burst-state-v3-colors16-autoshoot1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>`livello ${s.level} • ${formatLevelTime(s.levelElapsed||0)} • ${Math.floor(s.score||0).toLocaleString('it-IT')} punti`});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
+  function serializeResumeState(){return{schema:RESUME_SCHEMA,layoutSignature:boardMeta?.signature||'',score,level,misses,missLimit,colorCount,currentShot:{...currentShot},nextShot:{...nextShot},moving:moving?{kind:moving.kind,color:moving.color,x:moving.x,y:moving.y,vx:moving.vx,vy:moving.vy}:null,poppingShotStreak,rewardBombsPending,pressureRows,pressureDrops,pressureElapsed,pressureInterval,pressureDue,levelElapsed,levelStartScore,shotElapsed,levelClearActive,clearSummary:levelClearActive?deriveLevelClearSummary():null,grid:[...grid.values()].map(b=>({...b}))};}
+  function restoreResumeState(s){if(!validateResumeState(s))return false;score=Math.floor(s.score);level=s.level;misses=s.misses;missLimit=s.missLimit;colorCount=s.colorCount;boardMeta=Levels.getLevel(level,COLS);grid.clear();for(const b of s.grid)grid.set(key(b.r,b.c),{...b});currentShot={...s.currentShot};nextShot={...s.nextShot};moving=s.moving?{...s.moving,renderTrail:[]}:null;poppingShotStreak=s.poppingShotStreak;rewardBombsPending=s.rewardBombsPending;pressureRows=s.pressureRows;pressureDrops=s.pressureDrops;pressureElapsed=s.pressureElapsed;pressureInterval=s.pressureInterval;pressureDue=s.pressureDue;pressurePulse=0;levelElapsed=s.levelElapsed;levelStartScore=s.levelStartScore;shotElapsed=s.shotElapsed;lastAutoCountdown=0;lastTimerCentis=-1;particles.length=0;falling.length=0;operatorPulse=0;aiming=false;running=true;levelClearActive=s.levelClearActive;paused=levelClearActive;resize();if(levelClearActive){const summary=['levelPoints','bonusRate','bonusPoints','levelTotal'].every(k=>Number.isFinite(s.clearSummary?.[k]))?s.clearSummary:deriveLevelClearSummary();renderLevelClearSummary(summary);levelClearCelebrationStartedAt=0;levelClearPanelShown=true;levelClearReadyAt=performance.now()+500;levelClearEl.setAttribute('aria-hidden','false');levelClearEl.classList.add('is-visible');}else hideLevelClear();overlay.classList.remove('visible');startBtn.textContent=t('core.replay');pauseBtn.textContent=paused&&!levelClearActive?'▶':'Ⅱ';last=performance.now();updateHud();draw();return true;}
+  function startFreshResume(){ensureAudio();window.RWGSession?.clear?.();resetGame();running=true;paused=false;startBtn.textContent=t('core.play');overlay.classList.remove('visible');pauseBtn.textContent='Ⅱ';last=performance.now();markSessionDirty('new-game');}
+  const resumeAdapter=Object.freeze({id:'bubble-burst',version:3,compatibility:'bubble-burst-state-v3-colors16-autoshoot1',isInProgress:()=>running,serialize:serializeResumeState,validate:validateResumeState,restore:restoreResumeState,startFresh:startFreshResume,describe:s=>t('games.bubbleBurst.resume',{level:s.level,score:window.RWGI18n.number(Math.floor(s.score||0))})});window.RWGResumeAdapter=resumeAdapter;window.RWGSession?.register?.(resumeAdapter);
 
   canvas.addEventListener('pointerdown',e=>{if(!running||paused||moving||levelClearActive)return;e.preventDefault();aiming=true;canvas.setPointerCapture?.(e.pointerId);setAim(e);ensureAudio();});
   canvas.addEventListener('pointermove',e=>{if(!aiming)return;e.preventDefault();setAim(e);});
@@ -794,7 +813,7 @@
   startBtn.addEventListener('click',()=>{startFreshResume();});
   pauseBtn.addEventListener('click',()=>{if(!running||levelClearActive)return;paused=!paused;aiming=false;pauseBtn.textContent=paused?'▶':'Ⅱ';if(!paused)last=performance.now();else window.RWGSession?.saveNow?.('pause');});
   muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(!muted)ensureAudio();});
-  window.addEventListener('rwg:continue-game',e=>{score=Math.max(0,Math.floor(e.detail?.score??score));misses=0;moving=null;aiming=false;resetShotTimer();pressureElapsed=0;pressureDue=false;pressurePulse=0;const dangerY=launcherY-R*3.4;let guard=0;while(guard++<20){let maxRow=-1,dangerous=false;for(const b of grid.values()){maxRow=Math.max(maxRow,b.r);if(cellPos(b.r,b.c).y+R>=dangerY-R*1.15)dangerous=true;}if(!dangerous)break;for(const[k,b]of grid)if(b.r===maxRow)grid.delete(k);if(!grid.size){resetPressure();spawnBoard();break;}}reconcileQueue();currentShot=makeQueuedShot();nextShot=makeQueuedShot();running=true;paused=false;hideLevelClear();overlay.classList.remove('visible');startBtn.textContent='RIGIOCA';pauseBtn.textContent='Ⅱ';banner='CONTINUA!';bannerTime=1.2;last=performance.now();updateHud();ensureAudio();tone(520,.16,'triangle',.035,900);markSessionDirty('credit-continue');});
+  window.addEventListener('rwg:continue-game',e=>{score=Math.max(0,Math.floor(e.detail?.score??score));misses=0;moving=null;aiming=false;resetShotTimer();pressureElapsed=0;pressureDue=false;pressurePulse=0;const dangerY=launcherY-R*3.4;let guard=0;while(guard++<20){let maxRow=-1,dangerous=false;for(const b of grid.values()){maxRow=Math.max(maxRow,b.r);if(cellPos(b.r,b.c).y+R>=dangerY-R*1.15)dangerous=true;}if(!dangerous)break;for(const[k,b]of grid)if(b.r===maxRow)grid.delete(k);if(!grid.size){resetPressure();spawnBoard();break;}}reconcileQueue();currentShot=makeQueuedShot();nextShot=makeQueuedShot();running=true;paused=false;hideLevelClear();overlay.classList.remove('visible');startBtn.textContent=t('core.replay');pauseBtn.textContent='Ⅱ';banner=t('core.continue');bannerTime=1.2;last=performance.now();updateHud();ensureAudio();tone(520,.16,'triangle',.035,900);markSessionDirty('credit-continue');});
   window.addEventListener('resize',resize);window.addEventListener('orientationchange',resize);document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused&&!levelClearActive){paused=true;aiming=false;pauseBtn.textContent='▶';}});
   resize();updateHud();draw();requestAnimationFrame(frame);
 })();

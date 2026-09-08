@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+const t = (key, params = {}) => window.RWGI18n.t(key, params);
   const M = window.MM;
   if (!M) throw new Error('Maze Munch state missing for session adapter');
   const RESUME_SCHEMA = 1;
@@ -50,14 +51,14 @@
     Object.assign(M.player, s.player);
     s.hunters.forEach((saved, i) => Object.assign(M.hunters[i], saved));
     M.running = true; M.paused = false; M.swipe = null; M.last = performance.now();
-    M.dom.overlay.classList.remove('visible'); M.dom.start.textContent = 'RIGIOCA'; M.dom.pause.textContent = 'Ⅱ';
-    M.hud(); M.resize(); M.status('PARTITA RIPRESA');
+    M.dom.overlay.classList.remove('visible'); M.dom.start.textContent = t('core.replay'); M.dom.pause.textContent = 'Ⅱ';
+    M.hud(); M.resize(); M.status(t('games.mazeMunch.resumed'));
     return true;
   }
 
   function startFresh() {
     M.ensureAudio(); M.resetGame(); M.running = true; M.paused = false; M.last = performance.now();
-    M.dom.pause.textContent = 'Ⅱ'; M.dom.start.textContent = 'RIGIOCA'; M.dom.overlay.classList.remove('visible');
+    M.dom.pause.textContent = 'Ⅱ'; M.dom.start.textContent = t('core.replay'); M.dom.overlay.classList.remove('visible');
     M.hud();
   }
 
@@ -65,7 +66,7 @@
     id: 'maze-munch', version: 1, compatibility: 'maze-munch-state-v1-map23x19',
     isInProgress: () => M.running,
     serialize, validate, restore, startFresh,
-    describe: s => `livello ${s.level} • ${s.lives} vite • ${Math.floor(s.score || 0).toLocaleString('it-IT')} punti`
+    describe: s => t('games.mazeMunch.resume', { level:s.level, lives:s.lives, score:window.RWGI18n.number(Math.floor(s.score || 0)) })
   });
   window.RWGResumeAdapter = adapter;
   window.RWGSession?.register?.(adapter);

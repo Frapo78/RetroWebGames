@@ -1,0 +1,6 @@
+---
+import { renderPage } from '../lib/render-page.mjs';
+const { pageId, locale } = Astro.props;
+const document = renderPage(pageId, locale);
+---
+<Fragment set:html={document} />

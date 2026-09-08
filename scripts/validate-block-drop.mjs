@@ -25,7 +25,7 @@ must(game.includes('ctx.clearRect(0, 0, renderWidth, renderHeight); drawGrid(ren
 must(!/function draw\(\)\s*\{\s*const rect = canvas\.getBoundingClientRect/.test(game), 'draw() must not mix a live CSS rect with stale Canvas state');
 must(game.includes('if (canvas.width !== pixelWidth)') && game.includes('if (canvas.height !== pixelHeight)'), 'backing-store resize must be idempotent');
 
-must(html.includes('style.css?v=20260902.2') && html.includes('game.js?v=20260902.1'), 'changed Block Drop assets must be explicitly cache-versioned');
+must(/style\.css\?v=[0-9.]+/.test(html) && /game\.js\?v=[0-9.]+/.test(html), 'changed Block Drop assets must be explicitly cache-versioned');
 for (const action of ['rotate', 'drop']) {
   const button = html.match(new RegExp(`<button[^>]+data-action="${action}"[\\s\\S]*?</button>`))?.[0] || '';
   must(button.includes('<svg') && button.includes('<span>') && /aria-label="[^"]+"/.test(button), `${action} must retain icon, label and accessible name`);

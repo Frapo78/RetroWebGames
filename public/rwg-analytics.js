@@ -7,9 +7,14 @@
   const isGame = document.body?.hasAttribute('data-rwg-game');
   const canonical = document.querySelector('link[rel="canonical"]')?.href || window.location.href;
   const pathname = new URL(canonical, window.location.href).pathname;
-  const gameId = isGame ? (pathname.split('/').filter(Boolean).pop() || 'game') : '';
-  const gameName = isGame ? ((document.title.split('—')[0] || gameId).trim()) : '';
-  const pageKind = isGame ? 'game' : pathname.startsWith('/avatar') ? 'avatar' : 'hub';
+  const routeParts = pathname.split('/').filter(Boolean);
+  const contentLanguage = document.documentElement.lang || 'it';
+  const uiLocale = window.RWGI18n?.locale || contentLanguage.split('-')[0] || 'it';
+  const browserLanguage = navigator.language || '';
+  const localizedParts = routeParts[0] === 'en' ? routeParts.slice(1) : routeParts;
+  const gameId = isGame ? (localizedParts.at(-1) || 'game') : '';
+  const gameName = isGame ? (document.querySelector('[data-rwg-game-name]')?.dataset.rwgGameName || gameId) : '';
+  const pageKind = isGame ? 'game' : localizedParts[0] === 'avatar' ? 'avatar' : 'hub';
 
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function gtag(){ window.dataLayer.push(arguments); };
@@ -29,7 +34,7 @@
   const number = value => finite(value) ? Number(value) : undefined;
   const bool = value => value ? 1 : 0;
   const clean = value => String(value ?? '').slice(0, 100);
-  const base = () => ({ page_kind: pageKind, ...(isGame ? { game_id: gameId, game_name: gameName } : {}) });
+  const base = () => ({ page_kind: pageKind, ui_locale: uiLocale, content_language: contentLanguage, browser_language: browserLanguage, ...(isGame ? { game_id: gameId, game_name: gameName } : {}) });
 
   function compact(params = {}) {
     const out = {};
@@ -133,12 +138,15 @@
       const startBtn = document.getElementById('startBtn');
       startBtn?.addEventListener('click', () => {
         const label = startBtn.textContent.trim().toUpperCase();
-        if (gameStarted && !gameEnded && (label.includes('RIPRENDI') || label === 'CONTINUA')) {
+        const translated = key => String(window.RWGI18n?.t?.(key) || '').trim().toUpperCase();
+        const resumeLabels = [translated('core.resume'), translated('gameOver.continue')].filter(Boolean);
+        const restartLabels = [translated('core.replay'), translated('gameOver.newGame')].filter(Boolean);
+        if (gameStarted && !gameEnded && resumeLabels.some(value => label.includes(value))) {
           setGameplayPaused(false);
           track('game_pause_toggle', { paused: 0, via: 'start_button' });
           return;
         }
-        const restart = gameEnded || (gameStarted && (label.includes('RIGIOCA') || label.includes('NUOVA')));
+        const restart = gameEnded || (gameStarted && restartLabels.some(value => label.includes(value)));
         startFreshTracked(restart ? 'restart' : 'new', restart ? 'game_restart' : 'game_start');
       }, true);
 
@@ -173,8 +181,15 @@
       track('select_content', { content_type: 'game', item_id: selected });
     }
 
-    if (isGame && target.matches?.('a[href="/"], .rwg-home-action, .rwg-back-games, a[aria-label*="Torna a RetroWebGames"]')) {
+    if (isGame && target.matches?.('a[href="/"], a[href="/en/"], .rwg-home-action, .rwg-back-games, .rwg-intro-secondary')) {
       track('game_exit', { in_progress: bool(currentInProgress()), active_seconds: activeSeconds() });
+    }
+
+    const languageLink = target.closest?.('[data-rwg-language]');
+    if (languageLink) {
+      const toLocale = clean(languageLink.dataset.rwgLanguage).toLowerCase();
+      try { localStorage.setItem('rwg.locale.preference.v1', toLocale); } catch (_) {}
+      track('language_selected', { from_locale: uiLocale, to_locale: toLocale, source: 'language_switcher' });
     }
 
     if (target.id === 'pauseBtn') {
@@ -260,7 +275,7 @@
     if (isGame && currentInProgress()) track('game_leave_in_progress', { active_seconds: activeSeconds() });
   }, { capture: true });
 
-  window.RWGAnalytics = Object.freeze({ track, measurementId: MEASUREMENT_ID, pageKind, gameId, activeSeconds });
+  window.RWGAnalytics = Object.freeze({ track, measurementId: MEASUREMENT_ID, pageKind, gameId, uiLocale, contentLanguage, browserLanguage, activeSeconds });
   window.dispatchEvent(new CustomEvent('rwg:analytics-ready'));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady, { once: true });

@@ -1,0 +1,5 @@
+.rwg-language-switcher{display:flex;align-items:center;justify-content:center;gap:5px;width:max-content;margin:0 auto 8px;padding:3px;border:1px solid rgba(101,231,255,.28);border-radius:999px;background:rgba(3,9,24,.7);box-shadow:0 5px 18px rgba(0,0,0,.2);font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em}
+.rwg-language-switcher a{display:grid;place-items:center;min-width:34px;min-height:28px;padding:0 8px;border-radius:999px;color:#b8c9dc;text-decoration:none;touch-action:manipulation}
+.rwg-language-switcher a[aria-current="page"]{color:#06121d;background:#7cf3b0;box-shadow:0 0 12px rgba(124,243,176,.28)}
+.rwg-language-switcher a:focus-visible{outline:2px solid #ffe66d;outline-offset:2px}
+@media(max-height:600px){body[data-rwg-game="true"] .rwg-language-switcher{margin-bottom:4px}.rwg-language-switcher a{min-height:25px}}

@@ -11,6 +11,7 @@
  */
 (() => {
   'use strict';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
 
   const Levels = window.GreatEmpireLevels;
   const { GameState, KIND, TYPE, BUILD } = window.GreatEmpireState;
@@ -20,6 +21,9 @@
   const Snapshot = window.GreatEmpireSnapshot;
 
   const RULES = Levels.RULES;
+  const ageShort = index => t(`games.theGreatEmpire.${['stoneAge','bronzeAge','ironAge'][index] || 'ironAge'}`);
+  const ageName = index => t(`games.theGreatEmpire.${['stoneAgeName','bronzeAgeName','ironAgeName'][index] || 'ironAgeName'}`);
+  const unitLabel = key => t(`games.theGreatEmpire.${key}`);
   const BEST_KEY = 'theGreatEmpireBest';
 
   const $ = id => document.getElementById(id);
@@ -99,8 +103,8 @@
     feedback: name => FEEDBACK[name]?.(),
     place: (kind, x, y) => {
       const outcome = Systems.orders.build(state, RULES, kind, x, y);
-      if (outcome === 'ok') { announce('CANTIERE APERTO'); tone(300, 0.1, 'square', 0.03, 220); markDirty('build'); }
-      else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
+      if (outcome === 'ok') { announce(t('games.theGreatEmpire.siteOpen')); tone(300, 0.1, 'square', 0.03, 220); markDirty('build'); }
+      else announce(OUTCOME_TEXT[outcome] || t('games.theGreatEmpire.unavailable'));
       updateHud();
     }
   });
@@ -121,15 +125,15 @@
     els.gold.textContent = Math.floor(state.gold);
     els.pop.textContent = `${state.population()}/${state.populationCap(RULES)}`;
     els.level.textContent = state.level;
-    els.age.textContent = RULES.ages[state.age].short;
+    els.age.textContent = ageShort(state.age);
     els.score.textContent = Math.floor(state.score);
     els.best.textContent = Math.floor(best);
 
     if (state.ageResearch > 0) {
-      els.train.textContent = `AVANZAMENTO ${Math.ceil(state.ageResearch)}s`;
+      els.train.textContent = t('games.theGreatEmpire.advancing',{seconds:Math.ceil(state.ageResearch)});
       els.train.hidden = false;
     } else if (state.trainKind >= 0) {
-      const label = state.trainKind === KIND.VILLAGER ? 'CONTADINO' : RULES.units[Systems.UNIT_KEYS[state.trainType]].label;
+      const label = state.trainKind === KIND.VILLAGER ? t('games.theGreatEmpire.villager') : unitLabel(Systems.UNIT_KEYS[state.trainType]);
       els.train.textContent = `${label} ${Math.ceil(state.trainLeft)}s`;
       els.train.hidden = false;
     } else {
@@ -148,10 +152,10 @@
 
     const nextAge = RULES.ages[state.age + 1];
     buttons.age.disabled = !nextAge || state.ageResearch > 0 || !canPay(nextAge.cost);
-    buttons.age.querySelector('b').textContent = nextAge ? `→ ${nextAge.short}` : 'ETÀ MAX';
+    buttons.age.querySelector('b').textContent = nextAge ? `→ ${ageShort(state.age+1)}` : t('games.theGreatEmpire.maxAge');
     buttons.age.querySelector('i').textContent = nextAge
       ? `${nextAge.cost.food}🌾 ${nextAge.cost.wood}🪵${nextAge.cost.gold ? ' ' + nextAge.cost.gold + '🪙' : ''}`
-      : 'ferro';
+      : t('games.theGreatEmpire.ironAge').toLowerCase();
   }
 
   /**
@@ -192,11 +196,11 @@
     terminal = false;
     loadLevel(1, false);
     overlay.classList.remove('visible');
-    startBtn.textContent = 'RIGIOCA';
+    startBtn.textContent = t('core.replay');
     pauseBtn.textContent = 'Ⅱ';
     setPlaying(true);
     ensureAudio();
-    announce('DIFENDI IL CENTRO CITTÀ');
+    announce(t('games.theGreatEmpire.defend'));
     last = performance.now();
     markDirty('new-game');
   }
@@ -206,7 +210,7 @@
     state.score += bonus;
     state.levelsCleared++;
     loadLevel(state.level + 1, true);
-    announce(`LIVELLO ${state.level}`);
+    announce(t('games.theGreatEmpire.level',{level:state.level}));
     tone(560, 0.18, 'triangle', 0.04, 880);
     markDirty('level-cleared');
   }
@@ -222,7 +226,7 @@
     localStorage.setItem(BEST_KEY, String(best));
     updateHud();
     overlayText.textContent = '';
-    startBtn.textContent = 'RIGIOCA';
+    startBtn.textContent = t('core.replay');
     tone(140, 0.35, 'sawtooth', 0.05, 60);
     const detail = {
       game: 'The Great Empire',
@@ -231,7 +235,7 @@
       maxLevel: state.level,
       levelsCleared: state.levelsCleared,
       kills: state.kills,
-      age: RULES.ages[state.age].short,
+      age: state.age,
       result: 'loss'
     };
     window.dispatchEvent(new CustomEvent('rwg:game-ended', { detail }));
@@ -240,15 +244,15 @@
 
   function applyEvents() {
     if (events.killed) tone(240, 0.05, 'square', 0.02, 150);
-    if (events.wave) { announce('ONDATA NEMICA!'); tone(120, 0.16, 'sawtooth', 0.03, 90); }
+    if (events.wave) { announce(t('games.theGreatEmpire.enemyWave')); tone(120, 0.16, 'sawtooth', 0.03, 90); }
     if (events.trained) { updateHud(); markDirty('trained'); }
-    if (events.built) { announce('COSTRUZIONE COMPLETATA'); tone(560, 0.12, 'triangle', 0.03, 760); markDirty('built'); }
-    if (events.lostBuilding) { announce('EDIFICIO DISTRUTTO!'); tone(110, 0.2, 'sawtooth', 0.035, 60); markDirty('lost-building'); }
-    if (events.aged) { announce(RULES.ages[state.age].name); tone(620, 0.3, 'triangle', 0.05, 940); markDirty('aged'); }
+    if (events.built) { announce(t('games.theGreatEmpire.built')); tone(560, 0.12, 'triangle', 0.03, 760); markDirty('built'); }
+    if (events.lostBuilding) { announce(t('games.theGreatEmpire.buildingLost')); tone(110, 0.2, 'sawtooth', 0.035, 60); markDirty('lost-building'); }
+    if (events.aged) { announce(ageName(state.age)); tone(620, 0.3, 'triangle', 0.05, 940); markDirty('aged'); }
     if (events.defeated) { finish(); return; }
     if (events.cleared && interstitial <= 0) {
       interstitial = 1.8;
-      announce('ACCAMPAMENTO DISTRUTTO!');
+      announce(t('games.theGreatEmpire.campDestroyed'));
       state.running = false;
     }
   }
@@ -280,19 +284,19 @@
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const OUTCOME_TEXT = {
-    cost: 'RISORSE INSUFFICIENTI',
-    pop: 'SERVONO PIÙ CASE',
-    busy: 'CENTRO CITTÀ OCCUPATO',
-    age: 'ETÀ NON ANCORA RAGGIUNTA',
-    space: 'SPAZIO OCCUPATO',
-    full: 'TROPPI EDIFICI',
-    max: 'SEI GIÀ NELL\'ETÀ DEL FERRO'
+    cost: t('games.theGreatEmpire.cost'),
+    pop: t('games.theGreatEmpire.populationNeeded'),
+    busy: t('games.theGreatEmpire.townBusy'),
+    age: t('games.theGreatEmpire.ageLocked'),
+    space: t('games.theGreatEmpire.spaceBusy'),
+    full: t('games.theGreatEmpire.tooManyBuildings'),
+    max: t('games.theGreatEmpire.maxAgeReached')
   };
 
   function train(kind, type) {
     const outcome = Systems.orders.train(state, RULES, kind, type);
     if (outcome === 'ok') { tone(480, 0.08, 'triangle', 0.03, 620); markDirty('train'); }
-    else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
+    else announce(OUTCOME_TEXT[outcome] || t('games.theGreatEmpire.unavailable'));
     updateHud();
   }
 
@@ -300,7 +304,7 @@
     const spec = kind === BUILD.TOWER ? RULES.buildings.tower : RULES.buildings.house;
     if (!canPay(spec.cost)) { announce(OUTCOME_TEXT.cost); return; }
     input.setBuild(kind);
-    announce(kind === BUILD.TOWER ? 'TOCCA DOVE COSTRUIRE LA TORRE' : 'TOCCA DOVE COSTRUIRE LA CASA');
+    announce(t(kind === BUILD.TOWER ? 'games.theGreatEmpire.placeTower' : 'games.theGreatEmpire.placeHouse'));
     FEEDBACK.select();
   }
 
@@ -312,18 +316,18 @@
   buttons.tower.addEventListener('click', () => requestBuild(BUILD.TOWER));
   buttons.age.addEventListener('click', () => {
     const outcome = Systems.orders.advanceAge(state, RULES);
-    if (outcome === 'ok') { announce('AVANZAMENTO IN CORSO'); tone(420, 0.2, 'triangle', 0.04, 700); markDirty('age'); }
-    else announce(OUTCOME_TEXT[outcome] || 'NON DISPONIBILE');
+    if (outcome === 'ok') { announce(t('games.theGreatEmpire.ageProgress')); tone(420, 0.2, 'triangle', 0.04, 700); markDirty('age'); }
+    else announce(OUTCOME_TEXT[outcome] || t('games.theGreatEmpire.unavailable'));
     updateHud();
   });
 
   $('selectVillagers').addEventListener('click', () => {
     input.setBuild(-1);
-    if (!input.selectAllOfKind(KIND.VILLAGER)) announce('NESSUN CONTADINO');
+    if (!input.selectAllOfKind(KIND.VILLAGER)) announce(t('games.theGreatEmpire.noVillager'));
   });
   $('selectSoldiers').addEventListener('click', () => {
     input.setBuild(-1);
-    if (!input.selectAllOfKind(KIND.SOLDIER)) announce('NESSUN SOLDATO');
+    if (!input.selectAllOfKind(KIND.SOLDIER)) announce(t('games.theGreatEmpire.noSoldier'));
   });
   $('attackAll').addEventListener('click', () => {
     input.setBuild(-1);
@@ -331,8 +335,8 @@
     for (let i = 0; i < state.units.length; i++) {
       if (state.units[i].alive && state.units[i].kind === KIND.SOLDIER) { Systems.orders.attackCamp(state, i); sent++; }
     }
-    if (sent) { announce(`ASSALTO: ${sent}`); FEEDBACK.attack(); }
-    else announce('SERVONO SOLDATI');
+    if (sent) { announce(t('games.theGreatEmpire.assault',{count:sent})); FEEDBACK.attack(); }
+    else announce(t('games.theGreatEmpire.needSoldiers'));
   });
 
   startBtn.addEventListener('click', start);
@@ -363,11 +367,11 @@
     state.acc = 0;
     overlay.classList.remove('visible');
     pauseBtn.textContent = 'Ⅱ';
-    startBtn.textContent = 'RIGIOCA';
+    startBtn.textContent = t('core.replay');
     setPlaying(true);
     last = performance.now();
     updateHud();
-    announce('CONTINUA!');
+    announce(t('games.theGreatEmpire.continue'));
     tone(520, 0.16, 'triangle', 0.035, 900);
     markDirty('credit-continue');
   });
@@ -395,7 +399,7 @@
     state.running = true;
     state.paused = false;
     overlay.classList.remove('visible');
-    startBtn.textContent = 'RIGIOCA';
+    startBtn.textContent = t('core.replay');
     pauseBtn.textContent = 'Ⅱ';
     setPlaying(true);
     last = performance.now();
@@ -413,7 +417,7 @@
     validate,
     restore,
     startFresh: start,
-    describe: snapshot => `Livello ${snapshot.level} • ${RULES.ages[snapshot.age]?.short || ''} • ${snapshot.score} punti`
+    describe: snapshot => t('games.theGreatEmpire.resume',{level:snapshot.level,age:ageShort(snapshot.age),score:window.RWGI18n.number(snapshot.score)})
   });
   window.RWGResumeAdapter = resumeAdapter;
   window.RWGSession?.register?.(resumeAdapter);

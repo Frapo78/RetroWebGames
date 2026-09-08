@@ -5,6 +5,8 @@ import path from 'node:path';
 import process from 'node:process';
 import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
+import italianGames from '../src/i18n/it/games.mjs';
+import englishGames from '../src/i18n/en/games.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -18,7 +20,7 @@ for (const rel of ['games/bubble-burst/levels.js','games/bubble-burst/game.js'])
 }
 
 const html = read('games/bubble-burst/index.html');
-must(html.includes('<script src="levels.js?v=20260902.2"></script>'), 'Bubble Burst must load cache-versioned levels.js');
+must(/<script src="levels\.js\?v=[^"]+"><\/script>/.test(html), 'Bubble Burst must load cache-versioned levels.js');
 must(/<script src="game\.js(?:\?v=[^"]+)?"><\/script>/.test(html), 'Bubble Burst must load its optionally cache-versioned game.js');
 must(html.indexOf('levels.js') < html.indexOf('game.js'), 'levels.js must load before game.js');
 must(html.indexOf('game.js') < html.indexOf('../../game-hud.js'), 'game.js must load before shared HUD');
@@ -28,7 +30,7 @@ for (const asset of ['assets/sprites/bubble-burst/operator-sheet.png','assets/sp
   const png = fs.readFileSync(path.join(root, asset));
   must(png.length > 100_000 && png.toString('ascii', 1, 4) === 'PNG', `Crew sprite invalid or unexpectedly tiny: ${asset}`);
   must(png.readUInt32BE(16) === 1024 && png.readUInt32BE(20) === 512, `Crew sprite sheet must remain 1024x512: ${asset}`);
-  must(html.includes(`../../${asset}?v=20260831.5`), `Crew sprite must be preloaded with release version: ${asset}`);
+  must(new RegExp(`\\.\\./\\.\\./${asset.replaceAll('/','\\/')}\\?v=[^"']+`).test(html), `Crew sprite must be preloaded with release version: ${asset}`);
 }
 for (const id of ['levelClear','levelClearTitle','clearPoints','clearTime','clearBonus','clearTotal']) must(html.includes(`id="${id}"`), `Level-clear UI missing #${id}`);
 must(html.includes('LIVELLO 1 COMPLETATO!') && html.includes('TOCCA PER CONTINUARE'), 'Intermediate arcade level-clear presentation missing');
@@ -96,7 +98,7 @@ must(minimumPaletteDistance >= 60, `Bubble palette colors are too similar (minim
 for (const marker of ['drawNormalGlassMarble', 'drawBombSprite', 'drawMetalBubble', 'drawStoneBubble', 'drawPlasticBubble', 'g.lineWidth = 6.2', 'g.lineWidth = 3.2']) must(game.includes(marker), 'Material-specific cached bubble renderer missing: ' + marker);
 must(game.includes('sphere.addColorStop(.6, color)') && game.includes('const blendedRing = g.createRadialGradient(48, 48, 7, 48, 48, 33)'), 'Ordinary marbles must retain a full-color center and double-width softly blended dark ring');
 must(!game.includes('g.strokeStyle = dark'), 'The internal dark ring must not regress to a hard stroke');
-must(html.includes('style.css?v=20260901.5') && html.includes('levels.js?v=20260902.2') && html.includes('game.js?v=20260902.2'), 'Bubble changed assets must retain their cache-busting release query');
+must(['style.css','levels.js','game.js'].every(asset=>new RegExp(`${asset.replace('.','\\.')}\\?v=[^"']+`).test(html)), 'Bubble changed assets must retain their cache-busting release query');
 matches(game, /d\s*=\s*radius\s*\*\s*2\.7/, 'Cover-matched bubble art scale changed unexpectedly');
 matches(game, /const\s+CREW_POSES\s*=\s*Object\.freeze\s*\(/, 'Raster crew pose atlas missing');
 matches(game, /const\s+crewSheets\s*=\s*Object\.create\s*\(/, 'Decoded raster crew sheet cache missing');
@@ -131,7 +133,7 @@ matches(game, /y\s*:\s*ceilingY\(\)\s*\+\s*R\s*\+\s*r\s*\*\s*ROW_H/, 'Cell geome
 matches(game, /function\s+updatePressure\s*\(\s*dt\s*\)/, 'Timed ceiling-pressure update missing');
 matches(game, /if\s*\(\s*pressureDue\s*&&\s*!moving\s*\)\s*applyPressureDrop\s*\(\s*\)/, 'Pressure drop must wait for in-flight projectile');
 matches(game, /pressureDrops\+\+\s*;\s*pressureInterval\s*=\s*pressureIntervalFor\(level,\s*pressureDrops\)/, 'Every same-level drop must shorten the next pressure interval');
-matches(game, /banner\s*=\s*['"]↓ STRUTTURA IN DISCESA!['"]/, 'Pressure drop arcade feedback missing');
+must(game.includes("t('games.bubbleBurst.structureDown')") && italianGames.bubbleBurst.structureDown && englishGames.bubbleBurst.structureDown, 'Pressure drop arcade feedback must resolve through both locale catalogs');
 matches(game, /remaining\s*>\s*6\s*&&\s*pressurePulse\s*<=\s*0/, 'Final six-second pressure warning missing');
 matches(game, /pressureElapsed\s*=\s*0\s*;\s*pressureDue\s*=\s*false\s*;\s*pressurePulse\s*=\s*0/, 'Credit Continue must reset only next pressure countdown');
 
@@ -163,7 +165,7 @@ must(game.includes("return 'green'") && game.includes("return 'orange'") && game
 matches(game, /levelElapsed\s*\+=\s*dt/, 'Gameplay timer must advance from active time');
 matches(game, /levelStartScore\s*=\s*score/, 'Per-level score baseline missing');
 matches(game, /function\s+completeLevel\s*\(/, 'Intermediate level-complete calculation phase missing');
-matches(game, /levelClearTitleEl\.textContent\s*=\s*`LIVELLO \$\{level\} COMPLETATO!`/, 'Level-clear title must identify completed level');
+must(game.includes("t('games.bubbleBurst.levelComplete'") && italianGames.bubbleBurst.levelComplete.includes('{level}') && englishGames.bubbleBurst.levelComplete.includes('{level}'), 'Level-clear title must identify completed level in both locales');
 matches(game, /Math\.round\(\s*levelPoints\s*\*\s*bonusRate\s*\)/, "Completion bonus must use level points");
 const celebrationMs = Number(game.match(/LEVEL_CLEAR_CELEBRATION_MS\s*=\s*([0-9.]+)/)?.[1]);
 must(celebrationMs === 2000, "Level-clear celebration must last 2000ms before summary; found " + celebrationMs);
@@ -178,7 +180,7 @@ matches(game, /function\s+startNextLevel\s*\(/, 'Level-clear tap path missing');
 matches(game, /function\s+registerPoppingShot\s*\(/, 'Consecutive-pop reward function missing');
 matches(game, /if\s*\(\s*!popped\s*\)\s*\{\s*poppingShotStreak\s*=\s*0\s*;\s*return\s*;\s*\}/, 'Non-popping shot must reset streak');
 matches(game, /if\s*\(\s*poppingShotStreak\s*<\s*5\s*\)\s*return/, 'Bomb reward must require five consecutive popping shots');
-matches(game, /banner\s*=\s*['"]COMBO ×5 • BOMBA PRONTA!['"]/, 'Five-shot Bomb reward feedback missing');
+must(game.includes("t('games.bubbleBurst.comboBomb')") && italianGames.bubbleBurst.comboBomb && englishGames.bubbleBurst.comboBomb, 'Five-shot Bomb reward feedback must resolve through both locale catalogs');
 matches(game, /function\s+applyPendingBombReward\s*\(/, 'Deferred Bomb reward logic missing');
 
 // Resume contract: logical board state + deterministic layout signature + shared v3 service.

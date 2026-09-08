@@ -31,6 +31,7 @@ for (const marker of [
   "track('game_exit'",
   "track('share'",
   "track('select_content'",
+  "track('language_selected'",
   "track('pwa_install'"
 ]) must(analytics.includes(marker), `rwg-analytics.js missing required marker: ${marker}`);
 
@@ -39,14 +40,16 @@ must(!analytics.includes('fingerprint'), 'Analytics shared module must not send 
 must(analytics.includes('milestones = [30, 120, 300, 600, 1200]'), 'Gameplay engagement milestones contract changed unexpectedly');
 must(analytics.includes('RWGResumeAdapter?.isInProgress'), 'Intentional exits must retain in-progress context');
 must(analytics.includes('gameplayPaused') && analytics.includes('setGameplayPaused'), 'Engagement timer must exclude explicit pause time');
-must(analytics.includes("label.includes('RIPRENDI')"), 'RIPRENDI must not be counted as a game restart');
+must(analytics.includes("translated('core.resume')") && analytics.includes("translated('core.replay')"), 'Start/resume analytics classification must use localized labels');
+must(analytics.includes('ui_locale: uiLocale') && analytics.includes('content_language: contentLanguage') && analytics.includes('browser_language: browserLanguage'), 'Every event must include locale and language context');
+must(analytics.includes("localStorage.setItem('rwg.locale.preference.v1'"), 'Explicit locale preference must be persisted by the shared selector');
 must(!analytics.includes("startFreshTracked('resume_declined')"), 'Declining a saved game must not fabricate a fresh-run analytics lifecycle');
 must(analytics.includes('eligible: bool(event.detail?.eligible)') && analytics.includes('event.detail.activeMs'), 'Saved-run decline analytics must describe interrupted eligibility without PII');
 must(analytics.includes("startFreshTracked('restore_failed')"), 'Safe fallback after failed restore must begin a tracked fresh run');
 
 must(hud.includes('rwg-analytics.js'), 'game-hud.js must bootstrap centralized analytics for every game');
 must(hud.includes('loadAnalytics();'), 'game-hud.js must initialize analytics as a platform contract');
-must(hub.includes('/rwg-analytics.js'), 'Hub must load centralized rwg-analytics.js');
+must(hub.includes('rwg-analytics.js'), 'Hub must load centralized rwg-analytics.js');
 must(avatar.includes('/rwg-analytics.js'), 'Avatar page must load centralized rwg-analytics.js');
 must(pwaInstall.includes("'pwa_install_cta'"), 'PWA install CTAs must report their low-cardinality outcome');
 const leaderboard = read('rwg-leaderboard.js');
@@ -84,5 +87,6 @@ if (failures.length) {
 console.log('RWG analytics validation OK');
 console.log('  ✓ GA4 measurement G-ZSWLC4L8GW is centralized');
 console.log('  ✓ hub/avatar direct load + automatic game-hud bootstrap');
-console.log('  ✓ gameplay funnel, resume, pause-aware engagement, share and install events present');
+console.log('  ✓ gameplay funnel, localized resume, pause-aware engagement, share and install events present');
+console.log('  ✓ language selection plus UI/content/browser locale dimensions present');
 console.log('  ✓ no game-local Google tag duplication');

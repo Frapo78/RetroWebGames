@@ -1,6 +1,7 @@
-const CACHE_NAME = 'rwg-shell-v4';
+const CACHE_NAME = 'rwg-shell-v5';
 const CORE_ASSETS = [
   '/',
+  '/en/',
   '/manifest.webmanifest',
   '/hub.css',
   '/brand.css',
@@ -10,6 +11,8 @@ const CORE_ASSETS = [
   '/pwa-install.css',
   '/pwa-install.js',
   '/rwg-i18n.js',
+  '/rwg-i18n.en.js',
+  '/rwg-language-switcher.css',
   '/rwg-lazy-images.js',
   '/assets/brand/retrowebgames-wordmark.png',
   '/icons/icon-192.png'
@@ -48,7 +51,10 @@ self.addEventListener('fetch', event => {
       .catch(async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
-        if (request.mode === 'navigate') return caches.match('/');
+        if (request.mode === 'navigate') {
+          const fallback = url.pathname === '/en' || url.pathname.startsWith('/en/') ? '/en/' : '/';
+          return caches.match(fallback);
+        }
         return Response.error();
       })
   );
