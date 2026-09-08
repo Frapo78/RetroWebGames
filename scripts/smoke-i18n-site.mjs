@@ -1,7 +1,10 @@
 import { chromium } from '/apps/preview-tools/lib/node/node_modules/playwright/index.mjs';
 
 const base=(process.env.RWG_I18N_BASE||'https://www.retrowebgames.it').replace(/\/$/,'');
-const hasLeaderboardBackend=!/^http:\/\/(?:127\.0\.0\.1|localhost)(?::|$)/.test(base);
+// The route matrix creates hundreds of requests. Mock rankings by default so a
+// UI smoke never trips the production API limiter; live API coverage belongs to
+// the dedicated, low-volume leaderboard smoke. Opt in only for diagnosis.
+const useLiveLeaderboards=process.env.RWG_I18N_LIVE_LEADERBOARDS==='1';
 const games=['star-swarm','bubble-burst','block-drop','maze-munch','neon-rally','neon-snake','neon-tilt','solitaire','prism-breaker','the-great-empire'];
 const localeRoutes=locale=>[locale==='it'?'/':`/${locale}/`,locale==='it'?'/avatar/':`/${locale}/avatar/`,...games.map(slug=>locale==='it'?`/games/${slug}/`:`/${locale}/games/${slug}/`)];
 const routes=['it','en','es'].flatMap(localeRoutes);
@@ -13,11 +16,11 @@ for(const viewport of viewports){
   for(const route of routes){
     const routeLocale=route.startsWith('/en/')?'en':route.startsWith('/es/')?'es':'it';
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},locale:routeLocale==='en'?'en-US':routeLocale==='es'?'es-ES':'it-IT'});
-    if(!hasLeaderboardBackend)await context.route('**/api/leaderboards/v1/**',request=>request.fulfill({status:200,contentType:'application/json',body:JSON.stringify({top:[],entries:[],hasMore:false,total:0})}));
+    if(!useLiveLeaderboards)await context.route('**/api/leaderboards/v1/**',request=>request.fulfill({status:200,contentType:'application/json',body:JSON.stringify({top:[],entries:[],hasMore:false,total:0})}));
     const page=await context.newPage(),errors=[];
     page.on('pageerror',error=>errors.push(`pageerror: ${error.message}`));
     page.on('console',message=>{if(message.type()==='error')errors.push(`console: ${message.text()}`);});
-    page.on('response',response=>{const url=new URL(response.url());if(url.origin===base&&response.status()>=400&&(hasLeaderboardBackend||!url.pathname.startsWith('/api/')))errors.push(`HTTP ${response.status()} ${url.pathname}`);});
+    page.on('response',response=>{const url=new URL(response.url());if(url.origin===base&&response.status()>=400&&(useLiveLeaderboards||!url.pathname.startsWith('/api/')))errors.push(`HTTP ${response.status()} ${url.pathname}`);});
     try{
       const response=await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:30000});
       if(!response?.ok())throw new Error(`navigation HTTP ${response?.status()}`);
@@ -31,7 +34,7 @@ for(const viewport of viewports){
       if(route.includes('/games/')){
         const start=page.locator('#startBtn');
         if(!await start.isVisible())errors.push('start button not visible');
-        if(hasLeaderboardBackend&&!await page.locator('.rwg-intro-leaderboard-slot,.rwg-leaderboard').first().isVisible())errors.push('intro leaderboard not visible');
+        if(!await page.locator('.rwg-intro-leaderboard-slot,.rwg-leaderboard-board').first().isVisible())errors.push('intro leaderboard not visible');
         if(viewport.name==='mobile'&&await start.isEnabled()){
           await start.click({timeout:5000});
           await page.waitForTimeout(350);

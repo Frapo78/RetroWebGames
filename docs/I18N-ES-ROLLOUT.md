@@ -36,6 +36,7 @@ All localized static and lazy assets are root-absolute. Runtime-created assets f
 - catalog structure/placeholders and bootstrap budget: PASS;
 - SEO/GEO and 33-entry localized sitemap: PASS;
 - Playwright local smoke: 36 routes × 3 viewports (320×568, 390×844, 1366×768), 108 checks: PASS;
+- the full route/viewport smoke mocks leaderboard responses by default; use a separate low-volume production smoke for live rankings so QA does not trigger the API rate limiter;
 - production EN hotfix smoke: Home images, all ten Home rankings and Solitario shared controls at 390×844 and 320×568: PASS;
 - repository-wide contracts and production ES smoke are required again immediately before and after deployment.
 
