@@ -3,8 +3,8 @@ import LocalizedDocument from '../components/LocalizedDocument.astro';
 import { PAGES } from '../lib/render-page.mjs';
 
 export function getStaticPaths() {
-  return PAGES.flatMap(page => ['it','en'].map(locale => ({
-    params: { route: locale === 'it' ? (page.route || undefined) : `en${page.route ? `/${page.route}` : ''}` },
+  return PAGES.flatMap(page => ['it','en','es'].map(locale => ({
+    params: { route: locale === 'it' ? (page.route || undefined) : `${locale}${page.route ? `/${page.route}` : ''}` },
     props: { pageId: page.id, locale }
   })));
 }

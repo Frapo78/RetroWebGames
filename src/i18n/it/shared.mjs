@@ -2,7 +2,11 @@ export default Object.freeze({
   core: Object.freeze({
     backToGames: 'Torna a tutti i giochi di RetroWebGames', globalControls: 'Controlli globali di gioco',
     pause: 'Pausa', resume: 'Riprendi', cancel: 'ANNULLA', back: 'INDIETRO', ok: 'OK',
-    score: 'PUNTEGGIO', level: 'LIVELLO', activeTime: 'TEMPO ATTIVO', play: 'GIOCA', replay: 'RIGIOCA', backToMenu: 'TORNA AL MENU'
+    score: 'PUNTEGGIO', level: 'LIVELLO', activeTime: 'TEMPO ATTIVO', play: 'GIOCA', replay: 'RIGIOCA', backToMenu: 'TORNA AL MENU',
+    movement: 'MOVIMENTO', analogControl: 'Controllo analogico',
+    mazeJoystickHint: 'Usa il joystick, scorri sul labirinto oppure usa frecce / WASD. Raccogli tutti i punti e attiva i surge nodes.',
+    snakeJoystickHint: 'Joystick, swipe o frecce / WASD per muoverti. Tieni premuto TURBO per andare a velocità doppia.',
+    tiltJoystickHint: 'Joystick e frecce restano sempre disponibili.'
   }),
   share: Object.freeze({
     label: 'Condividi', game: 'Condividi {game}', inviteGame: '🎮 Sto giocando a {game} su RetroWebGames. Provalo anche tu!', thisGame: 'Condividi questo gioco', result: 'Condividi il tuo risultato!',

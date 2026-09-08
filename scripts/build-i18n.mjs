@@ -4,10 +4,13 @@ import itShared from '../src/i18n/it/shared.mjs';
 import enShared from '../src/i18n/en/shared.mjs';
 import itGames from '../src/i18n/it/games.mjs';
 import enGames from '../src/i18n/en/games.mjs';
+import esShared from '../src/i18n/es/shared.mjs';
+import esGames from '../src/i18n/es/games.mjs';
 
 const locales = Object.freeze({
   it: { languageTag: 'it-IT', shared: itShared, games: itGames },
-  en: { languageTag: 'en-US', shared: enShared, games: enGames }
+  en: { languageTag: 'en-US', shared: enShared, games: enGames },
+  es: { languageTag: 'es-ES', shared: esShared, games: esGames }
 });
 const slugKeys = Object.freeze({
   'block-drop':'blockDrop','bubble-burst':'bubbleBurst','maze-munch':'mazeMunch','neon-rally':'neonRally','neon-snake':'neonSnake',
@@ -45,6 +48,7 @@ function write(relative, contents) {
 }
 write('rwg-i18n.js',runtime('it',locales.it.languageTag,locales.it.shared));
 write('rwg-i18n.en.js',runtime('en',locales.en.languageTag,locales.en.shared));
+write('rwg-i18n.es.js',runtime('es',locales.es.languageTag,locales.es.shared));
 for (const [locale, config] of Object.entries(locales)) for (const [slug,key] of Object.entries(slugKeys)) {
   write(`i18n/${locale}/games/${slug}.js`,runtime(locale,config.languageTag,{...config.shared,games:{[key]:config.games[key]}}));
 }

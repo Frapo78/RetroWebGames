@@ -103,7 +103,7 @@
   for (const role of ['operator', 'loader']) {
     const image = new Image(); image.decoding = 'async'; let ready = false;
     const markReady = () => { if (!ready && image.naturalWidth) { ready = true; crewSheetsReady++; } };
-    image.src = `../../assets/sprites/bubble-burst/${role}-sheet.png?v=20260831.5`;
+    image.src = `/assets/sprites/bubble-burst/${role}-sheet.png?v=20260831.5`;
     image.decode().then(markReady, () => image.complete ? markReady() : image.addEventListener('load', markReady, { once: true }));
     crewSheets[role] = image;
   }

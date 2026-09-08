@@ -13,8 +13,8 @@ const lastModified=page=>{
 };
 for(const page of indexable){
   const suffix=page.route?`/${page.route}/`:'/';
-  const it=`${origin}${suffix}`,en=`${origin}/en${suffix}`,lastmod=lastModified(page);
-  for(const loc of [it,en]) urls.push(`  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <xhtml:link rel="alternate" hreflang="it" href="${it}" />\n    <xhtml:link rel="alternate" hreflang="en" href="${en}" />\n    <xhtml:link rel="alternate" hreflang="x-default" href="${it}" />\n  </url>`);
+  const it=`${origin}${suffix}`,en=`${origin}/en${suffix}`,es=`${origin}/es${suffix}`,lastmod=lastModified(page);
+  for(const loc of [it,en,es]) urls.push(`  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <xhtml:link rel="alternate" hreflang="it" href="${it}" />\n    <xhtml:link rel="alternate" hreflang="en" href="${en}" />\n    <xhtml:link rel="alternate" hreflang="es" href="${es}" />\n    <xhtml:link rel="alternate" hreflang="x-default" href="${it}" />\n  </url>`);
 }
 const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`;
 fs.writeFileSync(path.join(out,'sitemap.xml'),xml);

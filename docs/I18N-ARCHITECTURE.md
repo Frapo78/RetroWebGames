@@ -61,7 +61,7 @@ I18N-1 proved all of the following; evidence is recorded in `docs/I18N-ASTRO-POC
 6. dependency versions pinned, audited and reproducible;
 7. dry-run deploy and documented rollback both succeed.
 
-The gate passed. I18N-3 promotes Astro to the production static page generator for the complete Italian and English route sets. The generated `public/` directory remains the sole Nginx artifact; game runtimes and shared browser services remain framework-free.
+The gate passed. I18N-3 promotes Astro to the production static page generator for the complete Italian and English route sets; I18N-4 extends the same boundary to Spanish. The generated `public/` directory remains the sole Nginx artifact; game runtimes and shared browser services remain framework-free.
 
 ## Alternatives considered
 
@@ -77,6 +77,7 @@ The gate passed. I18N-3 promotes Astro to the production static page generator f
 - Italian visual drift: screenshot and DOM baselines before templating.
 - incomplete translated pages: build fails for any locale marked complete with missing/extra keys.
 - cache/PWA split: retain one app ID, use explicit cache generations and test monolingual upgrades.
+- prefixed-route asset drift: generated localized pages and runtime-created assets use root-absolute URLs; validation rejects relative `src`, `href`, lazy-image and `srcset` paths.
 - German overflow: mandatory 320×568 visual gate and long-string fixtures.
 - SEO duplication: self-canonical pages, reciprocal alternates and sitemap validation.
 - dependency exposure: Astro and sitemap versions are pinned exactly; dependency audit remains part of every toolchain update.
@@ -87,4 +88,4 @@ Each rollout remains a normal immutable static release. Rollback restores the pr
 
 ## Consequences
 
-I18N-0 introduced contracts and inventory tooling. I18N-1 accepted Astro after an isolated Home + Block Drop IT/EN pilot. I18N-2 extracted the Italian shared platform into a generated synchronous catalog runtime. I18N-3 publishes complete IT/EN home, avatar and ten-game route sets, keeps state language-neutral, adds reciprocal SEO metadata and a locale-aware offline shell, and is documented in `I18N-EN-ROLLOUT.md`. I18N-4 adds ES, FR and DE one complete locale at a time.
+I18N-0 introduced contracts and inventory tooling. I18N-1 accepted Astro after an isolated Home + Block Drop IT/EN pilot. I18N-2 extracted the Italian shared platform into a generated synchronous catalog runtime. I18N-3 publishes complete IT/EN home, avatar and ten-game route sets. I18N-4 now adds the complete ES set, reciprocal three-language SEO metadata and a locale-aware offline shell; FR and DE remain independent future rollouts.

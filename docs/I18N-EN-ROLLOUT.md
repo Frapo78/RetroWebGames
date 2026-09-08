@@ -58,3 +58,7 @@ FraPoVPS rollback restores the prior immutable static release/current symlink. I
 ## Next step
 
 I18N-4 adds Spanish, French and German one complete locale at a time. No route for an incomplete locale may be published.
+
+## Post-rollout incident and guardrail
+
+On 2026-09-08 production `/en/` was found serving a stale generated Home whose lazy-image and leaderboard script URLs were relative. Browsers consequently requested `/en/assets/...` and `/en/rwg-leaderboard.js`, hiding artwork, Home rankings and some shared in-game controls. Regenerating with `npm run publish:site` restored root-absolute URLs. The repository validator now rejects relative asset/script/lazy-image paths in every prefixed locale, and the production Playwright gate explicitly checks images, leaderboard rows, shared controls, console errors and failed requests.

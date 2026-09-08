@@ -11,7 +11,7 @@ const localizedPages=locale=>{
   const prefix=locale==='it'?'':`${locale}/`,urlPrefix=locale==='it'?'':`${locale}/`;
   return [{rel:`${prefix}index.html`,url:`${SITE.origin}/${urlPrefix}`,kind:'home',locale},...GAMES.map(game=>({rel:`${prefix}games/${game.slug}/index.html`,url:`${SITE.origin}/${urlPrefix}games/${game.slug}/`,kind:'game',game,locale})),{rel:`${prefix}avatar/index.html`,url:`${SITE.origin}/${urlPrefix}avatar/`,kind:'utility',locale}];
 };
-const pages=[...localizedPages('it'),...localizedPages('en')];
+const pages=[...localizedPages('it'),...localizedPages('en'),...localizedPages('es')];
 const titles = new Map();
 const descriptions = new Map();
 
@@ -32,9 +32,9 @@ for (const page of pages) {
   must(title.length >= 25 && title.length <= 65, page.rel + ': title must be useful and 25–65 characters');
   must(description.length >= 100 && description.length <= 170, page.rel + ': description must be useful and 100–170 characters');
   must(canonical === page.url, page.rel + ': canonical URL mismatch');
-  const expectedOgLocale=page.locale==='it'?'it_IT':'en_US';
+  const expectedOgLocale={it:'it_IT',en:'en_US',es:'es_ES'}[page.locale];
   must(new RegExp(`<meta\\s+property=["']og:locale["']\\s+content=["']${expectedOgLocale}["']`,'i').test(html), page.rel + ': og:locale mismatch');
-  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="x-default"'),page.rel+': reciprocal hreflang set missing');
+  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="es"')&&html.includes('hreflang="x-default"'),page.rel+': reciprocal hreflang set missing');
   must(!/<meta\s+name=["']keywords["']/i.test(html), page.rel + ': obsolete meta keywords must not be added');
   must(scripts.length === 1, page.rel + ': exactly one rwg-seo-graph JSON-LD block required');
   if (page.kind === 'utility') must(/^noindex,follow/.test(robots), page.rel + ': thin utility must remain noindex,follow');
@@ -52,12 +52,14 @@ for (const page of pages) {
       const website = nodeOf(graph, 'WebSite');
       const webPage = nodeOf(graph, 'WebPage');
       must(website?.name === SITE.name && website?.alternateName === SITE.alternateName, page.rel + ': WebSite identity missing');
-      must(webPage?.url === page.url && webPage?.inLanguage === (page.locale==='it'?SITE.language:'en'), page.rel + ': WebPage URL/language mismatch');
+      must(webPage?.url === page.url && webPage?.inLanguage === (page.locale==='it'?SITE.language:page.locale), page.rel + ': WebPage URL/language mismatch');
       if (page.kind === 'home') {
         const list = nodeOf(graph, 'ItemList');
         must(list?.numberOfItems === GAMES.length && list?.itemListElement?.length === GAMES.length, page.rel + ': home ItemList must contain every current game');
-        must(page.locale==='it'?(/videogame gratis/i.test(title)&&/retrogame/i.test(title)):(/free videogames/i.test(title)&&/retrogame/i.test(title)), page.rel + ': primary discovery intent missing from home title');
-        must(html.includes('class="seo-discovery"') && (page.locale==='it'?html.includes('Snake gratis online')&&html.includes('Solitario Klondike (Solitaire)'):html.includes('free online Snake')&&html.includes('Klondike Solitaire')), page.rel + ': useful visible discovery content missing');
+        const titleIntent=page.locale==='it'?(/videogame gratis/i.test(title)&&/retrogame/i.test(title)):page.locale==='en'?(/free videogames/i.test(title)&&/retrogame/i.test(title)):(/videojuegos gratis/i.test(title)&&/retrogame/i.test(title));
+        const discoveryIntent=page.locale==='it'?html.includes('Snake gratis online')&&html.includes('Solitario Klondike (Solitaire)'):page.locale==='en'?html.includes('free online Snake')&&html.includes('Klondike Solitaire'):html.includes('Snake gratis online')&&html.includes('Solitario Klondike');
+        must(titleIntent, page.rel + ': primary discovery intent missing from home title');
+        must(html.includes('class="seo-discovery"') && discoveryIntent, page.rel + ': useful visible discovery content missing');
       }
       if (page.kind === 'game') {
         const game = nodeOf(graph, 'VideoGame');

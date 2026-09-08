@@ -989,7 +989,7 @@ L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più ve
 
 # 20. Internazionalizzazione EN / IT / DE / FR / ES
 
-Stato: **I18N-0, I18N-1, I18N-2 e I18N-3 completati; I18N-4 prossimo**.
+Stato: **I18N-0, I18N-1, I18N-2 e I18N-3 completati; I18N-4 ES completato, FR prossimo**.
 
 Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
 
@@ -1280,6 +1280,12 @@ Per ciascuna:
 
 Il tedesco ha un gate visuale più severo per la lunghezza delle stringhe.
 
+Stato rollout:
+
+- [x] ES: cataloghi shared/game completi, 12 route, SEO, sitemap, cache `rwg-shell-v6` e 108 smoke Playwright verdi;
+- [ ] FR: prossimo rollout indipendente;
+- [ ] DE: rollout finale con gate aggiuntivo sulle stringhe lunghe.
+
 ### I18N-5 — consolidamento
 
 - [ ] Rimuovere stringhe operative residue fuori catalogo.
@@ -1300,9 +1306,9 @@ Il tedesco ha un gate visuale più severo per la lunghezza delle stringhe.
 - [x] assenza di locale italiano hardcoded nei formatter operativi migrati;
 - [x] assenza ragionata di copy italiano visibile fuori catalogo EN;
 - [x] `html lang`, canonical, `hreflang`, `og:locale` e JSON-LD corretti;
-- [x] sitemap con esattamente le route IT/EN attese;
+- [x] sitemap con esattamente le route IT/EN/ES attese;
 - [x] utility sottili noindex escluse;
-- [x] route/slug IT/EN simmetrici;
+- [x] route/slug IT/EN/ES simmetrici;
 - [x] selettore verso pagina equivalente;
 - [x] storage/session namespace language-neutral;
 - [x] analytics event name stabili con locale come parametro;

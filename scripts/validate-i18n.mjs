@@ -7,8 +7,10 @@ import { BRAND_TERMS, CONTROLLED_TERMS, MACHINE_VALUES } from '../src/i18n/gloss
 import { compareCatalogShape, flattenCatalog, validateCatalog } from '../src/i18n/schema.mjs';
 import italianShared from '../src/i18n/it/shared.mjs';
 import englishShared from '../src/i18n/en/shared.mjs';
+import spanishShared from '../src/i18n/es/shared.mjs';
 import italianGames from '../src/i18n/it/games.mjs';
 import englishGames from '../src/i18n/en/games.mjs';
+import spanishGames from '../src/i18n/es/games.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -34,7 +36,7 @@ must(compareCatalogShape(source, matching).ok, 'matching catalog shape rejected'
 must(!compareCatalogShape(source, mismatch).ok, 'placeholder mismatch not detected');
 must(!validateCatalog('en', { core: { unsafe: '<script>alert(1)</script>' } }).ok, 'unsafe catalog markup not rejected');
 
-for (const relative of ['docs/I18N-ARCHITECTURE.md', 'docs/I18N-INVENTORY.md', 'docs/I18N-BASELINE.md', 'scripts/audit-i18n.mjs']) {
+for (const relative of ['docs/I18N-ARCHITECTURE.md', 'docs/I18N-INVENTORY.md', 'docs/I18N-BASELINE.md', 'docs/I18N-ES-ROLLOUT.md', 'scripts/audit-i18n.mjs']) {
   must(fs.existsSync(path.join(root, relative)), `missing I18N-0 artifact: ${relative}`);
 }
 const adr = read('docs/I18N-ARCHITECTURE.md');
@@ -61,12 +63,14 @@ function collect(directory) {
   }
 }
 collect(path.join(root, fs.existsSync(path.join(root, 'public', 'index.html')) ? 'public' : '.'));
-must(htmlFiles.length === 24, `expected 12 Italian + 12 English pages, found ${htmlFiles.length}`);
-const italianHtmlFiles=htmlFiles.filter(file=>!path.relative(root,file).split(path.sep).includes('en'));
+must(htmlFiles.length === 36, `expected 12 Italian + 12 English + 12 Spanish pages, found ${htmlFiles.length}`);
+const italianHtmlFiles=htmlFiles.filter(file=>!path.relative(root,file).split(path.sep).some(part=>part==='en'||part==='es'));
 const englishHtmlFiles=htmlFiles.filter(file=>path.relative(root,file).split(path.sep).includes('en'));
-must(italianHtmlFiles.length===12&&englishHtmlFiles.length===12,'localized page set must be symmetrical');
+const spanishHtmlFiles=htmlFiles.filter(file=>path.relative(root,file).split(path.sep).includes('es'));
+must(italianHtmlFiles.length===12&&englishHtmlFiles.length===12&&spanishHtmlFiles.length===12,'localized page set must be symmetrical');
 for (const file of italianHtmlFiles) must(/<html\s+lang="it"/.test(fs.readFileSync(file, 'utf8')), `${path.relative(root, file)} lang must remain it`);
 for (const file of englishHtmlFiles) must(/<html\s+lang="en"/.test(fs.readFileSync(file, 'utf8')), `${path.relative(root, file)} lang must be en`);
+for (const file of spanishHtmlFiles) must(/<html\s+lang="es"/.test(fs.readFileSync(file, 'utf8')), `${path.relative(root, file)} lang must be es`);
 
 
 for (const relative of [
@@ -85,13 +89,17 @@ must(packageJson.devDependencies?.['@astrojs/sitemap'] === '3.7.4', 'Astro sitem
 const pocDoc = read('docs/I18N-ASTRO-POC.md');
 for (const marker of ['Status: **PASS', 'Astro: YES', '0 vulnerabilities', 'rollback', '12/12 PASS']) must(pocDoc.includes(marker), `I18N-1 evidence missing: ${marker}`);
 
-// I18N-2/3: complete IT/EN catalogs boot before any shared or game runtime.
+// I18N-2/3/4: complete IT/EN/ES catalogs boot before any shared or game runtime.
 const sharedValidation = validateCatalog('it', italianShared);
 must(sharedValidation.ok, `Italian shared catalog invalid: ${sharedValidation.errors.join('; ')}`);
 const englishValidation = validateCatalog('en', englishShared);
 must(englishValidation.ok, `English shared catalog invalid: ${englishValidation.errors.join('; ')}`);
 must(compareCatalogShape(italianShared,englishShared).ok,'English shared catalog shape/placeholders differ from Italian');
 must(compareCatalogShape(italianGames,englishGames).ok,'English game catalog shape/placeholders differ from Italian');
+const spanishValidation = validateCatalog('es', spanishShared);
+must(spanishValidation.ok, `Spanish shared catalog invalid: ${spanishValidation.errors.join('; ')}`);
+must(compareCatalogShape(italianShared,spanishShared).ok,'Spanish shared catalog shape/placeholders differ from Italian');
+must(compareCatalogShape(italianGames,spanishGames).ok,'Spanish game catalog shape/placeholders differ from Italian');
 const sharedFlat = flattenCatalog(italianShared);
 for (const namespace of ['core','share','session','pause','gameOver','leaderboard','profile','orientation','avatar','pwa','home']) {
   must([...sharedFlat.keys()].some(key => key.startsWith(namespace + '.')), `Italian shared catalog namespace empty: ${namespace}`);
@@ -108,8 +116,12 @@ const englishRuntimePath=siteFile('public/rwg-i18n.en.js');
 const englishRuntime=fs.existsSync(path.join(root,englishRuntimePath))?read(englishRuntimePath):'';
 must(englishRuntime.includes('const catalog = Object.freeze(' + JSON.stringify(englishShared) + ');'),'generated English runtime is stale; run npm run build:i18n');
 must(Buffer.byteLength(englishRuntime)<24*1024,'English bootstrap exceeds the 24 KiB uncompressed guardrail');
+const spanishRuntimePath=siteFile('public/rwg-i18n.es.js');
+const spanishRuntime=fs.existsSync(path.join(root,spanishRuntimePath))?read(spanishRuntimePath):'';
+must(spanishRuntime.includes('const catalog = Object.freeze(' + JSON.stringify(spanishShared) + ');'),'generated Spanish runtime is stale; run npm run build:i18n');
+must(Buffer.byteLength(spanishRuntime)<24*1024,'Spanish bootstrap exceeds the 24 KiB uncompressed guardrail');
 
-const sharedTargets = ['public/game-over.js','public/rwg-common-dock.js','public/rwg-pause-menu.js','public/rwg-session.js','public/rwg-leaderboard.js','public/rwg-leaderboard-infinite.js','public/game-hud.js','public/rwg-profile.js','public/rwg-avatar.js','public/orientation.js','public/rwg-intro-share.js','public/avatar/avatar-editor.js','public/hub-share.js','public/pwa-install.js'];
+const sharedTargets = ['public/game-over.js','public/rwg-common-dock.js','public/rwg-pause-menu.js','public/rwg-session.js','public/rwg-leaderboard.js','public/rwg-leaderboard-infinite.js','public/rwg-virtual-joystick.js','public/game-hud.js','public/rwg-profile.js','public/rwg-avatar.js','public/orientation.js','public/rwg-intro-share.js','public/avatar/avatar-editor.js','public/hub-share.js','public/pwa-install.js'];
 for (const relative of sharedTargets) {
   const targetSource = read(siteFile(relative));
   must(targetSource.includes('window.RWGI18n'), `${relative}: shared locale runtime is not used`);
@@ -133,9 +145,21 @@ for(const file of englishHtmlFiles){
   const html=fs.readFileSync(file,'utf8'),relative=path.relative(root,file),gameSlug=relative.match(/games[\\/]([^\\/]+)[\\/]index\.html$/)?.[1],localeAsset=gameSlug?`/i18n/en/games/${gameSlug}.js?v=20260908.2`:'/rwg-i18n.en.js?v=20260908.2',localeIndex=html.indexOf(localeAsset);
   must(localeIndex>=0,`${relative}: versioned synchronous English bootstrap missing`);
   must((html.match(gameSlug?/\/i18n\/en\/games\/[a-z-]+\.js/g:/\/rwg-i18n\.en\.js/g)||[]).length===1,`${relative}: English locale bootstrap must appear exactly once`);
-  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="x-default"'),`${relative}: reciprocal hreflang set missing`);
+  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="es"')&&html.includes('hreflang="x-default"'),`${relative}: reciprocal hreflang set missing`);
   must(html.includes('og:locale" content="en_US"'),`${relative}: English Open Graph locale missing`);
   must(html.includes(`href="/en${relative.includes('/games/')?'/games/'+relative.split('/games/')[1].split('/')[0]+'/':relative.includes('/avatar/')?'/avatar/':'/'}" data-rwg-language="en" aria-current="page"`),`${relative}: equivalent language selector missing`);
+  for(const match of html.matchAll(/\b(?:src|href|data-rwg-src)="([^"#]+)"/g))must(match[1].startsWith('/')||/^https?:/.test(match[1]),`${relative}: localized asset/navigation URL must be root-absolute: ${match[1]}`);
+  for(const match of html.matchAll(/data-rwg-srcset="([^"]+)"/g))for(const candidate of match[1].split(','))must(candidate.trim().split(/\s+/)[0].startsWith('/'),`${relative}: localized srcset URL must be root-absolute`);
+}
+for(const file of spanishHtmlFiles){
+  const html=fs.readFileSync(file,'utf8'),relative=path.relative(root,file),gameSlug=relative.match(/games[\\/]([^\\/]+)[\\/]index\.html$/)?.[1],localeAsset=gameSlug?`/i18n/es/games/${gameSlug}.js?v=20260908.3`:'/rwg-i18n.es.js?v=20260908.3',localeIndex=html.indexOf(localeAsset);
+  must(localeIndex>=0,`${relative}: versioned synchronous Spanish bootstrap missing`);
+  must((html.match(gameSlug?/\/i18n\/es\/games\/[a-z-]+\.js/g:/\/rwg-i18n\.es\.js/g)||[]).length===1,`${relative}: Spanish locale bootstrap must appear exactly once`);
+  must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="es"')&&html.includes('hreflang="x-default"'),`${relative}: reciprocal hreflang set missing`);
+  must(html.includes('og:locale" content="es_ES"'),`${relative}: Spanish Open Graph locale missing`);
+  must(html.includes(`href="/es${relative.includes('/games/')?'/games/'+relative.split('/games/')[1].split('/')[0]+'/':relative.includes('/avatar/')?'/avatar/':'/'}" data-rwg-language="es" aria-current="page"`),`${relative}: equivalent Spanish language selector missing`);
+  for(const match of html.matchAll(/\b(?:src|href|data-rwg-src)="([^"#]+)"/g))must(match[1].startsWith('/')||/^https?:/.test(match[1]),`${relative}: localized asset/navigation URL must be root-absolute: ${match[1]}`);
+  for(const match of html.matchAll(/data-rwg-srcset="([^"]+)"/g))for(const candidate of match[1].split(','))must(candidate.trim().split(/\s+/)[0].startsWith('/'),`${relative}: localized srcset URL must be root-absolute`);
 }
 const homeHtml = read(siteFile('public/index.html'));
 for (const key of ['pwa.title','pwa.copy','pwa.install','home.eyebrow','home.intro','home.gamesAria','pwa.cardTitle','pwa.cardCopy','pwa.installWebApp']) must(homeHtml.includes(key), `home shell missing declarative locale binding: ${key}`);
@@ -145,27 +169,28 @@ for (const [relative, marker] of [['public/rwg-profile.js','rwg.profile.v1'],['p
 must(packageJson.scripts?.['build:i18n'] === 'node scripts/build-i18n.mjs', 'package must expose deterministic build:i18n');
 must(packageJson.scripts?.['build:astro-poc']?.startsWith('npm run build:i18n &&'), 'Astro pilot build must regenerate locale runtime first');
 const worker = read(siteFile('public/sw.js'));
-must(worker.includes("CACHE_NAME = 'rwg-shell-v5'") && worker.includes("'/rwg-i18n.js'") && worker.includes("'/rwg-i18n.en.js'") && worker.includes("'/en/'"), 'PWA shell cache must rotate and include both complete locale bootstraps');
+must(worker.includes("CACHE_NAME = 'rwg-shell-v6'") && worker.includes("'/rwg-i18n.js'") && worker.includes("'/rwg-i18n.en.js'") && worker.includes("'/rwg-i18n.es.js'") && worker.includes("'/en/'") && worker.includes("'/es/'"), 'PWA shell cache must rotate and include all complete locale bootstraps');
 
 const gameSlugs=Object.keys(italianGames);
-for(const locale of ['it','en'])for(const slug of gameSlugs){
+for(const locale of ['it','en','es'])for(const slug of gameSlugs){
   const bundle=siteFile(`public/i18n/${locale}/games/${slug.replace(/[A-Z]/g,m=>'-'+m.toLowerCase())}.js`);
   must(fs.existsSync(path.join(root,bundle)),`missing ${locale} game bundle: ${bundle}`);
 }
 const sitemap=read(siteFile('public/sitemap.xml'));
-must((sitemap.match(/<url>/g)||[]).length===22,'localized sitemap must contain exactly 22 indexable URLs');
+must((sitemap.match(/<url>/g)||[]).length===33,'localized sitemap must contain exactly 33 indexable URLs');
 const siteRoot=fs.existsSync(path.join(root,'public','index.html'))?path.join(root,'public'):root;
 for(const page of englishHtmlFiles.filter(file=>!file.includes(`${path.sep}avatar${path.sep}`))){const relative=path.relative(siteRoot,page).split(path.sep).join('/').replace(/index\.html$/,'');must(sitemap.includes(`https://www.retrowebgames.it/${relative}`),`${relative}: missing from sitemap`);}
+for(const page of spanishHtmlFiles.filter(file=>!file.includes(`${path.sep}avatar${path.sep}`))){const relative=path.relative(siteRoot,page).split(path.sep).join('/').replace(/index\.html$/,'');must(sitemap.includes(`https://www.retrowebgames.it/${relative}`),`${relative}: missing from sitemap`);}
 
 if (failures.length) {
   console.error(`I18N validation FAILED (${failures.length})`);
   failures.forEach(item => console.error(`  ✗ ${item}`));
   process.exit(1);
 }
-console.log('I18N-3 validation OK');
+console.log('I18N-4 ES validation OK');
 console.log('  ✓ five-locale route, namespace, schema, glossary and placeholder contracts');
 console.log('  ✓ repository-wide string/formatter inventory scanner coverage');
-console.log('  ✓ 12 Italian and 12 English routes are symmetrical and localized');
+console.log('  ✓ 12 Italian, 12 English and 12 Spanish routes are symmetrical and localized');
 console.log("  ✓ Astro static production generator, pinned toolchain, metadata and sitemap gate");
-console.log('  ✓ complete Italian and English shared/game catalogs, synchronous bootstraps and resolved routes');
+console.log('  ✓ complete Italian, English and Spanish shared/game catalogs, synchronous bootstraps and resolved routes');
 console.log('  ✓ language-neutral persisted identities, deterministic generation and rotated PWA cache');

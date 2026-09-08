@@ -3,6 +3,7 @@
 
   if (window.RWGVirtualJoystick) return;
 
+  const t = key => window.RWGI18n.t(key);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const slug = () => {
     const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
@@ -10,7 +11,7 @@
   };
 
   class VirtualJoystick {
-    constructor({ host, allowed = ['up', 'down', 'left', 'right'], label = 'MOVIMENTO', deadZone = 0.18, onVector = null, onDirection = null } = {}) {
+    constructor({ host, allowed = ['up', 'down', 'left', 'right'], label = null, deadZone = 0.18, onVector = null, onDirection = null } = {}) {
       if (!host) throw new Error('RWGVirtualJoystick host missing');
       this.host = host;
       this.allowed = new Set(allowed);
@@ -21,6 +22,7 @@
       this.direction = null;
       this.vector = { x: 0, y: 0, active: false };
 
+      label ||= t('core.movement');
       const root = document.createElement('div');
       root.className = 'rwg-vjoy';
       root.setAttribute('role', 'group');
@@ -126,7 +128,7 @@
     return new VirtualJoystick({
       host,
       allowed,
-      label: options.label || 'MOVIMENTO',
+      label: options.label || t('core.movement'),
       onDirection(direction) {
         if (pressed && pressed !== direction) firePointer(byDirection.get(pressed), 'pointerup');
         if (direction && direction !== pressed) firePointer(byDirection.get(direction), 'pointerdown');
@@ -138,11 +140,11 @@
 
   const syncHelp = gameSlug => {
     const hint = document.querySelector('.gesture-hint');
-    if (hint && gameSlug === 'maze-munch') hint.textContent = 'Usa il joystick, scorri sul labirinto oppure usa frecce / WASD. Raccogli tutti i punti e attiva i surge nodes.';
-    if (hint && gameSlug === 'neon-snake') hint.textContent = 'Joystick, swipe o frecce / WASD per muoverti. Tieni premuto TURBO per andare a velocità doppia.';
+    if (hint && gameSlug === 'maze-munch') hint.textContent = t('core.mazeJoystickHint');
+    if (hint && gameSlug === 'neon-snake') hint.textContent = t('core.snakeJoystickHint');
     if (gameSlug === 'neon-tilt') {
       const fallback = document.querySelector('.sensor-help span:last-child');
-      if (fallback) fallback.textContent = 'Joystick e frecce restano sempre disponibili.';
+      if (fallback) fallback.textContent = t('core.tiltJoystickHint');
     }
   };
 
@@ -171,9 +173,9 @@
       const wrap = document.getElementById('gameWrap');
       const section = document.createElement('section');
       section.className = 'rwg-vjoy-external-host';
-      section.setAttribute('aria-label', 'Controllo analogico');
+      section.setAttribute('aria-label', t('core.analogControl'));
       wrap?.insertAdjacentElement('afterend', section);
-      instance = new VirtualJoystick({ host: section, label: 'MOVIMENTO' });
+      instance = new VirtualJoystick({ host: section, label: t('core.movement') });
       document.body.classList.add('rwg-vjoy-neon-tilt');
     }
 

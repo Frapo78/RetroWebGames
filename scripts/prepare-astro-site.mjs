@@ -9,7 +9,7 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
 fs.cpSync(source,target,{recursive:true,filter(entry){
   const relative=path.relative(source,entry).split(path.sep).join('/');
-  if(relative==='en'||relative.startsWith('en/'))return false;
+  if(['en','es'].some(locale=>relative===locale||relative.startsWith(locale+'/')))return false;
   if(relative==='index.html'||relative==='avatar/index.html'||/^games\/[^/]+\/index\.html$/.test(relative))return false;
   if(relative==='sitemap.xml'||relative==='sitemap-index.xml'||/^sitemap-\d+\.xml$/.test(relative))return false;
   return true;
