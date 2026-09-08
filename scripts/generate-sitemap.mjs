@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { PAGES } from '../astro-site/src/lib/render-page.mjs';
 
 const args = process.argv.slice(2);
 function option(name, fallback) {
@@ -15,6 +16,17 @@ const gitRoot = path.resolve(option('--git-root', process.cwd()));
 const scanRoot = path.resolve(gitRoot, option('--scan-root', '.'));
 const output = path.resolve(gitRoot, option('--output', 'sitemap.xml'));
 const today = new Date().toISOString().slice(0, 10);
+const origin = 'https://www.retrowebgames.it';
+const canonicalOrder = new Map();
+const canonicalSource = new Map();
+for (const [pageIndex, page] of PAGES.filter(page => page.indexable).entries()) {
+  const suffix = page.route ? `/${page.route}/` : '/';
+  for (const [localeIndex, locale] of ['it', 'en', 'es'].entries()) {
+    const canonical = `${origin}${locale === 'it' ? suffix : `/${locale}${suffix}`}`;
+    canonicalOrder.set(canonical, pageIndex * 3 + localeIndex);
+    canonicalSource.set(canonical, path.resolve(gitRoot, page.source));
+  }
+}
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -51,14 +63,20 @@ for (const file of walk(scanRoot).sort()) {
   if (/(?:^|,)\s*noindex\b/i.test(robots)) continue;
   const canonical = meta(html, /<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
   if (!/^https:\/\/www\.retrowebgames\.it\/(?:[^?#]*)$/.test(canonical)) throw new Error('Invalid or missing canonical: ' + path.relative(gitRoot, file));
-  entries.push({ loc: canonical, lastmod: lastModified(file) });
+  const alternates = [...html.matchAll(/<link\s+rel=["']alternate["']\s+hreflang=["']([^"']+)["']\s+href=["']([^"']+)["']\s*\/?>/gi)]
+    .map(match => ({ hreflang: match[1], href: match[2] }));
+  if (!alternates.length) throw new Error('Localized alternates missing: ' + path.relative(gitRoot, file));
+  entries.push({ loc: canonical, lastmod: lastModified(canonicalSource.get(canonical) || file), alternates });
 }
 
-entries.sort((a, b) => a.loc.localeCompare(b.loc));
+entries.sort((a, b) => (canonicalOrder.get(a.loc) ?? Number.MAX_SAFE_INTEGER) - (canonicalOrder.get(b.loc) ?? Number.MAX_SAFE_INTEGER) || a.loc.localeCompare(b.loc));
 if (!entries.some(entry => entry.loc === 'https://www.retrowebgames.it/')) throw new Error('Home URL missing');
 if (new Set(entries.map(entry => entry.loc)).size !== entries.length) throw new Error('Duplicate canonical URL');
 
-const body = entries.map(entry => '  <url>\n    <loc>' + xml(entry.loc) + '</loc>\n    <lastmod>' + entry.lastmod + '</lastmod>\n  </url>').join('\n');
-const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + body + '\n</urlset>\n';
+const body = entries.map(entry => {
+  const links = entry.alternates.map(alternate => `    <xhtml:link rel="alternate" hreflang="${xml(alternate.hreflang)}" href="${xml(alternate.href)}" />`).join('\n');
+  return '  <url>\n    <loc>' + xml(entry.loc) + '</loc>\n    <lastmod>' + entry.lastmod + '</lastmod>\n' + links + '\n  </url>';
+}).join('\n');
+const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + body + '\n</urlset>\n';
 fs.writeFileSync(output, sitemap);
 console.log('Sitemap generated: ' + path.relative(gitRoot, output) + ' (' + entries.length + ' indexable URLs)');

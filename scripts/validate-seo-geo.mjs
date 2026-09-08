@@ -35,6 +35,10 @@ for (const page of pages) {
   const expectedOgLocale={it:'it_IT',en:'en_US',es:'es_ES'}[page.locale];
   must(new RegExp(`<meta\\s+property=["']og:locale["']\\s+content=["']${expectedOgLocale}["']`,'i').test(html), page.rel + ': og:locale mismatch');
   must(html.includes('hreflang="it"')&&html.includes('hreflang="en"')&&html.includes('hreflang="es"')&&html.includes('hreflang="x-default"'),page.rel+': reciprocal hreflang set missing');
+  const suffix=page.kind==='home'?'/':page.kind==='utility'?'/avatar/':`/games/${page.game.slug}/`;
+  const expectedAlternates={it:`${SITE.origin}${suffix}`,en:`${SITE.origin}/en${suffix}`,es:`${SITE.origin}/es${suffix}`};
+  for(const [locale,href] of Object.entries(expectedAlternates))must(html.includes(`hreflang="${locale}" href="${href}"`),`${page.rel}: hreflang ${locale} URL mismatch`);
+  must(html.includes(`hreflang="x-default" href="${expectedAlternates.it}"`),`${page.rel}: x-default URL mismatch`);
   must(!/<meta\s+name=["']keywords["']/i.test(html), page.rel + ': obsolete meta keywords must not be added');
   must(scripts.length === 1, page.rel + ': exactly one rwg-seo-graph JSON-LD block required');
   if (page.kind === 'utility') must(/^noindex,follow/.test(robots), page.rel + ': thin utility must remain noindex,follow');
