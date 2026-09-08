@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (window.RWGAvatar) return;
 
   const VERSION = 2;
@@ -296,8 +298,8 @@
     const link = document.createElement('a');
     link.href = EDITOR_URL;
     link.className = 'rwg-avatar-link';
-    link.setAttribute('aria-label', 'Personalizza il tuo avatar');
-    link.title = 'Player avatar';
+    link.setAttribute('aria-label', t('profile.customizeAvatar'));
+    link.title = t('profile.playerAvatar');
     link.dataset.rwgAvatarMode = 'mini';
     link.innerHTML = markup(avatar, 'mini');
     mounted.add(link);

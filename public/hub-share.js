@@ -1,11 +1,13 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   const dock = document.querySelector('.share-dock');
   if (!dock) return;
 
   const title = 'RetroWebGames';
-  const text = '🎮 Prova RetroWebGames: giochi arcade gratuiti direttamente nel browser!';
+  const text = t('share.homeInvite');
   const url = 'https://www.retrowebgames.it/';
 
   const canonical = document.querySelector('link[rel="canonical"]') || document.createElement('link');
@@ -25,7 +27,7 @@
 
   ensureMeta('og:url', url);
   ensureMeta('og:title', title);
-  ensureMeta('og:description', 'Giochi arcade gratuiti ispirati ai grandi classici, direttamente nel browser.');
+  ensureMeta('og:description', t('share.homeDescription'));
   ensureMeta('og:type', 'website');
 
   const q = encodeURIComponent;

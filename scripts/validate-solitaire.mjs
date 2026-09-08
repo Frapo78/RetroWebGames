@@ -210,13 +210,14 @@ must(/version\s*:\s*3/.test(adapter), 'Solitaire adapter must expose persistence
 must(/compatibility\s*:\s*['"]solitaire-state-v3-klondike-freecell['"]/.test(adapter), 'Solitaire multivariant compatibility token missing or changed unexpectedly');
 
 const session = read('rwg-session.js'), sessionCss = read('rwg-session.css'), hud = read('game-hud.js');
-for (const marker of ["rwg.session.v2:",'ENVELOPE_SCHEMA = 2','adapter.compatibility','adapter.validate(envelope.payload, envelope)','Vuoi continuare la partita precedente?','pagehide','beforeunload','visibilitychange',"forceLifecycleSave('navigation')",'MAX_SNAPSHOT_BYTES']) must(session.includes(marker), `Shared session v2 missing: ${marker}`);
+for (const marker of ["rwg.session.v2:",'ENVELOPE_SCHEMA = 2','adapter.compatibility','adapter.validate(envelope.payload, envelope)',"t('session.question')",'pagehide','beforeunload','visibilitychange',"forceLifecycleSave('navigation')",'MAX_SNAPSHOT_BYTES']) must(session.includes(marker), `Shared session v2 missing: ${marker}`);
 const debounce = Number(session.match(/DIRTY_DEBOUNCE_MS\s*=\s*(\d+)/)?.[1]);
 const heartbeat = Number(session.match(/HEARTBEAT_MS\s*=\s*(\d+)/)?.[1]);
 must(debounce === 750, `Shared session debounce must be 750ms; found ${debounce}`);
 must(heartbeat === 5000, `Shared session heartbeat must be 5000ms; found ${heartbeat}`);
 must(session.includes('payloadJson === lastPayloadJson && !FORCE_WRITE_REASONS.has(reason)'), 'Unchanged autosave writes must be suppressed');
-must(session.indexOf('data-rwg-resume-no>No</button>') < session.indexOf('data-rwg-resume-yes>Sì</button>'), 'Resume modal must keep No left and Sì right');
+must(session.indexOf('data-rwg-resume-no') < session.indexOf('data-rwg-resume-yes'), 'Resume modal must keep No left and Sì right');
+must(session.includes("t('session.no')") && session.includes("t('session.yes')"), 'Resume modal actions must resolve through the shared locale catalog');
 must(sessionCss.includes('.rwg-resume-no') && sessionCss.includes('#c92f43'), 'Resume No button must remain red');
 must(sessionCss.includes('.rwg-resume-yes') && sessionCss.includes('#35cf79'), 'Resume Sì button must remain green');
 must(hud.includes('loadSession') && hud.includes("asset('rwg-session.js')"), 'Shared HUD must bootstrap version-propagated sessions for every game');

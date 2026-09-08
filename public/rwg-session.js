@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (window.RWGSession) return;
 
   const STORAGE_PREFIX = 'rwg.session.v2:';
@@ -124,12 +126,12 @@
     modal.setAttribute('aria-labelledby', 'rwgResumeQuestion');
     modal.innerHTML = `
       <div class="rwg-resume-card">
-        <div class="rwg-resume-kicker">PARTITA SALVATA</div>
-        <h2 id="rwgResumeQuestion">Vuoi continuare la partita precedente?</h2>
+        <div class="rwg-resume-kicker">${t('session.saved')}</div>
+        <h2 id="rwgResumeQuestion">${t('session.question')}</h2>
         <p class="rwg-resume-meta" data-rwg-resume-meta></p>
         <div class="rwg-resume-actions">
-          <button type="button" class="rwg-resume-no" data-rwg-resume-no>No</button>
-          <button type="button" class="rwg-resume-yes" data-rwg-resume-yes>Sì</button>
+          <button type="button" class="rwg-resume-no" data-rwg-resume-no>${t('session.no')}</button>
+          <button type="button" class="rwg-resume-yes" data-rwg-resume-yes>${t('session.yes')}</button>
         </div>
       </div>`;
     document.body.appendChild(modal);

@@ -179,7 +179,9 @@ The approved i18n architecture is incremental and build-time first. Before local
 - Complete catalogs must match the Italian source shape and named placeholders exactly; arbitrary HTML in translations is forbidden.
 - Route locale is authoritative. Browser language may power a non-invasive suggestion, never an automatic redirect.
 - Do not publish partial locale routes, duplicate game engines per language, introduce a runtime UI framework into game loops or change gameplay/session schemas while extracting copy.
-- Astro remains conditional on the isolated I18N-1 static proof of concept. I18N-0 does not authorize a production framework migration.
+- Astro static output passed the isolated I18N-1 gate and is accepted for staged shell/metadata generation. It must never enter game loops or authorize publishing an incomplete locale.
+- `public/rwg-i18n.js` is generated from `src/i18n/it/shared.mjs`, must load synchronously before shared/game runtime, and must be regenerated with `npm run build:i18n`; never edit the generated asset by hand.
+- Migrated shared UI must call semantic `RWGI18n.t()` keys. Validators must assert keys and catalog values separately instead of depending on Italian literals embedded in runtime code.
 
 ## 5. Game-specific sources of truth
 

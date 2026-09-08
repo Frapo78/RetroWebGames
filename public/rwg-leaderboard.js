@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   const API_ROOT = '/api/leaderboards/v1';
   const isGamePage = document.body?.hasAttribute('data-rwg-game');
 
@@ -16,7 +18,7 @@
     if (!cards.length) return;
     const safeGet = key => { try { return localStorage.getItem(key) || ''; } catch (_) { return ''; } };
     const safeSet = (key, value) => { try { localStorage.setItem(key, value); } catch (_) {} };
-    const number = value => Number(value || 0).toLocaleString('it-IT');
+    const number = value => window.RWGI18n.number(value);
     const panels = new Map();
 
     function resultText(slug, row) {
@@ -39,14 +41,14 @@
         const name = document.createElement('strong'); name.textContent = row.nickname;
         const score = document.createElement('b'); score.textContent = resultText(slug, row);
         if (Number(row.continueCount) > 0) {
-          const used = document.createElement('small'); used.className = 'rwg-home-continue'; used.textContent = `CONT.×${row.continueCount}`; score.appendChild(used);
+          const used = document.createElement('small'); used.className = 'rwg-home-continue'; used.textContent = t('leaderboard.continueShort', { count: row.continueCount }); score.appendChild(used);
         }
         item.append(rank, ...(aggregate ? [variant] : []), name, score); list.appendChild(item);
       }
       if (!list.children.length) {
-        const empty = document.createElement('li'); empty.className = 'is-empty'; empty.textContent = 'NESSUN RECORD • IL PODIO TI ASPETTA'; list.appendChild(empty);
+        const empty = document.createElement('li'); empty.className = 'is-empty'; empty.textContent = t('leaderboard.emptyPodium'); list.appendChild(empty);
       }
-      panel.querySelector('.rwg-home-top3-status').textContent = stale ? 'ULTIMI DATI SALVATI' : '';
+      panel.querySelector('.rwg-home-top3-status').textContent = stale ? t('leaderboard.cachedPlural') : '';
     }
 
     async function load(slug, panel) {
@@ -66,7 +68,7 @@
         let cached = null;
         try { cached = JSON.parse(safeGet(`rwg.leaderboard.cache.v2:${scope}`)); } catch (_) {}
         if (cached) { render(panel, slug, cached, true); return 'cache'; }
-        panel.querySelector('.rwg-home-top3-list').innerHTML = '<li class="is-empty">CLASSIFICA NON DISPONIBILE</li>';
+        panel.querySelector('.rwg-home-top3-list').innerHTML = `<li class="is-empty">${t('leaderboard.unavailable')}</li>`;
         return 'error';
       } finally { panel.classList.remove('is-loading'); }
     }
@@ -77,8 +79,8 @@
       const title = card.querySelector('h2')?.textContent?.trim() || slug;
       const stack = document.createElement('div'); stack.className = 'game-card-stack';
       const panel = document.createElement('section'); panel.className = 'rwg-home-top3'; panel.dataset.gameSlug = slug; panel.dataset.variantSlug = card.dataset.rwgLeaderboardVariant || 'default'; panel.dataset.view = card.dataset.rwgLeaderboardView || 'variant'; panel.classList.toggle('is-aggregate', panel.dataset.view === 'all-variants');
-      panel.setAttribute('aria-label', `Top 3 globale ${title}`);
-      panel.innerHTML = `<div class="rwg-home-top3-heading"><span>🏆 TOP 3 GLOBALE${panel.dataset.view === 'all-variants' ? ' • VARIANTI' : ''}</span><button type="button" aria-label="Aggiorna Top 3 ${title}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">CONNESSIONE AL CABINATO…</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
+      panel.setAttribute('aria-label', t('leaderboard.top3For', { game: title }));
+      panel.innerHTML = `<div class="rwg-home-top3-heading"><span>${t('leaderboard.top3')}${panel.dataset.view === 'all-variants' ? ` • ${t('leaderboard.variants')}` : ''}</span><button type="button" aria-label="${t('leaderboard.refreshTop3', { game: title })}">↻</button></div><ol class="rwg-home-top3-list"><li class="is-empty">${t('leaderboard.connecting')}</li></ol><p class="rwg-home-top3-status" aria-live="polite"></p>`;
       card.before(stack); stack.append(card, panel); panels.set(slug, panel);
       panel.querySelector('button').addEventListener('click', () => { track('leaderboard_home_retry', { leaderboard_game: slug, leaderboard_variant: panel.dataset.view === 'all-variants' ? 'all' : panel.dataset.variantSlug }); load(slug, panel); });
     }
@@ -132,17 +134,17 @@
     return value;
   };
   const startNewRun = (variantSlug = currentVariantSlug) => storage.set(runKey(variantSlug), uuid());
-  const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
+  const formatNumber = value => window.RWGI18n.number(value);
   const readJson = (key, fallback) => { try { return JSON.parse(storage.get(key, '')) || fallback; } catch (_) { return fallback; } };
   const gameLabel = () => (document.body.dataset.rwgGameName || gameSlug).trim();
 
   function makeBoard() {
     const section = document.createElement('section');
     section.className = 'rwg-leaderboard-board';
-    section.setAttribute('aria-label', `High Scores ${gameLabel()}`);
+    section.setAttribute('aria-label', t('leaderboard.highScoresFor', { game: gameLabel() }));
     section.innerHTML = `
-      <div class="rwg-lb-heading"><span>🏆 HIGH SCORES</span><button type="button" data-rwg-lb-retry aria-label="Aggiorna classifica">↻</button></div>
-      <ol class="rwg-lb-list"><li class="rwg-lb-loading">CONNESSIONE AL CABINATO…</li></ol>
+      <div class="rwg-lb-heading"><span>${t('leaderboard.highScores')}</span><button type="button" data-rwg-lb-retry aria-label="${t('leaderboard.refresh')}">↻</button></div>
+      <ol class="rwg-lb-list"><li class="rwg-lb-loading">${t('leaderboard.connecting')}</li></ol>
       <p class="rwg-lb-status" aria-live="polite"></p>`;
     section.querySelector('[data-rwg-lb-retry]').addEventListener('click', () => {
       track('leaderboard_retry');
@@ -155,10 +157,10 @@
     const section = document.createElement('aside');
     section.className = 'rwg-leaderboard-pause-board';
     section.hidden = true;
-    section.setAttribute('aria-label', `Podio globale ${gameLabel()}`);
+    section.setAttribute('aria-label', t('leaderboard.podiumFor', { game: gameLabel() }));
     section.innerHTML = `
-      <div class="rwg-lb-pause-heading">🏆 TOP 3 GLOBALE</div>
-      <ol class="rwg-lb-pause-list"><li class="rwg-lb-loading">CONNESSIONE…</li></ol>`;
+      <div class="rwg-lb-pause-heading">${t('leaderboard.top3')}</div>
+      <ol class="rwg-lb-pause-list"><li class="rwg-lb-loading">${t('leaderboard.connectingShort')}</li></ol>`;
     return section;
   }
 
@@ -185,7 +187,7 @@
     list.replaceChildren();
     for (const row of (data.top || []).slice(0, 3)) appendRow(list, row);
     if (!list.children.length) {
-      const empty = document.createElement('li'); empty.className = 'rwg-lb-loading'; empty.textContent = 'IL PODIO TI ASPETTA'; list.appendChild(empty);
+      const empty = document.createElement('li'); empty.className = 'rwg-lb-loading'; empty.textContent = t('leaderboard.emptyPodium'); list.appendChild(empty);
     }
   }
 
@@ -218,7 +220,7 @@
     const score = document.createElement('b'); score.className = 'rwg-lb-score'; score.textContent = resultText(row);
     li.append(rank, name, score);
     if (Number(row.continueCount) > 0) {
-      const used = document.createElement('small'); used.textContent = `CONTINUE ×${row.continueCount}`; li.appendChild(used);
+      const used = document.createElement('small'); used.textContent = t('leaderboard.continue', { count: row.continueCount }); li.appendChild(used);
     }
     list.appendChild(li);
   }
@@ -232,13 +234,13 @@
     list.replaceChildren();
     for (const row of data.top || []) appendRow(list, row);
     if (!(data.top || []).length) {
-      const empty = document.createElement('li'); empty.className = 'rwg-lb-loading'; empty.textContent = 'NESSUN RECORD • INAUGURA LA CLASSIFICA!'; list.appendChild(empty);
+      const empty = document.createElement('li'); empty.className = 'rwg-lb-loading'; empty.textContent = t('leaderboard.empty'); list.appendChild(empty);
     }
     if (data.current && !(data.top || []).some(row => row.runId === data.current.runId)) {
       const dots = document.createElement('li'); dots.className = 'rwg-lb-dots'; dots.textContent = '…'; list.appendChild(dots);
       appendRow(list, { ...data.current, isCurrent: true }, 'rwg-lb-personal');
     }
-    status.textContent = stale ? 'ULTIMO AGGIORNAMENTO SALVATO' : '';
+    status.textContent = stale ? t('leaderboard.cached') : '';
     if (data.lastName && !storage.get(NAME_KEY)) storage.set(NAME_KEY, data.lastName);
   }
 
@@ -264,8 +266,8 @@
         renderBoard(cached, true);
         track('leaderboard_view', { delivery: 'cache', leaderboard_variant: currentVariantSlug, row_count: Number(cached.top?.length || 0) });
       } else {
-        if (introBoard) introBoard.querySelector('.rwg-lb-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE • RIPROVA</li>';
-        if (pauseBoard) pauseBoard.querySelector('.rwg-lb-pause-list').innerHTML = '<li class="rwg-lb-loading">CLASSIFICA NON DISPONIBILE</li>';
+        if (introBoard) introBoard.querySelector('.rwg-lb-list').innerHTML = `<li class="rwg-lb-loading">${t('leaderboard.retry')}</li>`;
+        if (pauseBoard) pauseBoard.querySelector('.rwg-lb-pause-list').innerHTML = `<li class="rwg-lb-loading">${t('leaderboard.unavailable')}</li>`;
         track('leaderboard_load_error', { error_type: 'unavailable' });
       }
     } finally { introBoard?.classList.remove('is-loading'); }
@@ -294,9 +296,9 @@
     const card = document.createElement('section');
     card.className = `rwg-leaderboard-rank-card${topTen ? ' is-top-ten' : ''}${pending ? ' is-pending' : ''}`;
     card.setAttribute('aria-live', 'polite');
-    const label = pending ? 'POSIZIONE IN AGGIORNAMENTO' : topTen ? 'SEI NELLA TOP TEN!' : 'POSIZIONE GLOBALE';
+    const label = pending ? t('leaderboard.positionUpdating') : topTen ? t('leaderboard.topTen') : t('leaderboard.globalPositionLabel');
     const value = pending ? '…' : rank ? `#${rank}` : '—';
-    const copy = pending ? 'Record salvato: aggiorneremo il piazzamento appena torni online.' : topTen ? 'Grande! Il tuo record brilla tra i migliori.' : 'Nuova sfida? La vetta è più vicina.';
+    const copy = pending ? t('leaderboard.rankPendingCopy') : topTen ? t('leaderboard.rankTopTenCopy') : t('leaderboard.rankDefaultCopy');
     card.innerHTML = `<div class="rwg-lb-rank-icon">🏆</div><div><strong>${label}</strong><span>${copy}</span></div><b>${value}</b>`;
     host.insertBefore(card, host.querySelector('.rwg-challenge-box'));
     track('leaderboard_rank_card_view', {
@@ -373,14 +375,14 @@
     submitting = true;
     if (input) input.disabled = true;
     if (button) button.disabled = true;
-    if (status) status.textContent = 'REGISTRAZIONE…';
+    if (status) status.textContent = t('leaderboard.registering');
     let delivery = 'live';
     let position = 0;
     try {
       const data = await postResult(payload);
       position = Number(data.current?.position || 0);
       showRankCard(position, { solitaire });
-      if (status) status.textContent = data.current ? `REGISTRATO • POSIZIONE #${data.current.position}` : 'RECORD REGISTRATO!';
+      if (status) status.textContent = data.current ? t('leaderboard.registeredAt', { position: data.current.position }) : t('leaderboard.registered');
       if (data.leaderboard) {
         storage.set(cacheKey(payload.variantSlug), JSON.stringify(data.leaderboard));
         if (payload.variantSlug === currentVariantSlug) renderBoard(data.leaderboard);
@@ -392,7 +394,7 @@
     } catch (error) {
       if (error.validation) {
         track('leaderboard_submit_error', { error_type: 'server_validation', automatic: Number(automatic) });
-        if (status) status.textContent = error.message || 'DATI NON VALIDI';
+        if (status) status.textContent = error.message || t('leaderboard.invalid');
         if (input) input.disabled = false;
         if (button) button.disabled = false;
         submitting = false;
@@ -402,7 +404,7 @@
       const queueSize = queueResult(payload);
       showRankCard(0, { pending: true, solitaire });
       track('leaderboard_submit_queued', { queue_size: queueSize, outcome: payload.outcome, automatic: Number(automatic) });
-      if (status) status.textContent = 'SALVATO • INVIO AUTOMATICO APPENA ONLINE';
+      if (status) status.textContent = t('leaderboard.queued');
     }
     track(automatic ? 'leaderboard_auto_submit' : 'leaderboard_name_saved', {
       outcome: payload.outcome, solitaire: Number(Boolean(solitaire)), delivery, leaderboard_position: position
@@ -431,12 +433,12 @@
     section.setAttribute('aria-modal', 'true');
     section.setAttribute('aria-labelledby', 'rwgLeaderboardNameTitle');
     section.innerHTML = `
-      <div class="rwg-lb-entry-kicker">🏆 HIGH SCORE</div>
-      <h3 id="rwgLeaderboardNameTitle">INSERISCI IL TUO NOME</h3>
-      <p>Firma il record: dalle prossime partite faremo tutto noi.</p>
+      <div class="rwg-lb-entry-kicker">${t('leaderboard.entryKicker')}</div>
+      <h3 id="rwgLeaderboardNameTitle">${t('leaderboard.enterName')}</h3>
+      <p>${t('leaderboard.entryCopy')}</p>
       <form novalidate>
-        <input name="nickname" minlength="3" maxlength="12" autocomplete="nickname" spellcheck="false" aria-label="Nickname arcade" placeholder="IL TUO NOME" required>
-        <button type="submit">REGISTRA RECORD</button>
+        <input name="nickname" minlength="3" maxlength="12" autocomplete="nickname" spellcheck="false" aria-label="${t('leaderboard.nicknameAria')}" placeholder="${t('leaderboard.nicknamePlaceholder')}" required>
+        <button type="submit">${t('leaderboard.register')}</button>
       </form>
       <div class="rwg-lb-entry-status" aria-live="polite"></div>`;
     document.body.appendChild(section);
@@ -452,7 +454,7 @@
       if (submitting) return;
       const nickname = normalizeNickname(input.value);
       if (!validNickname(nickname)) {
-        status.textContent = 'USA 3–12 LETTERE, NUMERI, SPAZI, - O _';
+        status.textContent = t('leaderboard.nicknameInvalid');
         track('leaderboard_submit_error', { error_type: 'nickname_format' });
         input.focus(); return;
       }

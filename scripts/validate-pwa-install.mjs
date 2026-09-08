@@ -18,7 +18,7 @@ const brandGenerator = read('scripts/generate-brand-wordmark.py');
 const wordmarkPng = fs.readFileSync(path.join(root, 'assets/brand/retrowebgames-wordmark.png'));
 
 must(home.includes('href="pwa-install.css"'), 'home must load pwa-install.css');
-must(home.includes('src="/pwa-install.js"'), 'home must load pwa-install.js');
+must(home.includes('src="/pwa-install.js?v=20260908.1"'), 'home must load pwa-install.js');
 must(home.includes('id="pwaInstallNotice"') && home.includes('id="pwaInstallCard"'), 'home must expose the first-visit notice and persistent install card');
 must((home.match(/data-pwa-install/g) || []).length >= 2, 'both PWA install CTAs must use the shared controller');
 must(home.indexOf('id="pwaInstallCard"') > home.indexOf('</section>'), 'PWA install card must follow the game list');
@@ -28,7 +28,7 @@ for (const marker of ['beforeinstallprompt', 'event.preventDefault()', 'promptEv
   must(script.includes(marker), 'PWA controller missing: ' + marker);
 }
 must(script.includes('rwg.pwa.install.notice.v1') && script.includes('localStorage.setItem'), 'notice-once persistence contract is missing');
-must(script.includes('Aggiungi alla schermata Home'), 'iOS/browser installation fallback guidance is missing');
+must(script.includes("t('pwa.iosGuidance')") && script.includes("t('pwa.browserGuidance')"), 'localized iOS/browser installation fallback guidance is missing');
 must(script.includes('/macintosh/i.test(ua)') && script.includes('navigator.maxTouchPoints > 1'), 'modern iPadOS desktop-user-agent detection is missing');
 must(script.includes('configureIosInstallUi()') && script.includes('button.hidden = true') && script.includes('setGuidance(IOS_GUIDANCE)'), 'iOS/iPadOS must show instructions directly and hide install buttons');
 must(css.includes('.pwa-install-action[hidden]'), 'hidden iOS install actions need an explicit CSS guard');

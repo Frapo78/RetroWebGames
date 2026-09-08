@@ -21,7 +21,7 @@ The accepted locale contract is:
 - `/` and `/games/<slug>/` remain the Italian canonical URLs;
 - other locales use `/<locale>/` and `/<locale>/games/<slug>/`;
 - game slugs and brand names do not change between locales;
-- `x-default` points to the Italian canonical unless I18N-1 produces evidence requiring a different choice;
+- `x-default` points to the Italian canonical;
 - the route, not `navigator.language`, is authoritative for rendered content;
 - no automatic locale redirect; a first-visit suggestion may be introduced later;
 - one static page contains one visible language.
@@ -79,12 +79,12 @@ The gate passed. Astro is accepted for staged page generation, while the current
 - cache/PWA split: retain one app ID, use explicit cache generations and test monolingual upgrades.
 - German overflow: mandatory 320×568 visual gate and long-string fixtures.
 - SEO duplication: self-canonical pages, reciprocal alternates and sitemap validation.
-- dependency exposure: pin exact versions and run audit during I18N-1; Astro is not yet installed in I18N-0.
+- dependency exposure: Astro and sitemap versions are pinned exactly; dependency audit remains part of every toolchain update.
 
 ## Rollback
 
-Each rollout remains a normal immutable static release. Rollback restores the previous FraPoVPS release/current symlink and the previous static project source; the Fastify leaderboard and database are unaffected because language is not part of their keys or schema. I18N-1 must rehearse this before any localized route is published.
+Each rollout remains a normal immutable static release. Rollback restores the previous FraPoVPS release/current symlink and the previous static project source; the Fastify leaderboard and database are unaffected because language is not part of their keys or schema. I18N-1 rehearsed this successfully before any localized route was published.
 
 ## Consequences
 
-I18N-0 introduced contracts and inventory tooling. I18N-1 accepted Astro after an isolated Home + Block Drop IT/EN pilot; it made no production-visible, storage, game or database change. I18N-2 extracts the Italian shared platform before any localized route is published.
+I18N-0 introduced contracts and inventory tooling. I18N-1 accepted Astro after an isolated Home + Block Drop IT/EN pilot; it made no production-visible, storage, game or database change. I18N-2 extracted the Italian shared platform into a generated synchronous catalog runtime, preserved language-neutral identity and remained undeployed. Evidence is in `I18N-SHARED-ITALIAN.md`; I18N-3 is the next publication gate.

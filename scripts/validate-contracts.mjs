@@ -153,13 +153,13 @@ must(star.includes("else if(stagePhase==='transition'){running=true;"), 'Star Sw
 must(!/defeatBoss\(\)[\s\S]{0,420}(?:bullets|enemyBullets|powerups)\.length=0/.test(star), 'Star Swarm regression: boss clear must not discard surviving projectiles or drops');
 
 const gameOver = read('game-over.js');
-for (const marker of ['GAME OVER','Condividi il tuo risultato!','Continua con 1','Nuova partita','Scegli un altro gioco','rwg:continue-game','rwg:game-ended']) must(gameOver.includes(marker), `Shared game-over.js missing required marker: ${marker}`);
+for (const marker of ['GAME OVER',"t('share.result')","t('gameOver.continue')","t('gameOver.newGame')","t('gameOver.chooseGame')",'rwg:continue-game','rwg:game-ended']) must(gameOver.includes(marker), `Shared game-over.js missing required marker: ${marker}`);
 must(gameOver.includes('ensureSession'), 'Shared Game Over must recover a session when terminal lifecycle arrives late');
 must(gameOver.includes('open: openSummary'), 'RWGGameOver.open must use the race-safe openSummary contract');
 must(gameOver.includes('queueMicrotask(checkGameOver)'), 'Shared Game Over must perform an initial late-bootstrap terminal-state check');
 must(!gameOver.includes('Mantieni punteggio e progresso'), 'Obsolete helper text must not reappear between equidistant Game Over actions');
 must(!/rwg-back-games[^>]*style=/.test(gameOver), 'Game Over action styling must remain in CSS, not inline markup');
-must(gameOver.includes("metric(hasMatchScore ? 'Best rally' : 'Record'"), 'Shared Game Over must preserve Neon Rally record semantics');
+must(gameOver.includes("hasMatchScore ? t('gameOver.bestRally') : t('gameOver.record')"), 'Shared Game Over must preserve Neon Rally record semantics');
 
 const hud = read('game-hud.js');
 must(hud.includes('rwg-profile.js'), 'game-hud.js must bootstrap rwg-profile.js');

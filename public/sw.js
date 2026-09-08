@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rwg-shell-v3';
+const CACHE_NAME = 'rwg-shell-v4';
 const CORE_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -9,6 +9,7 @@ const CORE_ASSETS = [
   '/hub-share.css',
   '/pwa-install.css',
   '/pwa-install.js',
+  '/rwg-i18n.js',
   '/rwg-lazy-images.js',
   '/assets/brand/retrowebgames-wordmark.png',
   '/icons/icon-192.png'

@@ -1,9 +1,11 @@
 (() => {
   'use strict';
+
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
   if (!document.body?.hasAttribute('data-rwg-game') || window.RWGCommonDock) return;
   const dock = document.createElement('nav');
   dock.className = 'rwg-common-dock';
-  dock.setAttribute('aria-label', 'Controlli globali di gioco');
+  dock.setAttribute('aria-label', t('core.globalControls'));
   document.body.appendChild(dock);
 
   const move = () => {

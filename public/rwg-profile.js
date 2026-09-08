@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (window.RWGProfile) return;
 
   const STORAGE_KEY = 'rwg.profile.v1';
@@ -206,7 +208,7 @@
     badge.className = 'rwg-credit-badge';
     badge.setAttribute('role', 'status');
     badge.innerHTML = `${coinSvg()}<span data-rwg-credit-count>${profile.credits}</span>`;
-    badge.title = 'Crediti disponibili';
+    badge.title = t('profile.credits');
 
     const gamePage = document.body?.hasAttribute('data-rwg-game');
     const topbar = gamePage ? document.getElementById('topbar') : null;
@@ -227,7 +229,7 @@
     const el = mountBadge();
     const count = el.querySelector('[data-rwg-credit-count]');
     if (count) count.textContent = String(profile.credits);
-    el.setAttribute('aria-label', `Crediti disponibili: ${profile.credits}`);
+    el.setAttribute('aria-label', t('profile.creditsCount', { count: profile.credits }));
   };
 
   const flashBadge = () => {
@@ -252,11 +254,11 @@
             ${coinSvg('rwg-insufficient-coin')}
             <i></i><i></i><i></i><i></i><i></i><i></i>
           </div>
-          <p class="rwg-insufficient-kicker">INSERT COIN?</p>
-          <h2>Crediti insufficienti</h2>
+          <p class="rwg-insufficient-kicker">${t('profile.insertCoin')}</p>
+          <h2>${t('profile.insufficient')}</h2>
           <p class="rwg-insufficient-copy"></p>
           <div class="rwg-insufficient-balance"></div>
-          <button type="button" class="rwg-insufficient-close">OK</button>
+          <button type="button" class="rwg-insufficient-close">${t('core.ok')}</button>
         </div>`;
       document.body.appendChild(insufficientLayer);
       insufficientLayer.querySelector('.rwg-insufficient-close').addEventListener('click', () => {
@@ -268,9 +270,9 @@
     }
 
     insufficientLayer.querySelector('.rwg-insufficient-copy').textContent =
-      `Servono ${required} ${required === 1 ? 'credito' : 'crediti'} per continuare questa partita.`;
+      required === 1 ? t('profile.neededOne') : t('profile.neededMany', { count: required });
     insufficientLayer.querySelector('.rwg-insufficient-balance').innerHTML =
-      `${coinSvg('rwg-inline-coin')} <strong>${profile.credits}</strong> disponibili`;
+      `${coinSvg('rwg-inline-coin')} <strong>${profile.credits}</strong> ${t('profile.availableSuffix')}`;
     insufficientLayer.hidden = false;
   };
 

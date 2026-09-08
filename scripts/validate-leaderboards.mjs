@@ -16,19 +16,19 @@ const hub = read('index.html');
 must(hud.includes('loadLeaderboard();') && hud.includes('rwg-leaderboard.js') && hud.includes('rwg-leaderboard.css'), 'game-hud must centrally bootstrap leaderboard assets');
 must(hud.includes('rwg-leaderboard-infinite.js') && hud.includes('data-rwg-leaderboard-infinite-script'), 'game-hud must centrally bootstrap the endless intro leaderboard for every game');
 must(hub.includes('rwg-leaderboard.js') && hub.includes('rwg-leaderboard.css'), 'home must load the shared leaderboard client and styles');
-for (const marker of ['HIGH SCORES','TOP 3 GLOBALE','INSERISCI IL TUO NOME','REGISTRA RECORD','rwg:game-over-summary','rwg:game-over-revealed','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1','leaderboard_auto_submit_start','leaderboard_auto_submit','leaderboard_name_saved','leaderboard_home_top3','leaderboard_pause_view','leaderboard_rank_card_view']) must(client.includes(marker), `leaderboard client missing ${marker}`);
+for (const marker of ["t('leaderboard.highScores')","t('leaderboard.top3')","t('leaderboard.enterName')","t('leaderboard.register')",'rwg:game-over-summary','rwg:game-over-revealed','rwg:leaderboard-result','continueCount','rwg.leaderboard.queue.v1','leaderboard_auto_submit_start','leaderboard_auto_submit','leaderboard_name_saved','leaderboard_home_top3','leaderboard_pause_view','leaderboard_rank_card_view']) must(client.includes(marker), `leaderboard client missing ${marker}`);
 must(client.includes("if (Number(row.continueCount) > 0)"), 'Continue count must be shown only when positive');
 must(client.includes('validNickname(savedNickname)') && client.includes('automatic: true'), 'saved nickname must trigger silent automatic registration');
 must(client.includes('rwg-leaderboard-name-modal') && css.includes('.rwg-leaderboard-name-modal{position:fixed'), 'first-use nickname must use a dedicated modal above Game Over');
 must(!client.includes("document.querySelector('.rwg-game-over-card')"), 'nickname form must not be embedded in the Game Over card');
 must(client.includes("document.querySelectorAll('.game-card") && client.includes("slice(0, 3)") && css.includes('.rwg-home-top3{'), 'home must render a Top 3 below every discovered game card');
 must(client.includes("classList.contains('rwg-resume-open')") && client.includes("pauseBtn?.textContent.trim() === '▶'") && css.includes('.rwg-leaderboard-pause-board{position:fixed'), 'resume and pause states must show the compact in-game Top 3');
-must(client.includes('SEI NELLA TOP TEN!') && client.includes("rank <= 10") && css.includes('.rwg-leaderboard-rank-card.is-top-ten'), 'Game Over must highlight authoritative Top Ten positions in gold');
-must(client.includes('POSIZIONE IN AGGIORNAMENTO') && client.includes('pending: true'), 'offline Game Over rank must remain explicitly pending');
+must(client.includes("t('leaderboard.topTen')") && client.includes("rank <= 10") && css.includes('.rwg-leaderboard-rank-card.is-top-ten'), 'Game Over must highlight authoritative Top Ten positions in gold');
+must(client.includes("t('leaderboard.positionUpdating')") && client.includes('pending: true'), 'offline Game Over rank must remain explicitly pending');
 must(client.includes("panel?.querySelector('.rwg-intro-leaderboard-slot')") && client.includes('slot.replaceWith(introBoard)'), 'intro High Scores must replace the dedicated caption slot in place');
 must(hudCss.includes('.rwg-intro-runtime-copy') && hudCss.includes('clip-path: inset(50%)') && hudCss.includes('.rwg-intro-leaderboard-slot'), 'shared intro must preserve runtime status accessibly without a visible caption');
 
-for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', 'variant=${encodeURIComponent(currentVariantSlug)}&limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', '🏆 HIGH SCORES', 'SCORRI PER ALTRI HIGH SCORES']) {
+for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', 'variant=${encodeURIComponent(currentVariantSlug)}&limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', "t('leaderboard.highScores')", "t('leaderboard.scrollMore')"]) {
   must(infinite.includes(marker), `endless intro High Scores missing ${marker}`);
 }
 must(infinite.includes('remaining <= EDGE_THRESHOLD_PX') && infinite.includes('fetchPage(pagination.nextOffset || rows.length)'), 'endless High Scores must request the next ten-row page at the internal scroll edge');
@@ -37,7 +37,7 @@ must(infinite.includes('MutationObserver') && infinite.includes('renderGuard'), 
 must(infinite.includes('pageRows.length === PAGE_SIZE') && infinite.includes('backendHasMore && pageIsFull && advances && beforeKnownEnd'), 'endless High Scores must defensively stop on a short/final/non-advancing page');
 must(infinite.includes('function disableEndless()') && infinite.includes("removeEventListener('scroll', onScroll)") && infinite.includes("removeEventListener('wheel', onWheel)") && infinite.includes("removeEventListener('touchend', onTouchEnd)"), 'final High Scores page must detach endless-scroll listeners');
 must(infinite.includes("data-rwg-infinite-complete") && infinite.includes('function enableEndless()'), 'High Scores reset must be able to re-enable endless scrolling after completion');
-must(infinite.includes('Carica 10 posizioni alla volta'), 'High Scores accessibility copy must expose ten-row pagination');
+must(infinite.includes("t('leaderboard.scrollAria')"), 'High Scores accessibility copy must expose localized ten-row pagination');
 
 for (const marker of ['INTRO_BOARD_MIN_PX = 64','INTRO_BOARD_MAX_PX = 420','INTRO_SHARE_RESERVE_PX = 54','fitIntroBoardHeight','setupIntroFit','--rwg-lb-fit-height','window.visualViewport?.height','window.visualViewport?.addEventListener','ResizeObserver','fitMutationObserver.observe(panel']) {
   must(infinite.includes(marker), `dynamic intro High Scores viewport fitting missing ${marker}`);

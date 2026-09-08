@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (!document.body?.hasAttribute('data-rwg-game') || window.RWGLeaderboardInfinite) return;
 
   const API_ROOT = '/api/leaderboards/v1';
@@ -14,7 +16,7 @@
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
   const normalizeVariant = value => /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(value || '').trim().toLowerCase()) ? String(value).trim().toLowerCase() : 'default';
   let currentVariantSlug = normalizeVariant(document.body.dataset.rwgLeaderboardVariant);
-  const formatNumber = value => Number(value || 0).toLocaleString('it-IT');
+  const formatNumber = value => window.RWGI18n.number(value);
   let board = null;
   let list = null;
   let status = null;
@@ -95,11 +97,11 @@
     if (row.isCurrent) li.classList.add('is-current');
     li.dataset.runId = row.runId || '';
     const rank = document.createElement('span'); rank.className = 'rwg-lb-rank'; rank.textContent = `#${row.position}`;
-    const name = document.createElement('strong'); name.className = 'rwg-lb-name'; name.textContent = row.nickname || 'PLAYER';
+    const name = document.createElement('strong'); name.className = 'rwg-lb-name'; name.textContent = row.nickname || t('leaderboard.player');
     const score = document.createElement('b'); score.className = 'rwg-lb-score'; score.textContent = resultText(row);
     li.append(rank, name, score);
     if (Number(row.continueCount) > 0) {
-      const used = document.createElement('small'); used.textContent = `CONTINUE ×${row.continueCount}`; li.appendChild(used);
+      const used = document.createElement('small'); used.textContent = t('leaderboard.continue', { count: row.continueCount }); li.appendChild(used);
     }
     fragment.appendChild(li);
   }
@@ -112,18 +114,18 @@
     if (!rows.length && !loading) {
       const empty = document.createElement('li');
       empty.className = 'rwg-lb-loading';
-      empty.textContent = 'NESSUN RECORD • INAUGURA LA CLASSIFICA!';
+      empty.textContent = t('leaderboard.empty');
       fragment.appendChild(empty);
     }
     if (loading) {
       const more = document.createElement('li');
       more.className = 'rwg-lb-more';
-      more.textContent = rows.length ? 'CARICAMENTO ALTRI RECORD…' : 'CONNESSIONE AL CABINATO…';
+      more.textContent = rows.length ? t('leaderboard.loadMore') : t('leaderboard.connecting');
       fragment.appendChild(more);
     } else if (pagination.hasMore) {
       const more = document.createElement('li');
       more.className = 'rwg-lb-more';
-      more.textContent = '↓ SCORRI PER ALTRI HIGH SCORES';
+      more.textContent = t('leaderboard.scrollMore');
       fragment.appendChild(more);
     }
     list.replaceChildren(fragment);
@@ -131,7 +133,7 @@
     const total = Math.max(shown, Number(pagination.total || 0));
     if (status) {
       status.textContent = total
-        ? `${shown.toLocaleString('it-IT')} DI ${total.toLocaleString('it-IT')}${pagination.hasMore ? ' • SCORRI PER CONTINUARE' : ' • TUTTI I RECORD'}`
+        ? `${window.RWGI18n.number(shown)} DI ${window.RWGI18n.number(total)}${pagination.hasMore ? ' • ' + t('leaderboard.scrollContinue') : ' • ' + t('leaderboard.allRecords')}`
         : '';
     }
     scheduleIntroFit();
@@ -213,7 +215,7 @@
       });
     } catch (error) {
       if (error?.name !== 'AbortError') {
-        if (!rows.length && status) status.textContent = 'HIGH SCORES NON DISPONIBILI • RIPROVA';
+        if (!rows.length && status) status.textContent = t('leaderboard.highScoresUnavailable');
         track('leaderboard_load_error', { error_type: 'infinite_page' });
       }
     } finally {
@@ -245,11 +247,11 @@
     if (!list || !status) return;
     owned = true;
     board.dataset.rwgInfinite = 'true';
-    board.setAttribute('aria-label', `High Scores ${gameSlug}`);
+    board.setAttribute('aria-label', t('leaderboard.highScoresFor', { game: gameSlug }));
     const heading = board.querySelector('.rwg-lb-heading span');
-    if (heading) heading.textContent = '🏆 HIGH SCORES';
+    if (heading) heading.textContent = t('leaderboard.highScores');
     list.setAttribute('tabindex', '0');
-    list.setAttribute('aria-label', 'High Scores scorrevoli. Carica 10 posizioni alla volta.');
+    list.setAttribute('aria-label', t('leaderboard.scrollAria'));
     enableEndless();
     setupIntroFit();
     retryButton?.addEventListener('click', event => {

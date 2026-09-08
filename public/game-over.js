@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (!document.body?.hasAttribute('data-rwg-game')) return;
   if (document.querySelector('.rwg-game-over-layer')) return;
 
@@ -60,10 +62,10 @@
   const intro = document.createElement('section');
   intro.className = 'rwg-game-over-intro';
   intro.hidden = true;
-  intro.setAttribute('aria-label', 'Game over');
+  intro.setAttribute('aria-label', t('gameOver.aria'));
   intro.innerHTML = `
     <div class="rwg-game-over-stamp" aria-hidden="true">GAME OVER</div>
-    <div class="rwg-game-over-skip">TOCCA PER CONTINUARE</div>`;
+    <div class="rwg-game-over-skip">${t('gameOver.skip')}</div>`;
   document.body.appendChild(intro);
 
   const layer = document.createElement('section');
@@ -76,42 +78,42 @@
     <div class="rwg-game-over-card">
       <div class="rwg-game-over-topline">
         <div class="rwg-game-over-brand">RETROWEBGAMES</div>
-        <p class="rwg-game-over-kicker">PARTITA TERMINATA</p>
+        <p class="rwg-game-over-kicker">${t('gameOver.ended')}</p>
       </div>
       <h2 id="rwgGameOverTitle"></h2>
       <p class="rwg-game-over-scoreline"></p>
 
-      <div class="rwg-game-over-stats" aria-label="Riepilogo partita"></div>
+      <div class="rwg-game-over-stats" aria-label="${t('gameOver.summary')}"></div>
 
       <section class="rwg-achievements" hidden>
-        <div class="rwg-section-title">ACHIEVEMENTS</div>
-        <div class="rwg-achievement-viewport" tabindex="0" aria-label="Achievement ottenuti">
+        <div class="rwg-section-title">${t('gameOver.achievements')}</div>
+        <div class="rwg-achievement-viewport" tabindex="0" aria-label="${t('gameOver.achievementsAria')}">
           <div class="rwg-achievement-list"></div>
         </div>
       </section>
 
       <section class="rwg-challenge-box">
-        <div class="rwg-share-prompt">Condividi il tuo risultato!</div>
+        <div class="rwg-share-prompt">${t('share.result')}</div>
         <div class="rwg-game-over-share">
-          <a data-go-share="whatsapp" class="rwg-go-share rwg-go-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="Condividi su WhatsApp">${icons.whatsapp}</a>
-          <a data-go-share="facebook" class="rwg-go-share rwg-go-facebook" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Facebook">${icons.facebook}</a>
-          <a data-go-share="x" class="rwg-go-share rwg-go-x" target="_blank" rel="noopener noreferrer" aria-label="Condividi su X">${icons.x}</a>
-          <a data-go-share="telegram" class="rwg-go-share rwg-go-telegram" target="_blank" rel="noopener noreferrer" aria-label="Condividi su Telegram">${icons.telegram}</a>
-          <button data-go-share="more" class="rwg-go-share rwg-go-more" type="button" aria-label="Altre opzioni di condivisione">${icons.more}</button>
+          <a data-go-share="whatsapp" class="rwg-go-share rwg-go-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="${t('share.whatsapp')}">${icons.whatsapp}</a>
+          <a data-go-share="facebook" class="rwg-go-share rwg-go-facebook" target="_blank" rel="noopener noreferrer" aria-label="${t('share.facebook')}">${icons.facebook}</a>
+          <a data-go-share="x" class="rwg-go-share rwg-go-x" target="_blank" rel="noopener noreferrer" aria-label="${t('share.x')}">${icons.x}</a>
+          <a data-go-share="telegram" class="rwg-go-share rwg-go-telegram" target="_blank" rel="noopener noreferrer" aria-label="${t('share.telegram')}">${icons.telegram}</a>
+          <button data-go-share="more" class="rwg-go-share rwg-go-more" type="button" aria-label="${t('share.more')}">${icons.more}</button>
         </div>
       </section>
 
-      <section class="rwg-credits-slot" data-rwg-credits-slot hidden aria-label="Acquista crediti"></section>
+      <section class="rwg-credits-slot" data-rwg-credits-slot hidden aria-label="${t('gameOver.credits')}"></section>
 
       <div class="rwg-continue-box">
         <button class="rwg-continue-credit" type="button">
-          <span>Continua con 1</span>${coinSvg()}
+          <span>${t('gameOver.continue')}</span>${coinSvg()}
         </button>
       </div>
 
       <div class="rwg-game-over-actions">
-        <button class="rwg-play-again" type="button">Nuova partita</button>
-        <a class="rwg-back-games" href="${HOME_URL}">Scegli un altro gioco</a>
+        <button class="rwg-play-again" type="button">${t('gameOver.newGame')}</button>
+        <a class="rwg-back-games" href="${HOME_URL}">${t('gameOver.chooseGame')}</a>
       </div>
       <div class="rwg-game-over-credit">Made with 💙 by Francesco Poltero</div>
     </div>`;
@@ -134,13 +136,8 @@
     return Number.isFinite(n) ? n : fallback;
   };
 
-  const formatNumber = n => Number(n || 0).toLocaleString('it-IT');
-  const formatDuration = ms => {
-    const total = Math.max(0, Math.round(ms / 1000));
-    const min = Math.floor(total / 60);
-    const sec = total % 60;
-    return min ? `${min}:${String(sec).padStart(2, '0')}` : `${sec}s`;
-  };
+  const formatNumber = n => window.RWGI18n.number(n);
+  const formatDuration = ms => window.RWGI18n.duration(ms);
 
   const getScore = () => {
     const score = document.getElementById('score');
@@ -280,18 +277,18 @@
 
   startBtn.addEventListener('click', () => {
     const label = startBtn.textContent.trim().toUpperCase();
-    if (label === 'GIOCA' || label === 'RIGIOCA') beginSession();
+    if (label === t('core.play') || label === t('core.replay')) beginSession();
   }, true);
 
   const achievementDefinitions = stats => [
-    { id: 'record', label: 'Nuovo record', icon: '★', earned: stats.best > startingBest && stats.best > 0 },
-    { id: '1k', label: 'Quota 1.000', icon: '⚡', earned: stats.score >= 1000 },
-    { id: '5k', label: 'Quota 5.000', icon: '◆', earned: stats.score >= 5000 },
-    { id: 'level3', label: 'Livello 3+', icon: '▲', earned: stats.level >= 3 },
-    { id: 'marathon', label: '3 minuti', icon: '◷', earned: stats.activeMs >= 180000 },
-    { id: 'combo5', label: 'Combo ×5', icon: '✦', earned: maxCombo >= 5 },
-    { id: 'lines10', label: '10 linee', icon: '▦', earned: stats.lines >= 10 },
-    { id: 'rally10', label: 'Rally 10+', icon: '↔', earned: maxRally >= 10 }
+    { id: 'record', label: t('gameOver.achievementRecord'), icon: '★', earned: stats.best > startingBest && stats.best > 0 },
+    { id: '1k', label: t('gameOver.achievement1k'), icon: '⚡', earned: stats.score >= 1000 },
+    { id: '5k', label: t('gameOver.achievement5k'), icon: '◆', earned: stats.score >= 5000 },
+    { id: 'level3', label: t('gameOver.achievementLevel3'), icon: '▲', earned: stats.level >= 3 },
+    { id: 'marathon', label: t('gameOver.achievementMarathon'), icon: '◷', earned: stats.activeMs >= 180000 },
+    { id: 'combo5', label: t('gameOver.achievementCombo5'), icon: '✦', earned: maxCombo >= 5 },
+    { id: 'lines10', label: t('gameOver.achievementLines10'), icon: '▦', earned: stats.lines >= 10 },
+    { id: 'rally10', label: t('gameOver.achievementRally10'), icon: '↔', earned: maxRally >= 10 }
   ];
 
   const getAchievements = stats => {
@@ -342,12 +339,12 @@
 
   const shareTextFor = stats => {
     const base = document.getElementById('playerScore')
-      ? `Ho chiuso ${stats.playerScore}–${stats.cpuScore} su ${gameName}! Tu riesci a fare di meglio?`
-      : `Ho realizzato ${formatNumber(stats.score)} punti su ${gameName}! Tu riesci a fare di meglio?`;
+      ? t('gameOver.shareMatch', { player: stats.playerScore, cpu: stats.cpuScore, game: gameName })
+      : t('gameOver.shareScore', { score: formatNumber(stats.score), game: gameName });
     if (!stats.continueCount) return base;
     const suffix = stats.continueCount === 1
-      ? ' Ho usato 1 continuazione.'
-      : ` Ho usato ${stats.continueCount} continuazioni.`;
+      ? t('gameOver.continueOne')
+      : t('gameOver.continueMany', { count: stats.continueCount });
     return base + suffix;
   };
 
@@ -372,16 +369,16 @@
 
     titleEl.textContent = gameName;
     scorelineEl.innerHTML = hasMatchScore
-      ? `<strong>${stats.playerScore}–${stats.cpuScore}</strong> risultato`
-      : `<strong>${formatNumber(stats.score)}</strong> punti`;
+      ? `<strong>${stats.playerScore}–${stats.cpuScore}</strong> ${t('gameOver.result').toLowerCase()}`
+      : `<strong>${formatNumber(stats.score)}</strong> ${t('gameOver.points').toLowerCase()}`;
 
     const metrics = [
-      hasMatchScore ? metric('Risultato', `${stats.playerScore}–${stats.cpuScore}`, true) : metric('Punti', formatNumber(stats.score), true),
-      stats.levelsCleared !== null ? metric('Livelli superati', stats.levelsCleared) : '',
-      stats.lines > 0 ? metric('Linee', stats.lines) : '',
-      stats.continueCount > 0 ? metric('Continue usati', stats.continueCount) : '',
-      metric('Tempo', formatDuration(stats.activeMs)),
-      metric(hasMatchScore ? 'Best rally' : 'Record', formatNumber(stats.best))
+      hasMatchScore ? metric(t('gameOver.result'), `${stats.playerScore}–${stats.cpuScore}`, true) : metric(t('gameOver.points'), formatNumber(stats.score), true),
+      stats.levelsCleared !== null ? metric(t('gameOver.levelsCleared'), stats.levelsCleared) : '',
+      stats.lines > 0 ? metric(t('gameOver.lines'), stats.lines) : '',
+      stats.continueCount > 0 ? metric(t('gameOver.continuesUsed'), stats.continueCount) : '',
+      metric(t('gameOver.time'), formatDuration(stats.activeMs)),
+      metric(hasMatchScore ? t('gameOver.bestRally') : t('gameOver.record'), formatNumber(stats.best))
     ].filter(Boolean);
     statsEl.innerHTML = metrics.join('');
 
@@ -391,7 +388,7 @@
       achievements.forEach(item => {
         const chip = document.createElement('span');
         chip.className = `rwg-achievement${item.isNew ? ' is-new' : ''}`;
-        chip.innerHTML = `<i>${item.icon}</i><b>${item.label}</b>${item.isNew ? '<em>NEW</em>' : ''}`;
+        chip.innerHTML = `<i>${item.icon}</i><b>${item.label}</b>${item.isNew ? `<em>${t('gameOver.newBadge')}</em>` : ''}`;
         achievementsEl.appendChild(chip);
       });
     } else {
@@ -460,7 +457,7 @@
 
   const checkGameOver = () => {
     const label = startBtn.textContent.trim().toUpperCase();
-    if (!isOverlayVisible() || label !== 'RIGIOCA' || summaryShown || introRunning) return;
+    if (!isOverlayVisible() || label !== t('core.replay') || summaryShown || introRunning) return;
     ensureSession({});
     showSummary();
   };
@@ -538,10 +535,10 @@
     try {
       await navigator.clipboard.writeText(`${text} ${canonical}`);
       moreShare.classList.add('is-copied');
-      moreShare.setAttribute('aria-label', 'Link copiato');
+      moreShare.setAttribute('aria-label', t('share.copied'));
       setTimeout(() => {
         moreShare.classList.remove('is-copied');
-        moreShare.setAttribute('aria-label', 'Altre opzioni di condivisione');
+        moreShare.setAttribute('aria-label', t('share.more'));
       }, 1500);
     } catch (_) {
       window.location.href = `mailto:?subject=${q(`${gameName} — RetroWebGames`)}&body=${q(`${text}\n\n${canonical}`)}`;

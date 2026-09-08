@@ -74,7 +74,7 @@ Credit Continue is distinct from free unfinished-session restore. It revives the
 
 The accepted five-locale contract is documented in `I18N-ARCHITECTURE.md`. Italian remains unprefixed; EN/DE/FR/ES use path prefixes. Route locale controls presentation, while profile, credits, avatar, resumable sessions, game/variant IDs, achievements, run IDs and global leaderboard data remain language-neutral.
 
-Catalogs use stable semantic namespaces and named placeholders. Translated text is rendered at the edge and never persisted in authoritative game state. Astro static output is a gated build-time candidate only: game engines, shared lifecycle ordering, Fastify and Nginx ownership remain unchanged. `scripts/validate-i18n.mjs` is part of the repository-wide contract from I18N-0 onward.
+Catalogs use stable semantic namespaces and named placeholders. Translated text is rendered at the edge and never persisted in authoritative game state. Astro static output passed the I18N-1 gate and is the accepted staged build-time generator; game engines, shared lifecycle ordering, Fastify and Nginx ownership remain unchanged. I18N-2 adds the synchronous classic-script `RWGI18n` presentation edge, generated from the Italian source catalog before shared/game bootstrap. `scripts/validate-i18n.mjs` is part of the repository-wide contract and incomplete locales remain non-publishable.
 
 ## Orientation
 Orientation guard may pause through the same `#pauseBtn` contract and resume with the shared countdown. It must never create another pause UI or mark the run terminal.

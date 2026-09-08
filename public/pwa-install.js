@@ -3,7 +3,8 @@
 
   const NOTICE_KEY = 'rwg.pwa.install.notice.v1';
   const INSTALL_SELECTOR = '[data-pwa-install]';
-  const IOS_GUIDANCE = 'Su iPhone o iPad: tocca Condividi ⤴︎, poi “Aggiungi alla schermata Home”.';
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+  const IOS_GUIDANCE = t('pwa.iosGuidance');
   let deferredPrompt = null;
 
   function isStandalone() {
@@ -86,7 +87,7 @@
       return;
     }
 
-    setGuidance('Apri il menu del browser e scegli “Installa app” o “Aggiungi alla schermata Home”.');
+    setGuidance(t('pwa.browserGuidance'));
     track('browser_guidance', 'shown');
   }
 

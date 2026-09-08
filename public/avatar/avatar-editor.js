@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   const A = window.RWGAvatar;
   const P = window.RWGProfile;
   if (!A) return;
@@ -16,15 +18,15 @@
   const summary = document.getElementById('loadoutSummary');
 
   const labels = {
-    bodyStyle: { classic:'CLASSIC', slim:'SLIM', strong:'POWER' },
-    faceStyle: { smile:'SMILE', grin:'GRIN', cool:'COOL', serious:'SERIOUS', cheeky:'CHEEKY', focus:'FOCUS' },
-    hairStyle: { short:'SHORT', spikes:'SPIKES', bob:'BOB', mohawk:'MOHAWK', buzz:'BUZZ', curly:'CURLY' },
-    topStyle: { tee:'T-SHIRT', hoodie:'HOODIE', jacket:'JACKET', jersey:'JERSEY' },
-    bottomStyle: { jeans:'JEANS', shorts:'SHORTS', joggers:'JOGGERS', cargo:'CARGO' },
-    eyewear: { none:'NESSUNO', glasses:'GLASSES', visor:'NEON VISOR' },
-    headgear: { none:'NESSUNO', cap:'CAP', headphones:'HEADSET', crown:'ARCADE CROWN' },
-    emblem: { none:'NESSUNO', bolt:'BOLT', star:'STAR', pixel:'PIXEL', shield:'SHIELD' },
-    aura: { cyan:'CYAN', magenta:'MAGENTA', gold:'GOLD', green:'GREEN', violet:'VIOLET' }
+    bodyStyle: { classic:t("avatar.classic"), slim:t("avatar.slim"), strong:t("avatar.power") },
+    faceStyle: { smile:t("avatar.smile"), grin:t("avatar.grin"), cool:t("avatar.cool"), serious:t("avatar.serious"), cheeky:t("avatar.cheeky"), focus:t("avatar.focus") },
+    hairStyle: { short:t("avatar.short"), spikes:t("avatar.spikes"), bob:t("avatar.bob"), mohawk:t("avatar.mohawk"), buzz:t("avatar.buzz"), curly:t("avatar.curly") },
+    topStyle: { tee:t("avatar.tshirt"), hoodie:t("avatar.hoodie"), jacket:t("avatar.jacket"), jersey:t("avatar.jersey") },
+    bottomStyle: { jeans:t("avatar.jeans"), shorts:t("avatar.shorts"), joggers:t("avatar.joggers"), cargo:t("avatar.cargo") },
+    eyewear: { none:t("avatar.none"), glasses:t("avatar.glasses"), visor:t("avatar.visor") },
+    headgear: { none:t("avatar.none"), cap:t("avatar.cap"), headphones:t("avatar.headset"), crown:t("avatar.crown") },
+    emblem: { none:t("avatar.none"), bolt:t("avatar.bolt"), star:t("avatar.star"), pixel:t("avatar.pixel"), shield:t("avatar.shield") },
+    aura: { cyan:t("avatar.cyan"), magenta:t("avatar.magenta"), gold:t("avatar.gold"), green:t("avatar.green"), violet:t("avatar.violet") }
   };
 
   const auraColors = { cyan:'#65e7ff', magenta:'#ff5ecf', gold:'#ffe45b', green:'#7cffb2', violet:'#9a78ff' };
@@ -134,7 +136,7 @@
 
   function setDirtyState() {
     const dirty = isDirty();
-    status.textContent = dirty ? 'MODIFICHE NON SALVATE' : 'SALVATO';
+    status.textContent = dirty ? t('avatar.unsaved') : t('avatar.saved');
     status.style.color = dirty ? '#ffe45b' : '';
     saveBtn.classList.toggle('is-dirty', dirty);
     restoreBtn.disabled = !dirty;
@@ -221,8 +223,8 @@
     draft = A.save(draft, { reason: 'editor-v2' });
     saved = A.get();
     render();
-    saveBtn.textContent = 'PLAYER SALVATO ✓';
-    setTimeout(() => { saveBtn.textContent = 'SALVA PLAYER'; }, 1200);
+    saveBtn.textContent = t('avatar.savedPlayer');
+    setTimeout(() => { saveBtn.textContent = t('avatar.savePlayer'); }, 1200);
   });
 
   resetViewBtn.addEventListener('click', () => {
@@ -253,7 +255,7 @@
   stage.addEventListener('pointerup', stopPointer);
   stage.addEventListener('pointercancel', stopPointer);
 
-  avatarId.textContent = `PLAYER ${String(P?.getFingerprint?.() || '').replace('rwg_','').slice(0,18).toUpperCase()}`;
+  avatarId.textContent = t('avatar.playerId', { id: String(P?.getFingerprint?.() || '').replace('rwg_','').slice(0,18).toUpperCase() });
   buildControls();
   setupTabs();
   activateTab('body');

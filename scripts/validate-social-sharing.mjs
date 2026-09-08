@@ -110,7 +110,7 @@ const introShareCss=read('rwg-intro-share.css');
 for(const rel of gamePages) must(read(rel).includes('../../game-hud.js'),rel+': shared game-hud.js is required for automatic intro social controls');
 must(hud.includes('rwg-intro-share.js')&&hud.includes('rwg-intro-share.css')&&hud.includes('loadIntroShare();'),'game-hud.js must automatically bootstrap shared intro social controls');
 must(introShare.includes("['whatsapp', 'facebook', 'x', 'telegram', 'linkedin']"),'Intro sharing must expose exactly the intended five social networks');
-for(const network of ['WhatsApp','Facebook','X','Telegram','LinkedIn']) must(introShare.includes('Condividi su '+network),'Intro sharing missing accessible '+network+' action');
+for(const key of ['whatsapp','facebook','x','telegram','linkedin']) must(introShare.includes(`t('share.${key}')`),'Intro sharing missing localized accessible '+key+' action');
 must(introShare.includes("link[rel=\"canonical\"]")||introShare.includes("link[rel='canonical']"),'Intro sharing must share the page canonical URL');
 must(introShare.includes('hint.after(row)')&&introShare.includes('panel.appendChild(row)'),'Intro sharing must render at the bottom of the game intro panel');
 must(introShare.includes("startBtn.addEventListener('click', dismiss")&&introShare.includes("!overlay.classList.contains('visible')"),'Intro sharing must disappear permanently after gameplay starts/resumes');

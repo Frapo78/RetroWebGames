@@ -31,9 +31,9 @@ Primary files:
 - `rwg-profile.js`, `rwg-avatar.js`, avatar editor;
 - share, PWA install, common dock and virtual joystick scripts.
 
-Inventory includes buttons, modal headings/copy, errors, status/live announcements, score labels, resume descriptions and accessibility labels. These become the I18N-2 namespaces `core`, `pause`, `session`, `gameOver`, `leaderboard`, `profile`, `avatar`, `orientation`, `share` and `pwa`.
+Inventory includes buttons, modal headings/copy, errors, status/live announcements, score labels, resume descriptions and accessibility labels. These are implemented by the I18N-2 namespaces `core`, `pause`, `session`, `gameOver`, `leaderboard`, `profile`, `avatar`, `orientation`, `share` and `pwa`.
 
-Shared runtime currently contains explicit `it-IT` and `toLocaleString` calls, notably leaderboard, Game Over and pause formatting. These are extraction targets, not defects to change in I18N-0.
+Shared runtime currently contains explicit `it-IT` and `toLocaleString` calls, notably leaderboard, Game Over and pause formatting. I18N-2 routes shared leaderboard, Game Over and pause formatting through `RWGI18n`; game-specific formatter extraction remains part of later game namespace work.
 
 ## Game runtime
 

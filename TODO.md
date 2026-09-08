@@ -989,7 +989,7 @@ L'obiettivo non è "avere più classi". L'obiettivo è ottenere motori **più ve
 
 # 20. Internazionalizzazione EN / IT / DE / FR / ES
 
-Stato: **I18N-0 e I18N-1 completati; I18N-2 prossimo**.
+Stato: **I18N-0, I18N-1 e I18N-2 completati; I18N-3 prossimo**.
 
 Priorità: P1. Esecuzione incrementale, senza big-bang e senza riscrivere i motori di gioco.
 
@@ -1240,14 +1240,16 @@ Gate: output equivalente e decisione definitiva Astro sì/no.
 
 Estrarre le stringhe italiane, senza aggiungere nuove lingue, da:
 
-- [ ] Game Over;
-- [ ] pausa e doppia conferma;
-- [ ] resume session;
-- [ ] leaderboard e nickname;
-- [ ] profile/credits/avatar;
-- [ ] common dock, share e orientation;
-- [ ] PWA install;
-- [ ] home shell.
+- [x] Game Over;
+- [x] pausa e doppia conferma;
+- [x] resume session;
+- [x] leaderboard e nickname;
+- [x] profile/credits/avatar;
+- [x] common dock, share e orientation;
+- [x] PWA install;
+- [x] home shell.
+
+Esito: **PASS**. Evidenze, budget e rollback in `docs/I18N-SHARED-ITALIAN.md`. Nessun deploy parziale eseguito.
 
 Gate: UI italiana visivamente identica, zero chiavi mancanti, bootstrap entro budget.
 

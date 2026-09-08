@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "prepare:astro-poc": "node scripts/prepare-astro-poc.mjs",
-    "build:astro-poc": "npm run prepare:astro-poc && astro build && node scripts/finalize-astro-poc.mjs",
-    "validate:astro-poc": "node scripts/validate-astro-poc.mjs"
+    "build:astro-poc": "npm run build:i18n && npm run prepare:astro-poc && astro build && node scripts/finalize-astro-poc.mjs",
+    "validate:astro-poc": "node scripts/validate-astro-poc.mjs",
+    "build:i18n": "node scripts/build-i18n.mjs"
   },
   "devDependencies": {
     "@astrojs/sitemap": "3.7.4",

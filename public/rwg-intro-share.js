@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  const t = (key, params = {}) => window.RWGI18n.t(key, params);
+
   if (!document.body?.hasAttribute('data-rwg-game')) return;
   if (document.querySelector('.rwg-intro-share')) return;
 
@@ -11,7 +13,7 @@
 
   const canonical = document.querySelector('link[rel="canonical"]')?.href || window.location.href;
   const gameName = (document.title.split('—')[0] || 'RetroWebGames').trim();
-  const shareText = `🎮 Sto giocando a ${gameName} su RetroWebGames. Provalo anche tu!`;
+  const shareText = t('share.inviteGame', { game: gameName });
   const q = encodeURIComponent;
 
   const icons = Object.freeze({
@@ -31,16 +33,16 @@
   });
 
   const labels = Object.freeze({
-    whatsapp: 'Condividi su WhatsApp',
-    facebook: 'Condividi su Facebook',
-    x: 'Condividi su X',
-    telegram: 'Condividi su Telegram',
-    linkedin: 'Condividi su LinkedIn'
+    whatsapp: t('share.whatsapp'),
+    facebook: t('share.facebook'),
+    x: t('share.x'),
+    telegram: t('share.telegram'),
+    linkedin: t('share.linkedin')
   });
 
   const row = document.createElement('nav');
   row.className = 'rwg-intro-share';
-  row.setAttribute('aria-label', `Condividi ${gameName}`);
+  row.setAttribute('aria-label', t('share.game', { game: gameName }));
 
   for (const network of ['whatsapp', 'facebook', 'x', 'telegram', 'linkedin']) {
     const link = document.createElement('a');
