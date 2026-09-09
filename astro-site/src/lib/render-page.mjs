@@ -164,11 +164,18 @@ function localizeNavigation(html,page,locale){
   const enHref=`/en${suffix}`;
   const esHref=`/es${suffix}`;
   html=html.replace(/<nav class="rwg-language-switcher"[\s\S]*?<\/nav>/,`<nav class="rwg-language-switcher" aria-label="Language"><a href="${itHref}" data-rwg-language="it"${locale==='it'?' aria-current="page"':''}>IT</a><a href="${enHref}" data-rwg-language="en"${locale==='en'?' aria-current="page"':''}>EN</a><a href="${esHref}" data-rwg-language="es"${locale==='es'?' aria-current="page"':''}>ES</a></nav>`);
-  if(locale!=='it'){
-    html=html.replace(/(<a\b[^>]*\bhref=")https:\/\/www\.retrowebgames\.it\/("[^>]*>)/g,`$1/en/$2`);
-    html=html.replace(/(<a\b[^>]*\bhref=")\/("[^>]*>)/g,`$1/en/$2`);
-    if(locale==='es')html=html.replace(/href="\/en\//g,'href="/es/');
-  }
+  html=html.replace(/<a\b[^>]*>/g,anchor=>{
+    for(const targetPage of PAGES){
+      const targetSuffix=targetPage.route?`/${targetPage.route}/`:'/';
+      const localized=locale==='it'?targetSuffix:`/${locale}${targetSuffix}`;
+      for(const sourceLocale of ['it','en','es']){
+        const source=sourceLocale==='it'?targetSuffix:`/${sourceLocale}${targetSuffix}`;
+        anchor=replaceAll(anchor,`href="${ORIGIN}${source}"`,`href="${ORIGIN}${localized}"`);
+        anchor=replaceAll(anchor,`href="${source}"`,`href="${localized}"`);
+      }
+    }
+    return anchor;
+  });
   html=html.replace(/<nav class="rwg-language-switcher"[\s\S]*?<\/nav>/,`<nav class="rwg-language-switcher" aria-label="Language"><a href="${itHref}" data-rwg-language="it"${locale==='it'?' aria-current="page"':''}>IT</a><a href="${enHref}" data-rwg-language="en"${locale==='en'?' aria-current="page"':''}>EN</a><a href="${esHref}" data-rwg-language="es"${locale==='es'?' aria-current="page"':''}>ES</a></nav>`);
   return html;
 }
@@ -219,9 +226,5 @@ export function renderPage(pageId,locale){
   html=localizeNavigation(html,page,locale);
   html=replaceAll(html,'loadoutUpmmary','loadoutSummary');
   html=replaceAll(html,'loadoutArribammary','loadoutSummary');
-  if(locale!=='it'&&page.id==='home'){
-    for(const game of PAGES.filter(item=>item.route.startsWith('games/'))) html=replaceAll(html,`href="/${game.route}/"`,`href="/en/${game.route}/"`);
-    if(locale==='es')html=html.replace(/href="\/en\/games\//g,'href="/es/games/');
-  }
   return html;
 }

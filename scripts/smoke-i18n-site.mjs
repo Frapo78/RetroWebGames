@@ -50,6 +50,17 @@ for(const viewport of viewports){
         const residual=visible.match(/\b(partita|livello|punti|pausa|nuova|completata|torna|gioca|vite|frecce|tastiera|consigliato|pietra|scegli|carte|tempo)\b/i);
         if(residual)errors.push(`Italian fallback: ${residual[0]}`);
       }
+      if(route==='/'||route==='/en/'||route==='/es/'){
+        const expectedGamePath=expectedLocale==='it'?'/games/star-swarm/':`/${expectedLocale}/games/star-swarm/`;
+        const firstGame=page.locator('.game-card').first();
+        const href=await firstGame.getAttribute('href');
+        if(new URL(href,page.url()).pathname!==expectedGamePath)errors.push(`home game href ${href}, expected ${expectedGamePath}`);
+        else{
+          await firstGame.click();
+          await page.waitForURL(url=>url.pathname===expectedGamePath,{timeout:5000});
+          if(await page.locator('html').getAttribute('lang')!==expectedLocale)errors.push('locale changed after Home game click');
+        }
+      }
     }catch(error){errors.push(error.message);}
     if(errors.length)failures.push(`${viewport.name} ${route}: ${[...new Set(errors)].join(' | ')}`);
     await context.close();
