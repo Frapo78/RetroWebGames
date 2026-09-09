@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import process from 'node:process';
-import { LEADERBOARD_SCOPES } from '../server/leaderboards/ranking.js';
+import { LEADERBOARD_SCOPES, normalizeScoringScope } from '../server/leaderboards/ranking.js';
 
 const base = String(process.argv[2] || 'https://www.retrowebgames.it/api/leaderboards/v1').replace(/\/$/, '');
 const PAGE_SIZE = 10;
 const fail = message => { throw new Error(message); };
 
 async function page(game, variant, offset) {
-  const response = await fetch(`${base}/games/${encodeURIComponent(game)}?variant=${encodeURIComponent(variant)}&limit=${PAGE_SIZE}&offset=${offset}`, {
+  const scoring = normalizeScoringScope(game, variant);
+  const response = await fetch(`${base}/games/${encodeURIComponent(game)}?variant=${encodeURIComponent(variant)}&season=${encodeURIComponent(scoring.seasonSlug)}&limit=${PAGE_SIZE}&offset=${offset}`, {
     headers: { Accept: 'application/json' }
   });
   if (!response.ok) fail(`${game}: HTTP ${response.status} at offset ${offset}`);
@@ -18,8 +19,14 @@ async function page(game, variant, offset) {
   if (Number(pagination.limit) !== PAGE_SIZE) fail(`${game}: pagination.limit must be ${PAGE_SIZE}`);
   if (Number(pagination.offset) !== offset) fail(`${game}: requested offset ${offset}, received ${pagination.offset}`);
   if (rows.length > PAGE_SIZE) fail(`${game}: page contains ${rows.length} rows`);
+  if (Number(data.scoreVersion) !== scoring.scoreVersion || data.seasonSlug !== scoring.seasonSlug) fail(`${game}: scoring scope mismatch`);
   return { rows, pagination, variantSlug: data.variantSlug };
 }
+
+const catalogResponse = await fetch(base + '/catalog', { headers: { Accept: 'application/json' } });
+if (!catalogResponse.ok) fail('catalog: HTTP ' + catalogResponse.status);
+const catalog = await catalogResponse.json();
+if (Number(catalog.schemaVersion) !== 1 || !Array.isArray(catalog.scopes) || catalog.scopes.length !== LEADERBOARD_SCOPES.length) fail('catalog: invalid scoring scope payload');
 
 for (const { gameSlug: game, variantSlug: variant } of LEADERBOARD_SCOPES) {
   const first = await page(game, variant, 0);

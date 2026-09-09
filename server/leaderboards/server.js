@@ -2,7 +2,10 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import mysql from 'mysql2/promise';
 import { randomUUID } from 'node:crypto';
-import { GAMES, normalizeLeaderboardPage, normalizeRun, normalizeVariantSlug, ORDER_SQL } from './ranking.js';
+import {
+  GAMES, LEADERBOARD_VARIANTS, normalizeLeaderboardPage, normalizeRun,
+  normalizeScoringScope, normalizeVariantSlug, ORDER_SQL, scoringCatalog
+} from './ranking.js';
 
 const port = Number(process.env.RWG_LEADERBOARD_PORT || 3112);
 const host = process.env.RWG_LEADERBOARD_HOST || '127.0.0.1';
@@ -43,18 +46,27 @@ async function ensurePlayer(id) {
 function publicRow(row, playerId) {
   return {
     position: Number(row.position), runId: row.id, variantSlug: row.variant_slug, nickname: row.nickname, score: Number(row.score),
+    scoreVersion: Number(row.score_version), seasonSlug: row.season_slug,
     level: Number(row.level_no), continueCount: Number(row.continue_count), resultLabel: row.result_label || '',
     achievementsCount: Number(row.achievements_count || 0), playedAt: row.server_updated_at,
     isCurrent: row.player_id === playerId
   };
 }
-async function leaderboard(gameSlug, variantSlug, playerId, page = {}, { aggregateVariants = false } = {}) {
+function seasonFilters(gameSlug, variantSlug, { aggregateVariants = false, seasonSlug = '' } = {}) {
+  const variants = aggregateVariants ? LEADERBOARD_VARIANTS[gameSlug].variants : [variantSlug];
+  return variants.map(currentVariant => {
+    const scoring = normalizeScoringScope(gameSlug, currentVariant, undefined, seasonSlug || undefined);
+    return { variantSlug: currentVariant, ...scoring };
+  });
+}
+async function leaderboard(gameSlug, variantSlug, playerId, page = {}, { aggregateVariants = false, seasonSlug = '' } = {}) {
   const { limit, offset } = normalizeLeaderboardPage(page, { limit: 10 });
   const end = offset + limit;
-  const scopeWhere = aggregateVariants ? 'game_slug=?' : 'game_slug=? AND variant_slug=?';
-  const scopeParams = aggregateVariants ? [gameSlug] : [gameSlug, variantSlug];
+  const filters = seasonFilters(gameSlug, variantSlug, { aggregateVariants, seasonSlug });
+  const scopeWhere = 'game_slug=? AND (' + filters.map(() => '(variant_slug=? AND season_slug=?)').join(' OR ') + ')';
+  const scopeParams = [gameSlug, ...filters.flatMap(filter => [filter.variantSlug, filter.seasonSlug])];
   const [rows] = await pool.query(`WITH ranked AS (
-    SELECT id,player_id,variant_slug,nickname,score,level_no,continue_count,result_label,server_updated_at,
+    SELECT id,player_id,variant_slug,score_version,season_slug,nickname,score,level_no,continue_count,result_label,server_updated_at,
       JSON_LENGTH(achievements) achievements_count,
       ROW_NUMBER() OVER (ORDER BY ${ORDER_SQL}) position,
       COUNT(*) OVER () total_count
@@ -67,6 +79,8 @@ async function leaderboard(gameSlug, variantSlug, playerId, page = {}, { aggrega
   return {
     gameSlug,
     variantSlug: aggregateVariants ? 'all' : variantSlug,
+    scoreVersion: aggregateVariants ? null : filters[0].scoreVersion,
+    seasonSlug: aggregateVariants ? (seasonSlug || 'current') : filters[0].seasonSlug,
     generatedAt: new Date().toISOString(),
     top,
     current: own ? publicRow(own, playerId) : null,
@@ -82,6 +96,7 @@ async function leaderboard(gameSlug, variantSlug, playerId, page = {}, { aggrega
 }
 
 app.get('/health', async () => { await pool.query('SELECT 1'); return { ok: true, service: 'rwg-leaderboards' }; });
+app.get('/catalog', async () => scoringCatalog());
 app.get('/games/:slug', async (request, reply) => {
   const { slug } = request.params;
   if (!GAMES.has(slug)) return reply.code(404).send({ message: 'Gioco non trovato.' });
@@ -94,22 +109,28 @@ app.get('/games/:slug', async (request, reply) => {
     catch (error) { return reply.code(400).send({ message: error.message }); }
   }
   const playerId = playerFor(request, reply); await ensurePlayer(playerId);
-  return leaderboard(slug, variantSlug, playerId, normalizeLeaderboardPage(request.query || {}, { limit: 10 }), { aggregateVariants });
+  const seasonSlug = String(request.query?.season || '');
+  try {
+    return await leaderboard(slug, variantSlug, playerId, normalizeLeaderboardPage(request.query || {}, { limit: 10 }), { aggregateVariants, seasonSlug });
+  } catch (error) {
+    return reply.code(400).send({ message: error.message });
+  }
 });
 app.post('/runs', { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } }, async (request, reply) => {
   let run;
   try { run = normalizeRun(request.body); } catch (error) { return reply.code(400).send({ message: error.message }); }
   const playerId = playerFor(request, reply); await ensurePlayer(playerId);
-  const [[existing]] = await pool.query('SELECT player_id,game_slug,variant_slug FROM rwg_runs WHERE id=?', [run.runId]);
+  const [[existing]] = await pool.query('SELECT player_id,game_slug,variant_slug,score_version,season_slug FROM rwg_runs WHERE id=?', [run.runId]);
   if (existing && existing.player_id !== playerId) return reply.code(409).send({ message: 'Identificativo partita già utilizzato.' });
   if (existing && (existing.game_slug !== run.gameSlug || existing.variant_slug !== run.variantSlug)) return reply.code(409).send({ message: 'La partita appartiene a una classifica diversa.' });
+  if (existing && (Number(existing.score_version) !== run.scoreVersion || existing.season_slug !== run.seasonSlug)) return reply.code(409).send({ message: 'La partita appartiene a una stagione diversa.' });
   await pool.execute('UPDATE rwg_players SET last_name=? WHERE id=?', [run.nickname, playerId]);
-  const values = [run.runId,playerId,run.gameSlug,run.variantSlug,run.nickname,run.outcome,run.score,run.level,run.activeMs,run.continueCount,run.primary,run.secondary,run.tertiary,run.resultLabel,JSON.stringify(run.achievements),JSON.stringify(run.metrics),run.locale,run.timezone,run.deviceClass,run.clientEndedAt];
+  const values = [run.runId,playerId,run.gameSlug,run.variantSlug,run.scoreVersion,run.seasonSlug,run.nickname,run.outcome,run.score,run.level,run.activeMs,run.continueCount,run.primary,run.secondary,run.tertiary,run.resultLabel,JSON.stringify(run.achievements),JSON.stringify(run.metrics),run.locale,run.timezone,run.deviceClass,run.clientEndedAt];
   await pool.execute(`INSERT INTO rwg_runs
-    (id,player_id,game_slug,variant_slug,nickname,outcome,score,level_no,active_ms,continue_count,rank_primary,rank_secondary,rank_tertiary,result_label,achievements,metrics,locale,timezone,device_class,client_ended_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    (id,player_id,game_slug,variant_slug,score_version,season_slug,nickname,outcome,score,level_no,active_ms,continue_count,rank_primary,rank_secondary,rank_tertiary,result_label,achievements,metrics,locale,timezone,device_class,client_ended_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON DUPLICATE KEY UPDATE nickname=VALUES(nickname),outcome=VALUES(outcome),score=VALUES(score),level_no=VALUES(level_no),active_ms=VALUES(active_ms),continue_count=VALUES(continue_count),rank_primary=VALUES(rank_primary),rank_secondary=VALUES(rank_secondary),rank_tertiary=VALUES(rank_tertiary),result_label=VALUES(result_label),achievements=VALUES(achievements),metrics=VALUES(metrics),locale=VALUES(locale),timezone=VALUES(timezone),device_class=VALUES(device_class),client_ended_at=VALUES(client_ended_at)`, values);
-  const board = await leaderboard(run.gameSlug, run.variantSlug, playerId, { limit: 20, offset: 0 });
+  const board = await leaderboard(run.gameSlug, run.variantSlug, playerId, { limit: 20, offset: 0 }, { seasonSlug: run.seasonSlug });
   return { accepted: true, duplicate: Boolean(existing), current: board.current, leaderboard: board };
 });
 

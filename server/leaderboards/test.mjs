@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LEADERBOARD_SCOPES, normalizeLeaderboardPage, normalizeNickname, normalizeRun, normalizeVariantSlug } from './ranking.js';
+import {
+  LEADERBOARD_SCOPES, normalizeLeaderboardPage, normalizeNickname, normalizeRun,
+  normalizeScoringScope, normalizeVariantSlug, scoringCatalog
+} from './ranking.js';
 
 test('nickname arcade', () => {
   assert.equal(normalizeNickname('  Fra 78  '), 'Fra 78');
@@ -18,6 +21,20 @@ test('leaderboard paging is bounded and deterministic', () => {
 test('arcade ranking uses score and level', () => {
   const run = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'star-swarm',nickname:'FRA 78',score:1200,level:7,metrics:{maxCombo:4} });
   assert.deepEqual([run.primary,run.secondary,run.tertiary],[1200,7,4]);
+  assert.deepEqual([run.scoreVersion,run.seasonSlug],[1,'legacy-v1']);
+});
+
+test('scoring versions and seasons are explicit and bounded', () => {
+  assert.deepEqual(normalizeScoringScope('star-swarm', 'default'), { scoreVersion: 1, seasonSlug: 'legacy-v1' });
+  assert.deepEqual(normalizeScoringScope('solitaire', 'klondike'), { scoreVersion: 2, seasonSlug: 'scoring-v2' });
+  assert.deepEqual(normalizeScoringScope('solitaire', 'freecell', 1), { scoreVersion: 1, seasonSlug: 'legacy-v1' });
+  assert.throws(() => normalizeScoringScope('star-swarm', 'default', 2), /non registrata/);
+  assert.throws(() => normalizeScoringScope('solitaire', 'klondike', 2, 'legacy-v1'), /non registrata/);
+  const v2 = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',variantSlug:'freecell',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88,scoringVersion:2} });
+  assert.deepEqual([v2.scoreVersion,v2.seasonSlug],[2,'scoring-v2']);
+  const catalog = scoringCatalog();
+  assert.equal(catalog.schemaVersion, 1);
+  assert.equal(catalog.scopes.length, LEADERBOARD_SCOPES.length);
 });
 
 test('rally and solitaire use game-specific ranking', () => {
@@ -25,6 +42,7 @@ test('rally and solitaire use game-specific ranking', () => {
   assert.deepEqual([rally.primary,rally.secondary,rally.tertiary,rally.resultLabel],[1,3,18,'7–4']);
   const solitaire = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88} });
   assert.deepEqual([solitaire.primary,solitaire.secondary,solitaire.tertiary],[900,-120,-88]);
+  assert.deepEqual([solitaire.scoreVersion,solitaire.seasonSlug],[1,'legacy-v1']);
   assert.throws(() => normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:0,metrics:{elapsed:0,moves:0} }), /1 e 10\.000/);
   assert.throws(() => normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:10001,metrics:{elapsed:120,moves:88} }), /1 e 10\.000/);
 });

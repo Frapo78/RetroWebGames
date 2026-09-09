@@ -4,11 +4,12 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
-const root = process.cwd(), failures = [];
-const read = rel => fs.existsSync(path.join(root, rel)) ? fs.readFileSync(path.join(root, rel), 'utf8') : (failures.push(`MISSING: ${rel}`), '');
+const repoRoot = process.cwd(), root = fs.existsSync(path.join(repoRoot, 'public', 'games')) ? path.join(repoRoot, 'public') : repoRoot, failures = [];
+const resolve = rel => fs.existsSync(path.join(root, rel)) ? path.join(root, rel) : path.join(repoRoot, rel);
+const read = rel => fs.existsSync(resolve(rel)) ? fs.readFileSync(resolve(rel), 'utf8') : (failures.push(`MISSING: ${rel}`), '');
 const must = (ok, message) => { if (!ok) failures.push(message); };
 for (const rel of ['rwg-leaderboard.js','rwg-leaderboard-infinite.js','game-hud.js','game-over.js','server/leaderboards/server.js','server/leaderboards/ranking.js','scripts/smoke-leaderboard-pagination.mjs']) {
-  const checked = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
+  const checked = spawnSync(process.execPath, ['--check', resolve(rel)], { encoding: 'utf8' });
   must(checked.status === 0, `${rel}: syntax invalid`);
 }
 const hud = read('game-hud.js'), hudCss = read('game-hud.css'), client = read('rwg-leaderboard.js'), infinite = read('rwg-leaderboard-infinite.js'), css = read('rwg-leaderboard.css');
@@ -28,7 +29,7 @@ must(client.includes("t('leaderboard.positionUpdating')") && client.includes('pe
 must(client.includes("panel?.querySelector('.rwg-intro-leaderboard-slot')") && client.includes('slot.replaceWith(introBoard)'), 'intro High Scores must replace the dedicated caption slot in place');
 must(hudCss.includes('.rwg-intro-runtime-copy') && hudCss.includes('clip-path: inset(50%)') && hudCss.includes('.rwg-intro-leaderboard-slot'), 'shared intro must preserve runtime status accessibly without a visible caption');
 
-for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', 'variant=${encodeURIComponent(currentVariantSlug)}&limit=${PAGE_SIZE}&offset=', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', "t('leaderboard.highScores')", "t('leaderboard.scrollMore')"]) {
+for (const marker of ['const PAGE_SIZE = 10', 'const EDGE_THRESHOLD_PX = 24', 'variant=${encodeURIComponent(currentVariantSlug)}', 'season=${encodeURIComponent(scoring.seasonSlug)}', '&limit=${PAGE_SIZE}&offset=${safeOffset}', 'pagination.hasMore', 'pagination.nextOffset', 'maybeLoadMore', 'leaderboard_infinite_page', "t('leaderboard.highScores')", "t('leaderboard.scrollMore')"]) {
   must(infinite.includes(marker), `endless intro High Scores missing ${marker}`);
 }
 must(infinite.includes('remaining <= EDGE_THRESHOLD_PX') && infinite.includes('fetchPage(pagination.nextOffset || rows.length)'), 'endless High Scores must request the next ten-row page at the internal scroll edge');
@@ -76,22 +77,23 @@ must(installer.includes('rwg-leaderboards.nginx.conf') && nginxSnippet.includes(
 must(installer.includes('mysqldump') && installer.includes('rwg_leaderboards.sql.gz'), 'installer must back up leaderboard data before schema migration');
 must(installer.includes('wait_for_health') && installer.includes('Health pubblica leaderboard'), 'installer must retry health after asynchronous Nginx reload');
 for (const marker of ['leaderboard_view','leaderboard_entry_view','leaderboard_submit_queued','leaderboard_queue_flush','post_score']) must(client.includes(marker), `leaderboard analytics missing ${marker}`);
-for (const marker of ['rwg_players','rwg_runs','continue_count','achievements','metrics','rank_primary']) must(schema.includes(marker), `schema missing ${marker}`);
-for (const marker of ["app.get('/games/:slug'","app.post('/runs'",'ROW_NUMBER() OVER','COUNT(*) OVER () total_count','ON DUPLICATE KEY UPDATE','pagination:','hasMore:','nextOffset:']) must(server.includes(marker), `API pagination/ranking missing ${marker}`);
+for (const marker of ['rwg_players','rwg_runs','continue_count','achievements','metrics','rank_primary','score_version','season_slug','idx_rwg_game_variant_season_rank']) must(schema.includes(marker), `schema missing ${marker}`);
+for (const marker of ["app.get('/catalog'","app.get('/games/:slug'","app.post('/runs'",'ROW_NUMBER() OVER','COUNT(*) OVER () total_count','ON DUPLICATE KEY UPDATE','pagination:','hasMore:','nextOffset:','seasonFilters','season_slug=?']) must(server.includes(marker), `API pagination/ranking missing ${marker}`);
 must(server.includes("normalizeLeaderboardPage(request.query || {}, { limit: 10 })"), 'GET leaderboard endpoint must retain bounded ten-row default paging');
 must(ranking.includes("body.gameSlug === 'solitaire' && (score < 1 || score > 10_000)"), 'Leaderboard server must reject Solitario scores outside 1..10000');
 must(ranking.includes('normalizeLeaderboardPage') && ranking.includes('Math.min(max') && ranking.includes('defaultLimit'), 'leaderboard paging input must be normalized and bounded');
 must(ranking.includes('LEADERBOARD_VARIANTS') && ranking.includes("variants: Object.freeze(['klondike', 'freecell'])") && ranking.includes('normalizeVariantSlug'), 'server must centrally whitelist game/variant leaderboard scopes');
 must(schema.includes('variant_slug VARCHAR(40)') && schema.includes("JSON_EXTRACT(metrics, '$.variant')") && schema.includes('idx_rwg_game_variant_rank'), 'schema must migrate and index leaderboard variants idempotently');
-must(server.includes('game_slug=? AND variant_slug=?') && server.includes('variantSlug') && server.includes('classifica diversa'), 'API must rank and protect idempotency within game+variant scope');
-must(client.includes('rwg.leaderboard.run.v2:') && client.includes('rwg.leaderboard.cache.v2:') && client.includes('rwg:leaderboard-scope-change'), 'client run/cache lifecycle must be scoped by game+variant');
-must(infinite.includes('variant=') && infinite.includes('rwg:leaderboard-scope-change'), 'endless leaderboard must reload and paginate the active variant');
+must(server.includes('(variant_slug=? AND season_slug=?)') && server.includes('variantSlug') && server.includes('classifica diversa') && server.includes('stagione diversa'), 'API must rank and protect idempotency within game+variant+season scope');
+must(client.includes('rwg.leaderboard.run.v3:') && client.includes('rwg.leaderboard.cache.v3:') && client.includes('rwg.leaderboard.queue.v2') && client.includes('rwg:leaderboard-scope-change'), 'client run/cache/queue lifecycle must be scoped by game+variant+season');
+must(infinite.includes('variant=') && infinite.includes('&season=') && infinite.includes('rwg:leaderboard-scope-change'), 'endless leaderboard must reload and paginate the active variant season');
+must(client.includes("fetch(API_ROOT + '/catalog'") && client.includes('getScoringScope'), 'client must consume the server scoring catalog with a shared fallback');
 must(productionSmoke.includes('LEADERBOARD_SCOPES') && productionSmoke.includes('response scope mismatch'), 'production smoke must validate every registered game/variant scope');
 must(hub.includes('data-rwg-leaderboard-view="all-variants"'), 'home Solitaire podium must explicitly select the aggregate variant view');
-must(server.includes("view === 'all-variants'") && server.includes("variantSlug: aggregateVariants ? 'all'") && server.includes('variant_slug,nickname'), 'API must expose a labelled read-only all-variants view');
+must(server.includes("view === 'all-variants'") && server.includes("variantSlug: aggregateVariants ? 'all'") && server.includes('variant_slug,score_version,season_slug,nickname'), 'API must expose a labelled read-only all-variants view');
 must(client.includes('rwg-home-variant') && client.includes('rwg-home-continue') && client.includes("view=all-variants"), 'home aggregate Top 3 must render variant and Continue usage');
 must(css.includes('.rwg-home-top3.is-aggregate') && css.includes('.rwg-home-variant') && css.includes('.rwg-home-continue'), 'aggregate Top 3 responsive styling missing');
-const tests = spawnSync(process.execPath, ['--test', path.join(root, 'server/leaderboards/test.mjs')], { encoding: 'utf8' });
+const tests = spawnSync(process.execPath, ['--test', resolve('server/leaderboards/test.mjs')], { encoding: 'utf8' });
 must(tests.status === 0, `leaderboard tests failed: ${tests.stderr || tests.stdout}`);
 if (failures.length) { console.error(`Leaderboard validation FAILED (${failures.length})`); failures.forEach(item => console.error(`  ✗ ${item}`)); process.exit(1); }
 console.log('Leaderboard validation OK');

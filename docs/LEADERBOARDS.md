@@ -2,6 +2,28 @@
 
 RetroWebGames exposes server-backed global leaderboards by explicit **game + variant** scope. Games without variants use the reserved `default` scope; Solitario uses the distinct `klondike` and `freecell` scopes. The gameplay runtimes remain client-side; ranking persistence is a best-effort competitive feature, not server-authoritative anti-cheat.
 
+## Scoring versions and seasons
+
+Persistence and ranking use the complete immutable scope
+`(gameSlug, variantSlug, seasonSlug, scoreVersion)`. Formula generations are
+never mixed:
+
+- every game/variant retains a registered `legacy-v1` / version 1 archive;
+- Klondike and FreeCell currently use `scoring-v2` / version 2;
+- every other game remains on `legacy-v1` until its dedicated scoring rollout;
+- `GET /catalog` is the authoritative, low-cardinality list of current and
+  accepted scopes;
+- an old client without scoring fields remains compatible. For Solitario it is
+  classified conservatively as legacy, while the current shared client always
+  submits the explicit catalog scope;
+- a run id cannot be reused across a different game, variant, season or scoring
+  version.
+
+Run IDs and caches use season-aware v3 keys. The offline queue retains the
+original explicit scope in every payload and migrates the previous v1 queue
+non-destructively. This permits a delayed offline score to reach its original
+registered season after a future cutover.
+
 ## Shared browser contract
 
 `game-hud.js` loads the shared leaderboard stack on every game page:
@@ -83,6 +105,7 @@ Nginx proxies `/api/leaderboards/v1/` to the loopback-only `rwg-leaderboard.serv
 Query parameters:
 
 - `variant` — registered variant slug; required semantically, with a server-owned default when omitted for backward compatibility;
+- `season` — registered season slug; omitted means the current catalog season;
 - `view=all-variants` — read-only aggregate view for home podiums; each row retains its `variantSlug` and submissions can never target this synthetic scope;
 - `limit` — number of ranked rows, bounded to **1..50**;
 - `offset` — zero-based ranking offset, bounded to a non-negative integer.
@@ -92,6 +115,7 @@ The compatibility default remains 10 rows when no query is supplied. Game intro 
 The response contains:
 
 - `gameSlug` and `variantSlug` — the authoritative ranking scope;
+- `scoreVersion` and `seasonSlug` — the authoritative scoring generation;
 - `top` — only the requested page; every row includes its real `variantSlug`;
 - `current` — the current browser's best run when present, even when outside that page;
 - `lastName` — latest stored nickname for the anonymous browser;
@@ -106,6 +130,7 @@ The server computes rank and total with SQL window functions and does not downlo
 ### Other endpoints
 
 - `POST /runs` creates or updates an idempotent run inside an allowed game/variant scope and returns the authoritative current placement plus a leaderboard snapshot. Reusing a run id in a different scope is rejected;
+- `GET /catalog` returns schema version 1 and every whitelisted current/historical scoring scope;
 - `GET /health` verifies the process and MariaDB connection.
 
 The service issues a Secure, HttpOnly, SameSite=Lax pseudonymous player cookie. Clearing both cookies and local browser storage loses this anonymous identity. No account, email or hardware fingerprint is collected.
@@ -142,7 +167,7 @@ node scripts/smoke-leaderboard-pagination.mjs
 
 The production pagination smoke is mandatory after restarting the service. A health-only check is insufficient: an old Node process can remain healthy while still ignoring `offset` or `variant`. The smoke verifies every registered game/variant scope, a distinct second page where available, and a terminal page with `hasMore=false` and `nextOffset=total`.
 
-The `variant_slug` migration is idempotent. Existing non-Solitario rows remain `default`; existing Solitario rows become `freecell` only when their stored `metrics.variant` says so, otherwise they become `klondike`. This makes old unlabelled Solitario results deterministic without discarding them.
+The `variant_slug` and scoring-season migrations are idempotent. Existing non-Solitario rows remain `default` / `legacy-v1`. Existing Solitario rows become `freecell` only when `metrics.variant` says so, otherwise `klondike`; they enter `scoring-v2` only when stored `metrics.scoringVersion` is exactly 2. Everything else remains `legacy-v1`, so no historical score is guessed, deleted or silently mixed.
 
 Credentials live only in `/etc/rwg/leaderboard.env`. The installer backs up the existing MariaDB leaderboard database before applying `schema.sql`, installs locked production dependencies and the Nginx proxy snippet, then restarts the service.
 
@@ -150,6 +175,7 @@ Credentials live only in `/etc/rwg/leaderboard.env`. The installer backs up the 
 
 ```bash
 node scripts/validate-leaderboards.mjs
+node scripts/validate-scoring.mjs
 node scripts/validate-contracts.mjs
 ```
 

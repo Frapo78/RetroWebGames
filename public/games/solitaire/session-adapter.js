@@ -35,7 +35,7 @@
       activeMs: Math.round(elapsed * 1000),
       continueCount: 0,
       achievements: [],
-      metrics: { moves, elapsed, hintsUsed, undosUsed, variant: variantId, cardStyle, terminalReason: 'new-deal' }
+      metrics: { moves, elapsed, hintsUsed, undosUsed, scoringVersion: 2, variant: variantId, cardStyle, terminalReason: 'new-deal' }
     };
   }
 

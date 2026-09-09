@@ -1396,3 +1396,345 @@ Automazione:
 - [ ] Non migrare Astro, tutti i giochi e tutte le lingue in un solo rilascio.
 - [ ] Non cambiare gameplay, session schema o scoring durante l'estrazione testi.
 - [ ] Non indebolire validator esistenti per facilitare la build.
+
+# 21. Riequilibrio scoring degli altri giochi
+
+Stato: **SCORING-0 implementato nel repository; migrazione/deploy operativo
+ancora da eseguire.** Il Solitario è escluso: il suo scoring
+competitivo `v2` da 1 a 10.000 è già stato affrontato e serve soltanto come
+esempio di modulo puro, breakdown e test deterministici.
+
+Questa roadmap nasce dall'audit del codice effettivo dei nove giochi rimanenti.
+Ogni blocco `SCORING-*` è riprendibile, verificabile e distribuibile da solo.
+Non va accorpato a refactor OOP, i18n o modifiche grafiche dello stesso gioco.
+
+## 21.1 Obiettivi e regole comuni
+
+- [ ] Più livelli/cicli realmente completati devono produrre sempre più punti.
+- [ ] Nei giochi con un traguardo, un completamento rapido deve battere a parità
+  di progressione un completamento lento.
+- [ ] Meno mosse, tiri o risorse consumate devono premiare l'efficienza quando
+  quelle quantità sono sotto il controllo del giocatore.
+- [ ] Danno effettivamente inflitto aumenta il punteggio; danno ricevuto, vite
+  perse o unità perse lo riducono.
+- [ ] Combo e azioni difficili valgono più di una somma di azioni facili.
+- [ ] Bonus/aiuti opzionali consumati riducono la componente di “purezza”, ma
+  drop casuali, power-up obbligatori e strumenti di accessibilità non vanno
+  penalizzati.
+- [ ] Pausa, background, orientation guard, intro, intermezzi e Game Over non
+  entrano mai in `activeMs`.
+- [ ] Continue conserva integralmente il punteggio come da contratto RWG. Il
+  numero di Continue resta visibile e diventa tie-break server, non una
+  sottrazione retroattiva nell'engine.
+- [ ] Nessuna formula può produrre punti negativi, `NaN` o overflow.
+- [ ] Nessuna azione ripetibile senza progresso deve permettere score farming.
+- [ ] Gli eventi di danno accreditano al massimo gli HP realmente rimossi:
+  niente punti da overkill, bersagli invulnerabili o colpi duplicati.
+- [ ] Una partita abbandonata senza azioni significative produce score `0` e
+  non entra in classifica; la soglia resta centralizzata nel pause lifecycle.
+
+Non tutti gli assi si applicano a tutti i generi. In particolare:
+
+- nei survival potenzialmente infiniti (Block Drop, Neon Snake) non si sottrae
+  il tempo totale: resistere è progresso; si misura invece il rendimento per
+  unità di tempo e il rischio sostenuto;
+- in Maze Munch i pellet sono obiettivi obbligatori, non “risorse sprecate”;
+- in Neon Tilt calibrazione, tastiera e fallback touch sono equivalenti;
+- in Star Swarm auto-fire e power-up casuali non sono mosse/bonus da punire;
+- in The Great Empire la raccolta non è di per sé abilità competitiva: conta
+  quanto valore-obiettivo viene ottenuto dalle risorse spese.
+
+## 21.2 Audit dello stato attuale
+
+| Gioco | Scoring corrente utile | Finding da risolvere |
+|---|---|---|
+| Star Swarm | kill per tier, stage bonus, `levelClock`, `fightTime` | nessun breakdown velocità/danno; pickup danno punti; vite/shield hit non sono metriche |
+| Bubble Burst | pop/drop, clear award, bonus tempo 50/25/0 | non conta le palline; soglie discontinue; speciali/auto-shot senza breakdown |
+| Block Drop | soft/hard drop, 100/300/500/800 × livello | nessuna combo linee, back-to-back o perfect clear; drop troppo influente |
+| Maze Munch | pellet, hunter combo 200→1600, bonus, clear | `maxCombo` terminale è il combo corrente; mancano tempo e vite perse |
+| Neon Rally | esito, differenza punti e max rally server | invia il best rally storico, non quello della run; mancano durata e risposte |
+| Neon Snake | cibo × combo e bonus | `maxCombo` non è massimo-run; mancano lunghezza-tempo, velocità e shield usati |
+| Neon Tilt | shard, base livello e bonus par | penalità tempo debole/discontinua; cadute/vite fuori breakdown |
+| Prism Breaker | brick × combo, boss damage/kill, clear | pickup assegna punti; nessun time factor; possibile doppio peso del danno |
+| The Great Empire | raccolta, hit campo, kill, età, clear | raccolta/hit farmabili; mancano costo esercito, perdite e danno effettivo |
+
+## 21.3 Contratto metriche `scoring-v2`
+
+Prima di cambiare una formula, introdurre un oggetto di metriche versionato,
+persistito nello snapshot e inoltrato nel terminal detail:
+
+```js
+{
+  scoringVersion: 2,
+  activeMs: 0,
+  levelsCleared: 0,
+  movesUsed: 0,
+  resourcesSpent: 0,
+  bonusesUsed: 0,
+  damageDealt: 0,
+  damageTaken: 0,
+  livesLost: 0,
+  maxCombo: 0
+}
+```
+
+- [ ] Ogni gioco usa soltanto i campi pertinenti e aggiunge contatori
+  namespaced/documentati (`shotsFired`, `linesAtOnce`, `lengthTime`, ecc.).
+- [ ] I contatori sono monotoni durante una run, inclusi resume e Continue.
+- [ ] Il tempo usa il clock di simulazione, non `Date.now()` non filtrato.
+- [ ] Ogni formula vive in `games/<slug>/scoring.js` puro, oppure nel modulo
+  puro equivalente dei giochi già modulari.
+- [ ] Ogni modulo esporta versione, costanti, normalizzazione metriche,
+  `calculateScore()` e breakdown leggibile.
+- [ ] L'engine applica eventi una sola volta e il modulo non legge DOM,
+  localStorage, rete, lingua o clock globale.
+- [ ] Lo score mostrato nell'HUD è sempre lo stesso inviato al server.
+- [ ] `rwg:game-ended` include `scoringVersion` e metriche della sola run.
+- [ ] GA riceve solo eventi aggregati/bounded; il breakdown completo resta nel
+  payload leaderboard, non diventa cardinalità analytics incontrollata.
+
+## 21.4 Formula base e limiti anti-farming
+
+Per i giochi a livelli usare come modello, da calibrare:
+
+```text
+levelScore =
+  levelBase
+  × timeFactor(0,45…1,40)
+  × efficiencyFactor(0,60…1,35)
+  × integrityFactor(0,55…1,10)
+  + skillBonus(limitato)
+
+runScore = somma(levelScore) + milestoneBoss/Cycle
+```
+
+I fattori devono essere continui e a rendimenti decrescenti, preferibilmente
+rapporti al par elevati a esponenti tra `0,30` e `0,75`; niente cliff arbitrari.
+Per gli endless usare score per evento moltiplicato per livello/rischio e bonus
+milestone: il tempo entra solo in integrali di abilità o indici di rendimento.
+
+- [ ] Il peso progressione deve dominare: superare un livello non può ridurre
+  il totale già acquisito.
+- [ ] Ogni moltiplicatore è clampato e coperto da test ai bordi.
+- [ ] Il danno inflitto non viene premiato sia integralmente sia di nuovo come
+  kill senza un cap esplicito.
+- [ ] La sopravvivenza senza progresso non genera punti illimitati.
+- [ ] Soft/hard drop, rally deliberatamente prolungati, raccolta risorse e
+  colpi a strutture non possono diventare loop di farming.
+
+## 21.5 Versioni, stagioni e record storici
+
+Le classifiche attuali non sono confrontabili con formule nuove e non
+contengono dati sufficienti per ricalcolare i record.
+
+### SCORING-0A — fondazione server
+
+- [x] Aggiungere a `rwg_runs` `score_version` e `season_slug`, con indice
+  `(game_slug, variant_slug, season_slug, accepted, rank_*)`.
+- [x] Accettare soltanto versioni whitelisted per `(game, variant)`.
+- [x] Impostare i record esistenti come stagione/versione `legacy-v1`.
+- [ ] Aprire una stagione `scoring-v2` separatamente per ogni gioco al rollout.
+- [x] Le query ordinarie mostrano la stagione corrente; l'archivio v1 resta
+  leggibile, ma non mischiato alla nuova top.
+- [x] Una stessa `runId` non può cambiare game, variant, stagione o versione.
+- [x] Il server normalizza/cappa ogni metrica usata nel ranking.
+- [ ] Aggiungere migrazione forward e rollback, backup DB e test su copia.
+
+### SCORING-0B — fondazione browser e validator
+
+- [x] Estendere `rwg-leaderboard.js` con versione/stagione ricevute dal catalogo
+  server, senza derivarle dal testo localizzato.
+- [x] Cache, queue offline e run id diventano scope-local anche per stagione.
+- [x] Aggiornare Game Over, pausa e rank card senza cambiare il Continue.
+- [x] Creare `scripts/validate-scoring.mjs`: scoperta giochi, versione
+  dichiarata, score finito/non negativo, metriche bounded e fixture.
+- [x] Integrare il validator in `validate-contracts.mjs`.
+- [x] Documentare in `LEADERBOARDS.md`, `ARCHITECTURE.md` e `AGENTS.md`.
+
+Gate SCORING-0:
+
+- [x] API legacy invariata fino all'attivazione esplicita della prima stagione.
+- [ ] Ranking, paginazione, top 3, personal row, offline retry e idempotenza
+  verdi per entrambe le versioni.
+- [x] Nessun record storico cancellato o riscritto.
+
+## 21.6 SCORING-1 — Neon Tilt
+
+- [ ] Tracciare `levelsCleared`, tempi livello/run, vite perse, cadute/pit e shard.
+- [ ] Usare `timeFactor = clamp((par / max(time, floor))^0.60, 0.45, 1.40)`.
+- [ ] Moltiplicare il base livello per tempo e integrità; shard come skill bonus
+  piccolo, non dominante.
+- [ ] Penalizzare vite perse; non penalizzare wall contact cosmetici, bumper,
+  boost richiesti o metodo di input.
+- [ ] Normalizzare cicli affinché la progressione resti crescente.
+- [ ] Aggiornare snapshot/adapter e fixture sotto par/al par/oltre par,
+  0/1/2 vite perse, pause escluse e input equivalenti.
+
+Gate: a parità di livello una run più rapida e senza cadute vince sempre.
+
+## 21.7 SCORING-2 — Block Drop
+
+- [ ] Tracciare pezzi, righe per clear, combo, max combo, back-to-back da
+  quattro linee, perfect clear, celle soft/hard drop e active time.
+- [ ] Ribilanciare la tabella in modo superlineare: quattro linee insieme
+  valgono più di quattro singole, sempre moltiplicate per livello.
+- [ ] Aggiungere combo linee bounded e bonus back-to-back/perfect clear.
+- [ ] Mantenere soft/hard drop marginale e cappato rispetto alle linee.
+- [ ] Premiare il rischio della velocità tramite il moltiplicatore livello.
+- [ ] Non sottrarre tempo nell'endless; `linesPerMinute` è metrica/tie-break.
+- [ ] Persistenza completa e test con board fixture.
+
+Gate: `tetris > triple > double > single` per rendimento e una combo autentica
+batte clear isolati equivalenti senza rendere utile stallare.
+
+## 21.8 SCORING-3 — Bubble Burst
+
+- [ ] Aggiungere ai livelli deterministici un `parShots` validato oltre
+  all'attuale `optimalSeconds`.
+- [ ] Tracciare `shotsFired`, manual/auto shot, productive shot, miss,
+  pop/drop, bomb/color-clear usati e max cluster.
+- [ ] Al clear usare un fattore tiri continuo tipo
+  `(parShots / shotsFired)^0.70`, clampato `0.55…1.35`.
+- [ ] Sostituire il bonus tempo a gradini 50/25/0 con fattore continuo.
+- [ ] Applicare i fattori soprattutto al clear award, senza riscrivere i punti
+  pop già mostrati.
+- [ ] Auto-shot conta come pallina; il breakdown serve a calibrare par realistici.
+- [ ] Gli speciali guadagnati influenzano solo una purity component piccola.
+- [ ] Validare `parShots` con solver/replay seedati e revisione manuale 1–20,
+  milestone e campione >100.
+- [ ] Migrare snapshot preservando time, start score e pressione.
+
+Gate: stesso layout/tempo/pop con meno palline produce sempre più punti.
+
+## 21.9 SCORING-4 — Neon Snake
+
+- [ ] Correggere `maxCombo`, oggi sostituito dal combo corrente.
+- [ ] Tracciare `maxLength`, `lengthTimeIntegral`,
+  `speedExposureIntegral`, `turboActiveMs`, pickup e shield consumati.
+- [ ] Moltiplicare il cibo per un risk factor della velocità del livello;
+  aggiungere turbo bonus moderato e cappato.
+- [ ] Premiare il tempo lungo con l'integrale
+  `max(0, length-baseLength) × activeSeconds` e saturazione anti-farming.
+- [ ] Aggiungere milestone lunghezza/livello e mantenere combo rapide.
+- [ ] Uno shield consumato riduce soltanto l'integrità futura.
+- [ ] Continue non azzera i contatori; test step, turbo, shield e resume.
+
+Gate: a uguale cibo/lunghezza, maggiore velocità vale di più; Turbo senza
+progresso non genera score.
+
+## 21.10 SCORING-5 — Maze Munch
+
+- [ ] Tracciare tempi, livelli, vite perse, max combo run, hunter catturati,
+  power pellet consumati e bonus.
+- [ ] Correggere il `maxCombo` terminale.
+- [ ] Conservare pellet/bonus e scala hunter 200/400/800/1600.
+- [ ] Rendere il clear award funzione continua di par time e integrità.
+- [ ] Misurare efficienza power come hunter/power pellet, senza penalizzare
+  l'obiettivo obbligatorio.
+- [ ] Limitare bonus/combo affinché i livelli restino il driver principale.
+- [ ] Persistenza contatori e fixture level-clear/life-loss.
+
+Gate: più livelli domina; nello stesso livello decidono velocità, vite e combo.
+
+## 21.11 SCORING-6 — Neon Rally
+
+- [ ] Separare `runMaxRally` dal best storico e inviare solo il primo.
+- [ ] Tracciare active time, punti fatti/subiti, ritorni, rally totali e longest.
+- [ ] Conservare l'esito come `rank_primary`: ogni vittoria precede una sconfitta.
+- [ ] Score display da outcome tier, differenza, rapidità e rally bounded.
+- [ ] Penalizzare punti subiti/durata; cappare rally per evitare scambi farmati.
+- [ ] Tie-break: esito, score v2, differenza, runMaxRally, minor tempo,
+  minor Continue.
+- [ ] Test 7–0/7–6, vittoria lenta, sconfitta combattuta, pause e resume.
+
+Gate: ogni win valida precede ogni loss; tra due 7–0 vince la più rapida.
+
+## 21.12 SCORING-7 — Prism Breaker
+
+- [ ] Tracciare livelli/cicli/boss, tempi, combo brick, damage reale,
+  vite/palle perse, power-up raccolti e assist attivati.
+- [ ] Mantenere brick/combos crescenti con cap.
+- [ ] Introdurre clear factor continuo per tempo/integrità e milestone boss.
+- [ ] Limitare damage score agli HP rimossi ed evitare doppio accredito.
+- [ ] Rimuovere il `+250` piatto per ogni pickup: meno assist dà un piccolo
+  purity factor, mentre il pickup resta utile al gameplay.
+- [ ] Impedire duplicazioni da extra-life, multiball e Continue.
+- [ ] Fixture per brick, combo, boss shield, loss, ciclo 100→1 e resume.
+
+Gate: boss/progressione dominano; tempo, combo e vite ordinano lo stesso stage.
+
+## 21.13 SCORING-8 — The Great Empire
+
+- [ ] Spostare il calcolo in un modulo puro senza cambiare il modello RTS.
+- [ ] Tracciare tempi, livelli/età, unità/edifici creati e persi, risorse
+  raccolte/spese/residue, damage dealt/taken, kill e danno-obiettivo.
+- [ ] Togliere score diretto da raccolta e singolo hit al campo; sostituirlo
+  con valore obiettivo e bonus completamento.
+- [ ] Premiare efficienza risorse come risultato/costo, con clamp sicuri.
+- [ ] Premiare clear rapido, livello/età, esercito e town center superstiti.
+- [ ] Penalizzare perdite, danno e spesa improduttiva senza imporre una sola
+  strategia legittima.
+- [ ] Ignorare overkill e accreditare damage/kill una volta.
+- [ ] Test headless rush, economy, mass army e farming intenzionale.
+
+Gate: attendere/raccogliere/colpire indefinitamente non aumenta la classifica.
+
+## 21.14 SCORING-9 — Star Swarm
+
+- [ ] Tracciare tempi run/level/boss, wave/boss, damage reale, hit, shield
+  consumati, vite/wingman persi, kill, pickup e max build.
+- [ ] Derivare il par wave da slot, HP, ingressi e difficoltà, usando
+  `levelClock`; non usare un fisso arbitrario.
+- [ ] Applicare allo stage bonus uno speed factor continuo e bounded.
+- [ ] Applicare al boss award un fight-time factor e grande milestone per
+  `bossesDefeated`, accreditato una volta.
+- [ ] Premiare solo HP rimossi, con peso inferiore a kill/wave clear.
+- [ ] Hit/perdite riducono l'integrità del successivo clear senza sottrarre
+  punti già acquisiti.
+- [ ] Pickup casuali e auto-fire non sono `bonusesUsed`; la build è diagnostica.
+- [ ] Continue wave/boss conserva score, fase, tempi e contatori.
+- [ ] Validare livelli 1–20, boss 10…100, Overdrive, laser e rarità.
+
+Gate: stesso livello/build, pulizia più rapida e con meno danni vince; ogni boss
+produce un salto significativo e non farmabile.
+
+## 21.15 Calibrazione prima di attivare una stagione
+
+- [ ] Fixture/replay seedati per run scarsa, mediana, buona e ottima.
+- [ ] Monotonicità verificata variando una metrica alla volta.
+- [ ] Property test: score finito, non negativo, deterministico e bounded.
+- [ ] Almeno 100 simulazioni/replay per cercare farming e dominanze.
+- [ ] Breakdown test e confronto p50/p90/p99.
+- [ ] Progressione al 50–70% del valore atteso; efficienza/abilità separano
+  avanzamenti simili.
+- [ ] Coefficienti non scelti per battere artificialmente un record v1.
+- [ ] Overhead O(1), nessuna allocazione per frame o mutation DOM aggiunta.
+
+## 21.16 Rollout e rollback per singolo gioco
+
+Ordine raccomandato: Neon Tilt → Block Drop → Bubble Burst → Neon Snake →
+Maze Munch → Neon Rally → Prism Breaker → The Great Empire → Star Swarm.
+
+1. [ ] Documentare formula/breakdown prima del codice.
+2. [ ] Aggiungere test puri e fixture del vecchio comportamento.
+3. [ ] Aggiungere metriche senza attivare la formula; verificare resume.
+4. [ ] Implementare dietro scoring version non corrente.
+5. [ ] Eseguire validator dedicato, contracts e `node --check` completo.
+6. [ ] Playwright a 320×568, 375×667, 390×844 e desktop.
+7. [ ] Provare start, pausa, background, resume, Game Over e Continue.
+8. [ ] Test API/ranking/stagione e submission sintetica.
+9. [ ] Deploy canary, smoke produzione, poi attivare stagione server.
+10. [ ] Osservare distribuzione/errori; rollback riattiva la stagione prima
+    senza cancellare run.
+
+## 21.17 Definition of Done
+
+- [ ] I nove giochi usano scoring puro, versionato e documentato.
+- [ ] Le metriche terminali descrivono la run, non best storici.
+- [ ] Tempo, progressione, efficienza, bonus e danno rispettano il genere.
+- [ ] Non esistono loop di farming riproducibili.
+- [ ] Continue conserva score/metriche; pause/resume non alterano il tempo.
+- [ ] Record legacy archiviati e stagioni nuove non mescolate.
+- [ ] HUD, Game Over e classifica concordano col calcolo autorevole.
+- [ ] Validator, server test, sintassi e matrice Playwright sono verdi.
+- [ ] Docs e “errori da non ripetere” sono aggiornati dopo ogni rollout.

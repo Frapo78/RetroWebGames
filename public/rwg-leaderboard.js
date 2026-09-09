@@ -5,6 +5,36 @@
 
   const API_ROOT = '/api/leaderboards/v1';
   const isGamePage = document.body?.hasAttribute('data-rwg-game');
+  const scoringScopes = new Map();
+  const fallbackScoring = (game, variant = 'default') => ({
+    scoreVersion: game === 'solitaire' ? 2 : 1,
+    seasonSlug: game === 'solitaire' ? 'scoring-v2' : 'legacy-v1',
+    variantSlug: variant
+  });
+  const scoringFor = (game, variant = 'default', requestedVersion = null) => {
+    const scope = scoringScopes.get(game + ':' + variant);
+    if (!scope) return fallbackScoring(game, variant);
+    if (requestedVersion !== null) {
+      const historical = scope.seasons?.find(item => Number(item.scoreVersion) === Number(requestedVersion));
+      if (historical) return { ...historical, variantSlug: variant };
+    }
+    return { scoreVersion: scope.scoreVersion, seasonSlug: scope.seasonSlug, variantSlug: variant };
+  };
+  const catalogReady = fetch(API_ROOT + '/catalog', {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' }
+  }).then(response => {
+    if (!response.ok) throw new Error('Catalog HTTP ' + response.status);
+    return response.json();
+  }).then(catalog => {
+    if (Number(catalog?.schemaVersion) !== 1 || !Array.isArray(catalog.scopes)) throw new Error('Catalog schema');
+    for (const scope of catalog.scopes) {
+      if (scope?.gameSlug && scope?.variantSlug && scope?.seasonSlug && Number.isInteger(Number(scope.scoreVersion))) {
+        scoringScopes.set(scope.gameSlug + ':' + scope.variantSlug, scope);
+      }
+    }
+    return true;
+  }).catch(() => false);
 
   function track(name, params = {}) {
     const send = () => window.RWGAnalytics?.track?.(name, params);
@@ -54,8 +84,9 @@
     async function load(slug, panel) {
       const variantSlug = panel.dataset.variantSlug || 'default';
       const aggregate = panel.dataset.view === 'all-variants';
-      const scope = `${slug}:${aggregate ? 'all' : variantSlug}`;
-      const query = aggregate ? 'view=all-variants' : `variant=${encodeURIComponent(variantSlug)}`;
+      const scoring = scoringFor(slug, variantSlug);
+      const scope = `${slug}:${aggregate ? 'all:current' : variantSlug + ':' + scoring.seasonSlug}`;
+      const query = aggregate ? 'view=all-variants' : `variant=${encodeURIComponent(variantSlug)}&season=${encodeURIComponent(scoring.seasonSlug)}`;
       panel.classList.add('is-loading');
       try {
         const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(slug)}?${query}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -97,22 +128,25 @@
   }
 
   if (!isGamePage) {
-    mountHubLeaderboards();
+    catalogReady.finally(mountHubLeaderboards);
     return;
   }
   if (window.RWGLeaderboard) return;
 
   const NAME_KEY = 'rwg.leaderboard.name.v1';
-  const QUEUE_KEY = 'rwg.leaderboard.queue.v1';
+  const QUEUE_KEY = 'rwg.leaderboard.queue.v2';
+  const LEGACY_QUEUE_KEY = 'rwg.leaderboard.queue.v1';
   const canonical = document.querySelector('link[rel="canonical"]')?.href || location.href;
   const gameSlug = new URL(canonical, location.href).pathname.split('/').filter(Boolean).pop() || 'game';
   const normalizeVariant = value => /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(value || '').trim().toLowerCase())
     ? String(value).trim().toLowerCase()
     : 'default';
   let currentVariantSlug = normalizeVariant(document.body.dataset.rwgLeaderboardVariant);
-  const scopeKey = variantSlug => `${gameSlug}:${normalizeVariant(variantSlug)}`;
-  const runKey = variantSlug => `rwg.leaderboard.run.v2:${scopeKey(variantSlug)}`;
-  const cacheKey = variantSlug => `rwg.leaderboard.cache.v2:${scopeKey(variantSlug)}`;
+  const scopeKey = (variantSlug, scoring = scoringFor(gameSlug, normalizeVariant(variantSlug))) =>
+    gameSlug + ':' + normalizeVariant(variantSlug) + ':' + scoring.seasonSlug;
+  const runKey = (variantSlug, scoring) => 'rwg.leaderboard.run.v3:' + scopeKey(variantSlug, scoring);
+  const cacheKey = (variantSlug, scoring) => 'rwg.leaderboard.cache.v3:' + scopeKey(variantSlug, scoring);
+  const legacyRunKey = variantSlug => 'rwg.leaderboard.run.v2:' + gameSlug + ':' + normalizeVariant(variantSlug);
   const startBtn = document.getElementById('startBtn');
   let introBoard = null;
   let pauseBoard = null;
@@ -127,15 +161,18 @@
     set(key, value) { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } }
   };
   const uuid = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-  const getRunId = (variantSlug = currentVariantSlug) => {
-    const key = runKey(variantSlug);
+  const getRunId = (variantSlug = currentVariantSlug, scoring = scoringFor(gameSlug, normalizeVariant(variantSlug))) => {
+    const key = runKey(variantSlug, scoring);
     let value = storage.get(key);
+    if (!value) value = storage.get(legacyRunKey(variantSlug));
     if (!/^[a-zA-Z0-9-]{16,80}$/.test(value)) { value = uuid(); storage.set(key, value); }
+    else storage.set(key, value);
     return value;
   };
   const startNewRun = (variantSlug = currentVariantSlug) => storage.set(runKey(variantSlug), uuid());
   const formatNumber = value => window.RWGI18n.number(value);
   const readJson = (key, fallback) => { try { return JSON.parse(storage.get(key, '')) || fallback; } catch (_) { return fallback; } };
+  if (!storage.get(QUEUE_KEY) && storage.get(LEGACY_QUEUE_KEY)) storage.set(QUEUE_KEY, storage.get(LEGACY_QUEUE_KEY));
   const gameLabel = () => (document.body.dataset.rwgGameName || gameSlug).trim();
 
   function makeBoard() {
@@ -246,13 +283,14 @@
 
   async function loadBoard() {
     const requestedVariant = currentVariantSlug;
+    const scoring = scoringFor(gameSlug, requestedVariant);
     introBoard?.classList.add('is-loading');
     try {
-      const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(requestedVariant)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const response = await fetch(`${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(requestedVariant)}&season=${encodeURIComponent(scoring.seasonSlug)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (requestedVariant !== currentVariantSlug) return;
-      storage.set(cacheKey(requestedVariant), JSON.stringify(data));
+      storage.set(cacheKey(requestedVariant, scoring), JSON.stringify(data));
       renderBoard(data, false);
       track('leaderboard_view', {
         delivery: 'network', leaderboard_variant: requestedVariant, row_count: Number(data.top?.length || 0),
@@ -261,7 +299,7 @@
       });
     } catch (_) {
       if (requestedVariant !== currentVariantSlug) return;
-      const cached = readJson(cacheKey(requestedVariant), null);
+      const cached = readJson(cacheKey(requestedVariant, scoring), null);
       if (cached) {
         renderBoard(cached, true);
         track('leaderboard_view', { delivery: 'cache', leaderboard_variant: currentVariantSlug, row_count: Number(cached.top?.length || 0) });
@@ -312,8 +350,12 @@
     const metrics = { ...(detail.metrics || {}), ...detail };
     delete metrics.achievements;
     delete metrics.metrics;
+    const variantSlug = normalizeVariant(detail.variantSlug || detail.metrics?.variant || currentVariantSlug);
+    const scoring = scoringFor(gameSlug, variantSlug, detail.scoringVersion ?? detail.metrics?.scoringVersion ?? null);
     return {
-      runId: getRunId(detail.variantSlug || detail.metrics?.variant || currentVariantSlug), gameSlug, variantSlug: normalizeVariant(detail.variantSlug || detail.metrics?.variant || currentVariantSlug), nickname: storage.get(NAME_KEY), outcome: detail.outcome || 'game-over',
+      runId: getRunId(variantSlug, scoring), gameSlug, variantSlug,
+      scoreVersion: scoring.scoreVersion, seasonSlug: scoring.seasonSlug,
+      nickname: storage.get(NAME_KEY), outcome: detail.outcome || 'game-over',
       score: Number(detail.score || 0), level: Number(detail.level || 0), activeMs: Number(detail.activeMs || 0),
       continueCount: Number(detail.continueCount || 0), achievements: Array.isArray(detail.achievements) ? detail.achievements : [],
       metrics, clientEndedAt: new Date().toISOString(), locale: navigator.language || '',
@@ -384,7 +426,7 @@
       showRankCard(position, { solitaire });
       if (status) status.textContent = data.current ? t('leaderboard.registeredAt', { position: data.current.position }) : t('leaderboard.registered');
       if (data.leaderboard) {
-        storage.set(cacheKey(payload.variantSlug), JSON.stringify(data.leaderboard));
+        storage.set(cacheKey(payload.variantSlug, payload), JSON.stringify(data.leaderboard));
         if (payload.variantSlug === currentVariantSlug) renderBoard(data.leaderboard);
       }
       track('post_score', {
@@ -412,7 +454,15 @@
     section?.classList.add('is-registered');
     setGameOverLocked(false);
     submitting = false;
-    window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', { detail: { runId: payload.runId, gameSlug, variantSlug: payload.variantSlug } }));
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-registered', {
+      detail: {
+        runId: payload.runId,
+        gameSlug,
+        variantSlug: payload.variantSlug,
+        scoreVersion: payload.scoreVersion,
+        seasonSlug: payload.seasonSlug
+      }
+    }));
     if (section) setTimeout(() => section.remove(), 450);
   }
 
@@ -488,18 +538,27 @@
     if (event.target.closest('.rwg-back-games')) { event.preventDefault(); event.stopImmediatePropagation(); }
   }, true);
 
-  mountIntroBoard();
-  mountPauseBoard();
-  new MutationObserver(syncPauseBoardVisibility).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  new MutationObserver(syncPauseBoardVisibility).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  if (pauseBtn) new MutationObserver(syncPauseBoardVisibility).observe(pauseBtn, { childList: true, characterData: true, subtree: true });
-  window.addEventListener('rwg:game-over-revealed', syncPauseBoardVisibility);
-  window.addEventListener('rwg:session-restored', syncPauseBoardVisibility);
-  window.addEventListener('rwg:session-declined', syncPauseBoardVisibility);
-  queueMicrotask(syncPauseBoardVisibility);
-  loadBoard();
-  retryQueue();
-  getRunId();
-  window.RWGLeaderboard = Object.freeze({ load: loadBoard, getRunId, startNewRun, retryQueue, getVariant: () => currentVariantSlug });
-  window.dispatchEvent(new CustomEvent('rwg:leaderboard-ready'));
+  catalogReady.finally(() => {
+    mountIntroBoard();
+    mountPauseBoard();
+    new MutationObserver(syncPauseBoardVisibility).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(syncPauseBoardVisibility).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    if (pauseBtn) new MutationObserver(syncPauseBoardVisibility).observe(pauseBtn, { childList: true, characterData: true, subtree: true });
+    window.addEventListener('rwg:game-over-revealed', syncPauseBoardVisibility);
+    window.addEventListener('rwg:session-restored', syncPauseBoardVisibility);
+    window.addEventListener('rwg:session-declined', syncPauseBoardVisibility);
+    queueMicrotask(syncPauseBoardVisibility);
+    loadBoard();
+    retryQueue();
+    getRunId();
+    window.RWGLeaderboard = Object.freeze({
+      load: loadBoard,
+      getRunId,
+      startNewRun,
+      retryQueue,
+      getVariant: () => currentVariantSlug,
+      getScoringScope: variantSlug => scoringFor(gameSlug, normalizeVariant(variantSlug || currentVariantSlug))
+    });
+    window.dispatchEvent(new CustomEvent('rwg:leaderboard-ready'));
+  });
 })();

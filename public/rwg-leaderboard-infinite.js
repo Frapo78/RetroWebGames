@@ -179,7 +179,8 @@
     const signal = controller?.signal;
     try {
       const safeOffset = Math.max(0, Number(offset) || 0);
-      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(currentVariantSlug)}&limit=${PAGE_SIZE}&offset=${safeOffset}`;
+      const scoring = window.RWGLeaderboard?.getScoringScope?.(currentVariantSlug) || { seasonSlug: 'legacy-v1', scoreVersion: 1 };
+      const url = `${API_ROOT}/games/${encodeURIComponent(gameSlug)}?variant=${encodeURIComponent(currentVariantSlug)}&season=${encodeURIComponent(scoring.seasonSlug)}&limit=${PAGE_SIZE}&offset=${safeOffset}`;
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
@@ -208,6 +209,7 @@
       track('leaderboard_infinite_page', {
         leaderboard_page: Math.floor(pagination.offset / PAGE_SIZE) + 1,
         leaderboard_variant: currentVariantSlug,
+        score_version: Number(scoring.scoreVersion || 1),
         row_count: pageRows.length,
         loaded_count: rows.length,
         total_count: pagination.total,
@@ -274,7 +276,9 @@
       reset();
     });
     window.addEventListener('rwg:leaderboard-registered', event => {
-      if (normalizeVariant(event.detail?.variantSlug) === currentVariantSlug) setTimeout(reset, 80);
+      const scoring = window.RWGLeaderboard?.getScoringScope?.(currentVariantSlug);
+      if (normalizeVariant(event.detail?.variantSlug) === currentVariantSlug
+        && (!scoring || event.detail?.seasonSlug === scoring.seasonSlug)) setTimeout(reset, 80);
     });
     reset();
   }

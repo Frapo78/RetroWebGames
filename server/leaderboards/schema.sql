@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS rwg_runs (
   player_id CHAR(36) NOT NULL,
   game_slug VARCHAR(40) NOT NULL,
   variant_slug VARCHAR(40) NOT NULL DEFAULT 'default',
+  score_version SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+  season_slug VARCHAR(40) NOT NULL DEFAULT 'legacy-v1',
   nickname VARCHAR(32) NOT NULL,
   outcome VARCHAR(32) NOT NULL,
   score BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -31,11 +33,16 @@ CREATE TABLE IF NOT EXISTS rwg_runs (
   accepted TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_rwg_runs_player FOREIGN KEY (player_id) REFERENCES rwg_players(id),
   INDEX idx_rwg_game_variant_rank (game_slug, variant_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
+  INDEX idx_rwg_game_variant_season_rank (game_slug, variant_slug, season_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
   INDEX idx_rwg_player_game_variant (player_id, game_slug, variant_slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE rwg_runs
   ADD COLUMN IF NOT EXISTS variant_slug VARCHAR(40) NOT NULL DEFAULT 'default' AFTER game_slug;
+
+ALTER TABLE rwg_runs
+  ADD COLUMN IF NOT EXISTS score_version SMALLINT UNSIGNED NOT NULL DEFAULT 1 AFTER variant_slug,
+  ADD COLUMN IF NOT EXISTS season_slug VARCHAR(40) NOT NULL DEFAULT 'legacy-v1' AFTER score_version;
 
 UPDATE rwg_runs
 SET variant_slug = CASE
@@ -44,6 +51,16 @@ SET variant_slug = CASE
 END
 WHERE game_slug = 'solitaire' AND variant_slug = 'default';
 
+UPDATE rwg_runs
+SET score_version = 2, season_slug = 'scoring-v2'
+WHERE game_slug = 'solitaire'
+  AND CAST(JSON_UNQUOTE(JSON_EXTRACT(metrics, '$.scoringVersion')) AS UNSIGNED) = 2;
+
+UPDATE rwg_runs
+SET score_version = 1, season_slug = 'legacy-v1'
+WHERE score_version IS NULL OR score_version < 1 OR season_slug IS NULL OR season_slug = '';
+
 ALTER TABLE rwg_runs
   ADD INDEX IF NOT EXISTS idx_rwg_game_variant_rank (game_slug, variant_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
+  ADD INDEX IF NOT EXISTS idx_rwg_game_variant_season_rank (game_slug, variant_slug, season_slug, accepted, rank_primary, rank_secondary, rank_tertiary),
   ADD INDEX IF NOT EXISTS idx_rwg_player_game_variant (player_id, game_slug, variant_slug);

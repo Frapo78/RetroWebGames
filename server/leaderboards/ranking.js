@@ -19,6 +19,34 @@ export const LEADERBOARD_SCOPES = Object.freeze(
   )
 );
 
+const legacySeason = () => Object.freeze({ scoreVersion: 1, seasonSlug: 'legacy-v1' });
+const solitaireV2Season = () => Object.freeze({ scoreVersion: 2, seasonSlug: 'scoring-v2' });
+
+export const SCORING_SCOPES = Object.freeze(Object.fromEntries(
+  LEADERBOARD_SCOPES.map(({ gameSlug, variantSlug }) => {
+    const legacy = legacySeason();
+    const seasons = gameSlug === 'solitaire'
+      ? Object.freeze([legacy, solitaireV2Season()])
+      : Object.freeze([legacy]);
+    return [gameSlug + ':' + variantSlug, Object.freeze({
+      gameSlug, variantSlug, current: seasons[seasons.length - 1], seasons
+    })];
+  })
+));
+
+export function scoringCatalog() {
+  return Object.freeze({
+    schemaVersion: 1,
+    scopes: Object.freeze(Object.values(SCORING_SCOPES).map(scope => Object.freeze({
+      gameSlug: scope.gameSlug,
+      variantSlug: scope.variantSlug,
+      scoreVersion: scope.current.scoreVersion,
+      seasonSlug: scope.current.seasonSlug,
+      seasons: scope.seasons
+    })))
+  });
+}
+
 export function normalizeVariantSlug(gameSlug, value, metrics = {}) {
   const config = LEADERBOARD_VARIANTS[gameSlug];
   if (!config) throw new Error('Gioco non valido.');
@@ -28,6 +56,26 @@ export function normalizeVariantSlug(gameSlug, value, metrics = {}) {
     throw new Error('Variante non valida.');
   }
   return variantSlug;
+}
+
+export function normalizeScoringScope(gameSlug, variantSlug, scoreVersion, seasonSlug) {
+  const scope = SCORING_SCOPES[gameSlug + ':' + variantSlug];
+  if (!scope) throw new Error('Ambito punteggio non valido.');
+  const hasVersion = scoreVersion !== undefined && scoreVersion !== null && scoreVersion !== '';
+  const hasSeason = seasonSlug !== undefined && seasonSlug !== null && seasonSlug !== '';
+  if (!hasVersion && !hasSeason) return scope.current;
+  const version = hasVersion ? Number(scoreVersion) : null;
+  const season = hasSeason ? String(seasonSlug).trim().toLowerCase() : '';
+  if ((hasVersion && (!Number.isInteger(version) || version < 1 || version > 100))
+    || (hasSeason && !/^[a-z0-9][a-z0-9-]{0,39}$/.test(season))) {
+    throw new Error('Versione punteggio o stagione non valida.');
+  }
+  const match = scope.seasons.find(candidate =>
+    (!hasVersion || candidate.scoreVersion === version)
+    && (!hasSeason || candidate.seasonSlug === season)
+  );
+  if (!match) throw new Error('Versione punteggio o stagione non registrata.');
+  return match;
 }
 
 const integer = (value, min = 0, max = 2_000_000_000) => {
@@ -56,6 +104,13 @@ export function normalizeRun(body) {
   if (!/^[a-zA-Z0-9-]{16,80}$/.test(String(body.runId || ''))) throw new Error('Partita non valida.');
   const metrics = body.metrics && typeof body.metrics === 'object' && !Array.isArray(body.metrics) ? body.metrics : {};
   const variantSlug = normalizeVariantSlug(body.gameSlug, body.variantSlug, metrics);
+  const submittedScoreVersion = body.scoreVersion ?? metrics.scoringVersion;
+  const scoring = normalizeScoringScope(
+    body.gameSlug,
+    variantSlug,
+    submittedScoreVersion ?? (body.gameSlug === 'solitaire' ? 1 : undefined),
+    body.seasonSlug
+  );
   const score = integer(body.score);
   if (body.gameSlug === 'solitaire' && (score < 1 || score > 10_000)) {
     throw new Error('Il punteggio del Solitario deve essere compreso tra 1 e 10.000.');
@@ -80,7 +135,8 @@ export function normalizeRun(body) {
     secondary = -elapsed; tertiary = -moves;
   }
   return {
-    runId: String(body.runId), gameSlug: body.gameSlug, variantSlug, nickname: normalizeNickname(body.nickname),
+    runId: String(body.runId), gameSlug: body.gameSlug, variantSlug,
+    scoreVersion: scoring.scoreVersion, seasonSlug: scoring.seasonSlug, nickname: normalizeNickname(body.nickname),
     outcome: String(body.outcome || 'game-over').slice(0, 32), score, level, activeMs, continueCount,
     achievements, metrics, primary, secondary, tertiary, resultLabel,
     clientEndedAt: /^\d{4}-\d\d-\d\dT/.test(String(body.clientEndedAt || '')) ? new Date(body.clientEndedAt) : null,
