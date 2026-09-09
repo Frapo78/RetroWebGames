@@ -174,7 +174,17 @@ The unfinished snapshot is cleared on victory. Starting a deliberate new hand al
 
 ## Scoring and local statistics
 
-Klondike awards small positive values for reveals, foundation moves and useful tableau moves. FreeCell scores foundation, useful cascade and cell moves; retreating a foundation card carries a penalty. Score is clamped to zero.
+During a hand, Klondike awards small positive values for reveals, foundation moves and useful tableau moves. FreeCell scores foundation, useful cascade and cell moves; retreating a foundation card carries a penalty. This progress score remains useful for interrupted-run registration, but a victory replaces it with the normalized competitive score from `scoring.js`.
+
+Both variants map a normalized performance multiplier onto the inclusive integer range `1..10,000`. The multiplier combines three monotonic factors:
+
+- time efficiency: `(targetSeconds / elapsedSeconds)^0.45`, capped at `1.20`;
+- move efficiency: `(targetMoves / moves)^0.70`, capped at `1.20`;
+- discipline: `0.88^hints × 0.94^undos`, with no hidden floor.
+
+The two efficiency caps produce a maximum multiplier of `1.44`; dividing by it yields a normalized `0..1` performance that is linearly projected onto `1..10,000` and finally clamped. Klondike targets 300 seconds and 115 moves; FreeCell targets 240 seconds and 95 moves. At the variant target, without hints or undos, the score is about 6,945. An exceptional fast, economical clean win reaches exactly 10,000, comfortably more than twice the pre-v2 record band, while every additional realistic second/move and every assistance action lowers the result continuously. Very poor or heavily assisted completions approach the hard minimum of 1. Hint and Undo counters are non-rewindable, persist in resumable snapshots and are included in leaderboard metrics with scoring version `2`; older additive snapshots safely default both counters to zero.
+
+Score `0` is reserved for an abandoned hand with no committed move. It is never submitted to the leaderboard. After at least one move, an interrupted hand is normalized to at least 1; every accepted Solitario result is server-validated inside the strict `1..10,000` range.
 
 Local convenience statistics include deals, wins, best completion time and best score. They are not server-authoritative identity or anti-cheat state.
 

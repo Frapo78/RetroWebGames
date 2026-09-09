@@ -79,6 +79,7 @@ for (const marker of ['leaderboard_view','leaderboard_entry_view','leaderboard_s
 for (const marker of ['rwg_players','rwg_runs','continue_count','achievements','metrics','rank_primary']) must(schema.includes(marker), `schema missing ${marker}`);
 for (const marker of ["app.get('/games/:slug'","app.post('/runs'",'ROW_NUMBER() OVER','COUNT(*) OVER () total_count','ON DUPLICATE KEY UPDATE','pagination:','hasMore:','nextOffset:']) must(server.includes(marker), `API pagination/ranking missing ${marker}`);
 must(server.includes("normalizeLeaderboardPage(request.query || {}, { limit: 10 })"), 'GET leaderboard endpoint must retain bounded ten-row default paging');
+must(ranking.includes("body.gameSlug === 'solitaire' && (score < 1 || score > 10_000)"), 'Leaderboard server must reject Solitario scores outside 1..10000');
 must(ranking.includes('normalizeLeaderboardPage') && ranking.includes('Math.min(max') && ranking.includes('defaultLimit'), 'leaderboard paging input must be normalized and bounded');
 must(ranking.includes('LEADERBOARD_VARIANTS') && ranking.includes("variants: Object.freeze(['klondike', 'freecell'])") && ranking.includes('normalizeVariantSlug'), 'server must centrally whitelist game/variant leaderboard scopes');
 must(schema.includes('variant_slug VARCHAR(40)') && schema.includes("JSON_EXTRACT(metrics, '$.variant')") && schema.includes('idx_rwg_game_variant_rank'), 'schema must migrate and index leaderboard variants idempotently');

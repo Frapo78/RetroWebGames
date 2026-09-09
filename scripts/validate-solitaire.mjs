@@ -12,7 +12,7 @@ const failures = [];
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const must = (condition, message) => { if (!condition) failures.push(message); };
 
-for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/auto-move.js','games/solitaire/auto-finish.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
+for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitaire/scoring.js','games/solitaire/card-art.js','games/solitaire/input-guard.js','games/solitaire/auto-move.js','games/solitaire/auto-finish.js','games/solitaire/game.js','games/solitaire/session-adapter.js']) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, rel)], { encoding: 'utf8' });
   must(result.status === 0, `${rel}: node --check failed: ${(result.stderr || result.stdout || '').trim()}`);
 }
@@ -20,7 +20,7 @@ for (const rel of ['rwg-session.js','games/solitaire/variants.js','games/solitai
 const html = read('games/solitaire/index.html');
 must(html.includes('data-rwg-game="true"'), 'Solitaire page must use shared RWG game contract');
 must(html.includes('minimum-scale=1') && html.includes('maximum-scale=1') && html.includes('user-scalable=no'), 'Solitaire viewport must explicitly disable browser scaling');
-must(html.indexOf('variants.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('auto-move.js') && html.indexOf('auto-move.js') < html.indexOf('auto-finish.js') && html.indexOf('auto-finish.js') < html.indexOf('game.js'), 'Solitaire variants/card-art/input-guard/auto-move/auto-finish/game load order is invalid');
+must(html.indexOf('variants.js') < html.indexOf('scoring.js') && html.indexOf('scoring.js') < html.indexOf('card-art.js') && html.indexOf('card-art.js') < html.indexOf('input-guard.js') && html.indexOf('input-guard.js') < html.indexOf('auto-move.js') && html.indexOf('auto-move.js') < html.indexOf('auto-finish.js') && html.indexOf('auto-finish.js') < html.indexOf('game.js'), 'Solitaire variants/scoring/card-art/input-guard/auto-move/auto-finish/game load order is invalid');
 must(html.indexOf('game.js') < html.indexOf('session-adapter.js') && html.indexOf('session-adapter.js') < html.indexOf('../../game-hud.js'), 'Solitaire versioning adapter must load after game.js and before shared HUD');
 must(!html.includes('../../rwg-session.js') && !html.includes('../../rwg-session.css'), 'Solitaire must rely on centralized game-hud session bootstrap, not page-local shared-service preload');
 must(html.includes('id="pauseBtn"'), 'Solitaire must expose pauseBtn for shared lifecycle');
@@ -87,6 +87,24 @@ must(registry?.freeCellMoveCapacity?.([null,null,null,null], [[1],[2],[3]], 0) =
 must(registry?.freeCellMoveCapacity?.([null,null,1,2], [[],[],[3]], 0) === 6, 'An empty destination must be excluded from temporary cascades');
 must(registry?.freeCellMoveCapacity?.([null,null,null,null], [[],[],[3]], 2) === 20, 'A non-empty destination must preserve all usable empty cascades');
 must(Array.isArray(registry?.FUTURE) && registry.FUTURE.length >= 3, 'Variant registry must remain extensible');
+
+const scoringSandbox = { window: {} };
+vm.createContext(scoringSandbox);
+vm.runInContext(read('games/solitaire/scoring.js'), scoringSandbox, { filename: 'solitaire/scoring.js' });
+const scoring = scoringSandbox.window.RWGSolitaireScoring;
+must(scoring?.VERSION === 2 && scoring?.MIN_SCORE === 1 && scoring?.MAX_SCORE === 10000 && typeof scoring?.calculateVictoryScore === 'function', 'Versioned bounded Solitaire scoring API missing');
+for (const [variantId, elapsed, moves] of [['klondike',300,115],['freecell',240,95]]) {
+  const baseline = scoring?.calculateVictoryScore?.({ variantId, elapsed, moves });
+  must(baseline?.score === 6945, `${variantId}: clean target score must be 6945`);
+  must(scoring.calculateVictoryScore({ variantId, elapsed: elapsed + 60, moves }).score < baseline.score, `${variantId}: more time must lower score`);
+  must(scoring.calculateVictoryScore({ variantId, elapsed, moves: moves + 20 }).score < baseline.score, `${variantId}: more moves must lower score`);
+  must(scoring.calculateVictoryScore({ variantId, elapsed, moves, hintsUsed: 1 }).score < baseline.score, `${variantId}: a hint must lower score`);
+  must(scoring.calculateVictoryScore({ variantId, elapsed, moves, undosUsed: 1 }).score < baseline.score, `${variantId}: an undo must lower score`);
+}
+must(scoring.calculateVictoryScore({ variantId:'freecell', elapsed:300, moves:115 }).score < scoring.calculateVictoryScore({ variantId:'klondike', elapsed:300, moves:115 }).score, 'FreeCell must use its stricter variant-specific target');
+must(scoring.calculateVictoryScore({ variantId:'klondike', elapsed:90, moves:65 }).score === 10000, 'Exceptional clean Klondike win must reach the exact 10000 ceiling');
+must(scoring.calculateVictoryScore({ variantId:'freecell', elapsed:1, moves:1 }).score === 10000, 'FreeCell score must never exceed the exact 10000 ceiling');
+must(scoring.calculateVictoryScore({ variantId:'klondike', elapsed:Number.MAX_VALUE, moves:Number.MAX_SAFE_INTEGER, hintsUsed:1000, undosUsed:1000 }).score === 1, 'Completed score must retain the exact hard minimum of 1');
 
 const autoSandbox = { window: {} };
 vm.createContext(autoSandbox);
@@ -177,6 +195,9 @@ must(game.includes('top.rank === first.rank + 1') && game.includes('cardColor(to
 must(game.includes('card.rank === foundations[suit].length + 1'), 'Foundation rule changed');
 must(game.includes('stock = waste.reverse()'), 'Draw-one stock recycling missing');
 must(game.includes('SUITS.reduce((sum, suit) => sum + foundations[suit].length, 0) !== 52'), 'Victory must require all 52 cards');
+must(game.includes('Scoring.calculateVictoryScore({ variantId: variant.id, elapsed, moves, hintsUsed, undosUsed }).score'), 'Victory must use normalized variant-aware scoring');
+must(game.includes('hintsUsed++') && game.includes('undosUsed++') && game.includes("markSessionDirty('hint')"), 'Hint and Undo penalties must be counted and persisted');
+must(game.includes('scoringVersion: Scoring.VERSION') && game.includes('hintsUsed, undosUsed'), 'Leaderboard metrics must expose scoring version and assistance counts');
 must(!game.includes('rwg:game-ended'), 'Solitaire victory must not open terminal GAME OVER');
 must(game.includes('CardArt.getCardFaceSvg(card, cardStyle)') && game.includes('CardArt.getCardBackSvg()'), 'Selected card art must drive runtime rendering');
 must(game.includes("CARD_STYLE_KEY = 'rwg.solitaire.card-style.v1'"), 'Card style persistence key changed');

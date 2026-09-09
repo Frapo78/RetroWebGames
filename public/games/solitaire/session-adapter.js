@@ -19,7 +19,10 @@
   function abandonedResult(state) {
     const elapsed = Math.max(0, Number(state?.elapsed) || 0);
     const moves = Math.max(0, Math.floor(Number(state?.moves) || 0));
-    const score = Math.max(0, Math.floor(Number(state?.score) || 0));
+    const progressScore = Math.max(0, Math.floor(Number(state?.score) || 0));
+    const score = moves === 0 ? 0 : Math.max(1, Math.min(10000, progressScore));
+    const hintsUsed = Math.max(0, Math.floor(Number(state?.hintsUsed) || 0));
+    const undosUsed = Math.max(0, Math.floor(Number(state?.undosUsed) || 0));
     const variantId = String(state?.variantId || 'klondike');
     const cardStyle = document.getElementById('cardStyleSelect')?.value || 'essential';
     return {
@@ -32,7 +35,7 @@
       activeMs: Math.round(elapsed * 1000),
       continueCount: 0,
       achievements: [],
-      metrics: { moves, elapsed, variant: variantId, cardStyle, terminalReason: 'new-deal' }
+      metrics: { moves, elapsed, hintsUsed, undosUsed, variant: variantId, cardStyle, terminalReason: 'new-deal' }
     };
   }
 
@@ -56,8 +59,8 @@
     }
 
     const state = base.serialize?.();
-    const currentScore = Math.max(0, Math.floor(Number(state?.score) || 0));
-    if (currentScore <= 10 || !window.RWGLeaderboard?.getRunId) return;
+    const currentMoves = Math.max(0, Math.floor(Number(state?.moves) || 0));
+    if (currentMoves === 0 || !window.RWGLeaderboard?.getRunId) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();

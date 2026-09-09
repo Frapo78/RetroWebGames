@@ -57,6 +57,9 @@ export function normalizeRun(body) {
   const metrics = body.metrics && typeof body.metrics === 'object' && !Array.isArray(body.metrics) ? body.metrics : {};
   const variantSlug = normalizeVariantSlug(body.gameSlug, body.variantSlug, metrics);
   const score = integer(body.score);
+  if (body.gameSlug === 'solitaire' && (score < 1 || score > 10_000)) {
+    throw new Error('Il punteggio del Solitario deve essere compreso tra 1 e 10.000.');
+  }
   const level = integer(body.level, 0, 100_000);
   const activeMs = integer(body.activeMs, 0, 604_800_000);
   const continueCount = integer(body.continueCount, 0, 10_000);

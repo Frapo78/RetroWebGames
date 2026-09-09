@@ -132,8 +132,8 @@ function alternates(page){
 function setSeo(html,page,locale){
   const suffix=page.route?`/${page.route}/`:'/';
   const canonical=`${ORIGIN}${locale==='it'?suffix:`/${locale}${suffix}`}`;
-  html=html.replace(/\s*<link rel="alternate"[^>]+>\n?/g,'\n');
-  html=html.replace(/\s*<meta property="og:locale:alternate"[^>]+>\n?/g,'\n');
+  html=html.replace(/^[ \t]*<link rel="alternate"[^>]+>\r?\n?/gm,'');
+  html=html.replace(/^[ \t]*<meta property="og:locale:alternate"[^>]+>\r?\n?/gm,'');
   html=html.replace(/  <link rel="canonical"[^>]+>\n/,`${alternates(page)}  <link rel="canonical" href="${canonical}" />\n`);
   if(locale==='en'){
     html=html.replace('<html lang="it">','<html lang="en">');
@@ -153,7 +153,7 @@ function setSeo(html,page,locale){
   }else{
     html=html.replace('<meta property="og:locale" content="it_IT" />','<meta property="og:locale" content="it_IT" />\n  <meta property="og:locale:alternate" content="en_US" />\n  <meta property="og:locale:alternate" content="es_ES" />');
   }
-  html=html.replace(/\s*<link rel="alternate"[^>]+>\n?/g,'\n');
+  html=html.replace(/^[ \t]*<link rel="alternate"[^>]+>\r?\n?/gm,'');
   html=html.replace(/  <link rel="canonical"[^>]+>\n/,match=>`${alternates(page)}${match}`);
   return html;
 }

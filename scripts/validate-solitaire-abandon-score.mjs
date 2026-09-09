@@ -16,10 +16,12 @@ must(syntax.status === 0, `${rel}: node --check failed: ${(syntax.stderr || synt
 
 must(source.includes("document.getElementById('newDealConfirmBtn')"), 'Solitaire: new-deal confirmation must be intercepted at the existing confirm control');
 must(source.includes('const state = base.serialize?.();'), 'Solitaire: abandoned score must come from the authoritative resume snapshot');
-must(source.includes('currentScore <= 10'), 'Solitaire: only incomplete deals scoring more than 10 points must be submitted');
+must(source.includes('currentMoves === 0'), 'Solitaire: a zero-move abandoned hand must never reach the leaderboard');
+must(source.includes('moves === 0 ? 0 : Math.max(1, Math.min(10000, progressScore))'), 'Solitaire: a played abandoned hand must be normalized to the competitive 1..10000 range');
+must(!source.includes('currentScore <= 10'), 'Solitaire: positive played hands must not retain the obsolete score threshold');
 must(source.includes("outcome: 'game-over'"), 'Solitaire: deliberate new deal must close the current scored run as Game Over');
 must(source.includes("terminalReason: 'new-deal'"), 'Solitaire: abandoned terminal result must identify the deliberate new-deal reason');
-must(source.includes('window.RWGLeaderboard.getRunId()'), 'Solitaire: abandoned submission must bind to the current leaderboard run id');
+must(source.includes('window.RWGLeaderboard.getRunId(variantSlug)'), 'Solitaire: abandoned submission must bind to the current variant leaderboard run id');
 must(source.includes("window.addEventListener('rwg:leaderboard-registered', onRegistered)"), 'Solitaire: restart must wait for shared leaderboard registration');
 must(source.includes("registeredEvent.detail?.gameSlug !== 'solitaire' || registeredEvent.detail?.runId !== runId"), 'Solitaire: unrelated leaderboard registration events must not unlock the restart');
 must(source.includes("window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: abandonedResult(state) }))"), 'Solitaire: abandoned result must use the shared leaderboard result contract');
@@ -34,6 +36,6 @@ if (failures.length) {
 }
 
 console.log('Solitaire abandoned-score validation OK');
-console.log('  ✓ score > 10 closes the current run through the shared leaderboard');
+console.log('  ✓ every played hand closes the current run with a bounded positive score');
 console.log('  ✓ fresh deal waits for matching leaderboard registration');
-console.log('  ✓ score <= 10 keeps the existing immediate confirmed restart');
+console.log('  ✓ zero-move abandonment restarts without entering the leaderboard');

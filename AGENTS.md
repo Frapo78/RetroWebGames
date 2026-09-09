@@ -205,6 +205,8 @@ For Solitario specifically, `games/solitaire/pause-overlay.js` must remain a com
 
 FreeCell is a first-class Solitario variant, not an alternate skin: preserve eight face-up cascades dealt `7/7/7/7/6/6/6/6`, four one-card free cells, empty stock/waste, any-card empty cascades and the sequence capacity `(empty cells + 1) × 2^usable empty cascades`. Resume validation must accept the arbitrary order of the initial FreeCell cascades while still enforcing 52 unique canonical cards.
 
+Completed Solitario hands use only the versioned `games/solitaire/scoring.js` formula. Preserve distinct Klondike/FreeCell time and move targets, the exact inclusive `1..10,000` bounds, monotonic time/move efficiency and non-rewindable Hint/Undo penalties. Score `0` is exclusively a zero-move abandonment and must never be submitted; the server must reject Solitario scores outside `1..10,000`. Do not return to the legacy `1000 - elapsed * 2` bonus or let Undo restore assistance counters; leaderboard metrics must retain `scoringVersion`, `hintsUsed` and `undosUsed`.
+
 Leaderboard scope is always the server-whitelisted pair `gameSlug + variantSlug`. Never aggregate mechanically different variants in persistence or per-variant ranking, accept arbitrary client submission scopes, or reuse run/cache/pagination keys across variants. A labelled read-only `all-variants` home podium is allowed only as a presentation query over preserved variant rows; A new variant requires registry, API/schema, client event, migration policy, docs and validator coverage in the same change.
 
 ### Star Swarm offensive axes — CRITICAL

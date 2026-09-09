@@ -25,6 +25,8 @@ test('rally and solitaire use game-specific ranking', () => {
   assert.deepEqual([rally.primary,rally.secondary,rally.tertiary,rally.resultLabel],[1,3,18,'7–4']);
   const solitaire = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88} });
   assert.deepEqual([solitaire.primary,solitaire.secondary,solitaire.tertiary],[900,-120,-88]);
+  assert.throws(() => normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:0,metrics:{elapsed:0,moves:0} }), /1 e 10\.000/);
+  assert.throws(() => normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',nickname:'PLAYER',score:10001,metrics:{elapsed:120,moves:88} }), /1 e 10\.000/);
 });
 
 

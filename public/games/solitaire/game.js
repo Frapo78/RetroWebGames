@@ -4,6 +4,8 @@
 
   const Variants = window.RWGSolitaireVariants;
   if (!Variants?.get) throw new Error('Solitaire variants module missing');
+  const Scoring = window.RWGSolitaireScoring;
+  if (!Scoring?.calculateVictoryScore) throw new Error('Solitaire scoring module missing');
   const CardArt = window.RWGSolitaireCardArt;
   if (!CardArt?.getCardFaceSvg || !CardArt?.getCardBackSvg) throw new Error('Solitaire card-art module missing');
   const AutoMove = window.RWGSolitaireAutoMove;
@@ -69,6 +71,8 @@
   let moves = 0;
   let score = 0;
   let elapsed = 0;
+  let hintsUsed = 0;
+  let undosUsed = 0;
   let running = false;
   let paused = false;
   let won = false;
@@ -208,6 +212,8 @@
     moves = 0;
     score = 0;
     elapsed = 0;
+    hintsUsed = 0;
+    undosUsed = 0;
     running = true;
     paused = false;
     won = false;
@@ -286,6 +292,7 @@
     freeCells = state.freeCells;
     moves = state.moves;
     score = state.score;
+    undosUsed++;
     selected = null;
     resetAutoMoveCycle();
     render();
@@ -837,6 +844,8 @@
     clearHint();
     const hint = findHint();
     if (!hint) return showToast(t('games.solitaire.noHint'));
+    hintsUsed++;
+    markSessionDirty('hint');
     sourceElement(hint.source)?.classList.add('hint-source');
     targetElement(hint.target)?.classList.add('hint-target');
     showToast(hint.label.toUpperCase());
@@ -847,7 +856,7 @@
     window.dispatchEvent(new CustomEvent('rwg:leaderboard-result', { detail: {
       game: t('games.solitaire.title'), gameSlug: 'solitaire', variantSlug: variant.id, outcome: 'win', score,
       level: 1, activeMs: Math.round(elapsed * 1000), continueCount: 0,
-      achievements: [], metrics: { moves, elapsed, variant: variant.id, cardStyle }
+      achievements: [], metrics: { moves, elapsed, hintsUsed, undosUsed, scoringVersion: Scoring.VERSION, variant: variant.id, cardStyle }
     } }));
   }
 
@@ -908,7 +917,7 @@
     paused = false;
     victoryPresentationPending = staged;
     window.RWGSession?.clear?.();
-    score += Math.max(0, 1000 - Math.floor(elapsed) * 2);
+    score = Scoring.calculateVictoryScore({ variantId: variant.id, elapsed, moves, hintsUsed, undosUsed }).score;
     stats.wins++;
     stats.bestScore = Math.max(stats.bestScore, score);
     if (!stats.bestTime || elapsed < stats.bestTime) stats.bestTime = elapsed;
@@ -1000,6 +1009,7 @@
     if (!Array.isArray(state.freeCells) || state.freeCells.length !== 4) return false;
     if (!state.foundations || typeof state.foundations !== 'object' || SUITS.some(suit => !Array.isArray(state.foundations[suit]))) return false;
     if (![state.moves, state.score, state.elapsed].every(value => Number.isFinite(Number(value)) && Number(value) >= 0)) return false;
+    if (![state.hintsUsed, state.undosUsed].every(value => value == null || (Number.isInteger(Number(value)) && Number(value) >= 0))) return false;
 
     const allCards = [
       ...state.stock,
@@ -1049,6 +1059,8 @@
       freeCells: clone(freeCells),
       moves,
       score,
+      hintsUsed,
+      undosUsed,
       elapsed: Math.round(elapsed * 1000) / 1000
     };
   }
@@ -1065,6 +1077,8 @@
     freeCells = clone(state.freeCells);
     moves = Math.floor(Number(state.moves));
     score = Math.floor(Number(state.score));
+    hintsUsed = Math.max(0, Math.floor(Number(state.hintsUsed) || 0));
+    undosUsed = Math.max(0, Math.floor(Number(state.undosUsed) || 0));
     elapsed = Number(state.elapsed);
     selected = null;
     resetAutoMoveCycle();
