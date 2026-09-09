@@ -1399,8 +1399,8 @@ Automazione:
 
 # 21. Riequilibrio scoring degli altri giochi
 
-Stato: **SCORING-0 implementato nel repository; migrazione/deploy operativo
-ancora da eseguire.** Il Solitario è escluso: il suo scoring
+Stato: **SCORING-0 implementato e attivato in produzione il 2026-09-10.**
+Il Solitario è escluso: il suo scoring
 competitivo `v2` da 1 a 10.000 è già stato affrontato e serve soltanto come
 esempio di modulo puro, breakdown e test deterministici.
 
@@ -1552,6 +1552,9 @@ contengono dati sufficienti per ricalcolare i record.
 - [x] Documentare in `LEADERBOARDS.md`, `ARCHITECTURE.md` e `AGENTS.md`.
 
 Gate SCORING-0:
+
+Evidenza operativa: backup `rwg-leaderboard-20260910002440`, health locale
+e HTTPS, catalogo, 11 scope, aggregato Solitario e Playwright produzione verdi.
 
 - [x] API legacy invariata fino all'attivazione esplicita della prima stagione.
 - [ ] Ranking, paginazione, top 3, personal row, offline retry e idempotenza
