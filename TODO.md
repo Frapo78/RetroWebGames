@@ -1399,7 +1399,7 @@ Automazione:
 
 # 21. Riequilibrio scoring degli altri giochi
 
-Stato: **SCORING-0 implementato e attivato in produzione il 2026-09-10.**
+Stato: **SCORING-0 e SCORING-1 implementati; Neon Tilt usa scoring-v2 con stagione isolata.**
 Il Solitario è escluso: il suo scoring
 competitivo `v2` da 1 a 10.000 è già stato affrontato e serve soltanto come
 esempio di modulo puro, breakdown e test deterministici.
@@ -1563,17 +1563,19 @@ e HTTPS, catalogo, 11 scope, aggregato Solitario e Playwright produzione verdi.
 
 ## 21.6 SCORING-1 — Neon Tilt
 
-- [ ] Tracciare `levelsCleared`, tempi livello/run, vite perse, cadute/pit e shard.
-- [ ] Usare `timeFactor = clamp((par / max(time, floor))^0.60, 0.45, 1.40)`.
-- [ ] Moltiplicare il base livello per tempo e integrità; shard come skill bonus
+- [x] Tracciare `levelsCleared`, tempi livello/run, vite perse, cadute/pit e shard.
+- [x] Usare `timeFactor = clamp((par / max(time, floor))^0.60, 0.45, 1.40)`.
+- [x] Moltiplicare il base livello per tempo e integrità; shard come skill bonus
   piccolo, non dominante.
-- [ ] Penalizzare vite perse; non penalizzare wall contact cosmetici, bumper,
+- [x] Penalizzare vite perse; non penalizzare wall contact cosmetici, bumper,
   boost richiesti o metodo di input.
-- [ ] Normalizzare cicli affinché la progressione resti crescente.
-- [ ] Aggiornare snapshot/adapter e fixture sotto par/al par/oltre par,
+- [x] Normalizzare cicli affinché la progressione resti crescente.
+- [x] Aggiornare snapshot/adapter e fixture sotto par/al par/oltre par,
   0/1/2 vite perse, pause escluse e input equivalenti.
 
-Gate: a parità di livello una run più rapida e senza cadute vince sempre.
+Gate: **PASS** — a parità di livello una run più rapida e senza cadute vince
+sempre. `validate-neon-tilt.mjs`, catalogo server e smoke Playwright IT/EN/ES
+su 320×568, 375×667, 390×844 e desktop coprono formula, snapshot e bootstrap.
 
 ## 21.7 SCORING-2 — Block Drop
 

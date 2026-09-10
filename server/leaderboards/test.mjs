@@ -26,12 +26,18 @@ test('arcade ranking uses score and level', () => {
 
 test('scoring versions and seasons are explicit and bounded', () => {
   assert.deepEqual(normalizeScoringScope('star-swarm', 'default'), { scoreVersion: 1, seasonSlug: 'legacy-v1' });
+  assert.deepEqual(normalizeScoringScope('neon-tilt', 'default'), { scoreVersion: 2, seasonSlug: 'scoring-v2' });
+  assert.deepEqual(normalizeScoringScope('neon-tilt', 'default', 1), { scoreVersion: 1, seasonSlug: 'legacy-v1' });
   assert.deepEqual(normalizeScoringScope('solitaire', 'klondike'), { scoreVersion: 2, seasonSlug: 'scoring-v2' });
   assert.deepEqual(normalizeScoringScope('solitaire', 'freecell', 1), { scoreVersion: 1, seasonSlug: 'legacy-v1' });
   assert.throws(() => normalizeScoringScope('star-swarm', 'default', 2), /non registrata/);
   assert.throws(() => normalizeScoringScope('solitaire', 'klondike', 2, 'legacy-v1'), /non registrata/);
   const v2 = normalizeRun({ runId:'12345678-1234-1234-1234-123456789012',gameSlug:'solitaire',variantSlug:'freecell',nickname:'PLAYER',score:900,metrics:{elapsed:120,moves:88,scoringVersion:2} });
   assert.deepEqual([v2.scoreVersion,v2.seasonSlug],[2,'scoring-v2']);
+  const tiltV2 = normalizeRun({ runId:'12345678-1234-1234-1234-123456789013',gameSlug:'neon-tilt',nickname:'PLAYER',score:1400,metrics:{scoringVersion:2,levelsCleared:1,livesLost:0} });
+  assert.deepEqual([tiltV2.scoreVersion,tiltV2.seasonSlug],[2,'scoring-v2']);
+  const tiltLegacy = normalizeRun({ runId:'12345678-1234-1234-1234-123456789014',gameSlug:'neon-tilt',nickname:'PLAYER',score:1400,metrics:{levelsCleared:1} });
+  assert.deepEqual([tiltLegacy.scoreVersion,tiltLegacy.seasonSlug],[1,'legacy-v1']);
   const catalog = scoringCatalog();
   assert.equal(catalog.schemaVersion, 1);
   assert.equal(catalog.scopes.length, LEADERBOARD_SCOPES.length);

@@ -6,9 +6,10 @@
   const API_ROOT = '/api/leaderboards/v1';
   const isGamePage = document.body?.hasAttribute('data-rwg-game');
   const scoringScopes = new Map();
+  const versionTwoGames = new Set(['neon-tilt', 'solitaire']);
   const fallbackScoring = (game, variant = 'default') => ({
-    scoreVersion: game === 'solitaire' ? 2 : 1,
-    seasonSlug: game === 'solitaire' ? 'scoring-v2' : 'legacy-v1',
+    scoreVersion: versionTwoGames.has(game) ? 2 : 1,
+    seasonSlug: versionTwoGames.has(game) ? 'scoring-v2' : 'legacy-v1',
     variantSlug: variant
   });
   const scoringFor = (game, variant = 'default', requestedVersion = null) => {

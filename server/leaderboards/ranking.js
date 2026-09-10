@@ -20,13 +20,14 @@ export const LEADERBOARD_SCOPES = Object.freeze(
 );
 
 const legacySeason = () => Object.freeze({ scoreVersion: 1, seasonSlug: 'legacy-v1' });
-const solitaireV2Season = () => Object.freeze({ scoreVersion: 2, seasonSlug: 'scoring-v2' });
+const v2Season = () => Object.freeze({ scoreVersion: 2, seasonSlug: 'scoring-v2' });
+const VERSIONED_V2_GAMES = new Set(['neon-tilt', 'solitaire']);
 
 export const SCORING_SCOPES = Object.freeze(Object.fromEntries(
   LEADERBOARD_SCOPES.map(({ gameSlug, variantSlug }) => {
     const legacy = legacySeason();
-    const seasons = gameSlug === 'solitaire'
-      ? Object.freeze([legacy, solitaireV2Season()])
+    const seasons = VERSIONED_V2_GAMES.has(gameSlug)
+      ? Object.freeze([legacy, v2Season()])
       : Object.freeze([legacy]);
     return [gameSlug + ':' + variantSlug, Object.freeze({
       gameSlug, variantSlug, current: seasons[seasons.length - 1], seasons
@@ -108,7 +109,7 @@ export function normalizeRun(body) {
   const scoring = normalizeScoringScope(
     body.gameSlug,
     variantSlug,
-    submittedScoreVersion ?? (body.gameSlug === 'solitaire' ? 1 : undefined),
+    submittedScoreVersion ?? (VERSIONED_V2_GAMES.has(body.gameSlug) ? 1 : undefined),
     body.seasonSlug
   );
   const score = integer(body.score);

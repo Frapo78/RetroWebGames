@@ -141,7 +141,7 @@ Every completed new run is eligible, including multiple runs from the same playe
 
 An interrupted saved run is submitted only when it passes the authoritative shared interruption policy: at least 45 seconds of active play and a score strictly above the game threshold in `rwg-pause-menu.js`. Answering No to resume never creates a new run automatically; after optional first-name registration the existing game intro remains visible.
 
-- Arcade games: score, level/progression, game-specific tertiary metric, then earliest server timestamp.
+- Arcade games: score, level/progression, game-specific tertiary metric, then earliest server timestamp. Neon Tilt v2 uses its separately versioned time/integrity formula before this server ordering.
 - Neon Rally: win, score differential, maximum rally, then timestamp.
 - Solitario: independently inside Klondike or FreeCell, score, lower elapsed time, lower move count, then timestamp.
 
@@ -167,7 +167,7 @@ node scripts/smoke-leaderboard-pagination.mjs
 
 The production pagination smoke is mandatory after restarting the service. A health-only check is insufficient: an old Node process can remain healthy while still ignoring `offset` or `variant`. The smoke verifies every registered game/variant scope, a distinct second page where available, and a terminal page with `hasMore=false` and `nextOffset=total`.
 
-The `variant_slug` and scoring-season migrations are idempotent. Existing non-Solitario rows remain `default` / `legacy-v1`. Existing Solitario rows become `freecell` only when `metrics.variant` says so, otherwise `klondike`; they enter `scoring-v2` only when stored `metrics.scoringVersion` is exactly 2. Everything else remains `legacy-v1`, so no historical score is guessed, deleted or silently mixed.
+The `variant_slug` and scoring-season migrations are idempotent. Existing Solitario rows become `freecell` only when `metrics.variant` says so, otherwise `klondike`; they enter `scoring-v2` only when stored `metrics.scoringVersion` is exactly 2. Neon Tilt likewise enters `scoring-v2` only through an explicit version-2 submission. Unversioned and historical rows remain `legacy-v1`, so no historical score is guessed, deleted or silently mixed.
 
 Credentials live only in `/etc/rwg/leaderboard.env`. The installer backs up the existing MariaDB leaderboard database before applying `schema.sql`, installs locked production dependencies and the Nginx proxy snippet, then restarts the service.
 

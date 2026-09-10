@@ -48,7 +48,7 @@ Snake arcade 20×28 con partenza accessibile, accelerazione graduale, Turbo ×2 
 Percorso: `games/neon-snake/`
 
 ### Neon Tilt
-Gravity maze portrait con `DeviceOrientationEvent`, calibrazione, joystick touch/frecce di fallback, 12 labirinti deterministici, cristalli, pits, bumper, ghiaccio e boost.
+Gravity maze portrait con `DeviceOrientationEvent`, calibrazione, joystick touch/frecce di fallback, 12 labirinti deterministici, cristalli, pits, bumper, ghiaccio e boost. Lo scoring v2 premia tempo sul par, integrità e progressione assoluta in una stagione leaderboard separata dai record legacy.
 
 Percorso: `games/neon-tilt/`
 

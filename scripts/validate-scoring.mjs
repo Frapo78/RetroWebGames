@@ -46,7 +46,9 @@ for (const variantSlug of ['klondike', 'freecell']) {
   const current = normalizeScoringScope('solitaire', variantSlug);
   must(current.scoreVersion === 2 && current.seasonSlug === 'scoring-v2', 'solitaire/' + variantSlug + ': scoring-v2 must be current');
 }
-for (const { gameSlug, variantSlug } of LEADERBOARD_SCOPES.filter(scope => scope.gameSlug !== 'solitaire')) {
+const tiltCurrent = normalizeScoringScope('neon-tilt', 'default');
+must(tiltCurrent.scoreVersion === 2 && tiltCurrent.seasonSlug === 'scoring-v2', 'neon-tilt: scoring-v2 must be current');
+for (const { gameSlug, variantSlug } of LEADERBOARD_SCOPES.filter(scope => !['neon-tilt','solitaire'].includes(scope.gameSlug))) {
   const current = normalizeScoringScope(gameSlug, variantSlug);
   must(current.scoreVersion === 1 && current.seasonSlug === 'legacy-v1', gameSlug + ': v2 must not activate before its game rollout');
 }
@@ -65,6 +67,22 @@ const solitaireRun = normalizeRun({
   metrics: { elapsed: 1, moves: 1, scoringVersion: 2 }
 });
 must(solitaireRun.scoreVersion === 2 && solitaireRun.seasonSlug === 'scoring-v2', 'Solitaire v2 run was not scoped correctly');
+const tiltRun = normalizeRun({
+  runId: '12345678-1234-1234-1234-123456789013',
+  gameSlug: 'neon-tilt',
+  nickname: 'PLAYER',
+  score: 1400,
+  metrics: { scoringVersion: 2, levelsCleared: 1, livesLost: 0 }
+});
+must(tiltRun.scoreVersion === 2 && tiltRun.seasonSlug === 'scoring-v2', 'Neon Tilt v2 run was not scoped correctly');
+const tiltLegacyRun = normalizeRun({
+  runId: '12345678-1234-1234-1234-123456789014',
+  gameSlug: 'neon-tilt',
+  nickname: 'PLAYER',
+  score: 1400,
+  metrics: { levelsCleared: 1 }
+});
+must(tiltLegacyRun.scoreVersion === 1 && tiltLegacyRun.seasonSlug === 'legacy-v1', 'unversioned Neon Tilt run must remain legacy-v1');
 
 const schema = read('server/leaderboards/schema.sql');
 const server = read('server/leaderboards/server.js');
@@ -90,5 +108,5 @@ if (failures.length) {
 
 console.log('Scoring foundation validation OK');
 console.log('  ✓ every game/variant has an explicit current and legacy scoring scope');
-console.log('  ✓ Solitario v2 is isolated while all other games remain legacy-v1');
+console.log('  ✓ Solitario and Neon Tilt v2 are isolated while unversioned runs remain legacy-v1');
 console.log('  ✓ API, persistence, browser cache/run/queue and endless paging are season scoped');

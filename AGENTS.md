@@ -197,6 +197,7 @@ Before modifying a game, read its dedicated documentation when present. Importan
 - `docs/SOLITAIRE.md`;
 - `docs/PRISM-BREAKER.md`;
 - `docs/NEON-SNAKE.md`;
+- `docs/NEON-TILT.md`;
 - `docs/THE-GREAT-EMPIRE.md`.
 
 Game-specific documentation may define mechanics, content, physics, rendering and semantic snapshot validation. It cannot override shared pause/session/Game Over/leaderboard contracts unless the platform documentation and validators are intentionally changed in the same work.
@@ -210,6 +211,8 @@ Completed Solitario hands use only the versioned `games/solitaire/scoring.js` fo
 Leaderboard scope is always the server-whitelisted tuple `gameSlug + variantSlug + seasonSlug + scoreVersion`. Never aggregate mechanically different variants or scoring generations in persistence/per-variant ranking, accept arbitrary client submission scopes, or reuse run/cache/pagination keys across variants or seasons. The catalog endpoint is authoritative for the current scoring scope; browser fallbacks exist only for API outage compatibility. A labelled read-only `all-variants` home podium is allowed only as a presentation query over each variant's current preserved rows. A new variant or scoring version requires registry, API/schema, client event, migration policy, docs and validator coverage in the same change.
 
 Do not relabel historical scores when a formula changes. Raw legacy metrics are insufficient for a trustworthy recalculation: retain them in their registered season and open a new season. Existing unversioned Solitario submissions are conservatively `legacy-v1`; only an explicit `scoringVersion: 2` enters `scoring-v2`. A `runId` must never move between game, variant, season or score version, including offline retries and Continue.
+
+Neon Tilt version 2 scoring is authoritative in `games/neon-tilt/scoring.js`. Preserve its continuous clamped time factor, life/fall integrity penalty, small additive shard reward and absolute-level progression across repeated maze cycles. Input method, calibration, wall contacts, bumpers and required boosts are score-neutral. New snapshots persist scoring version and counters; an old unversioned snapshot must finish in `legacy-v1`, never silently switch formula mid-run.
 
 ### Star Swarm offensive axes — CRITICAL
 
