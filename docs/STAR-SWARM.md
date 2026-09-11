@@ -48,9 +48,9 @@ Ten base bosses:
 1. Sentinel Core
 2. Twin Fang
 3. Prism Eye
-4. Iron Manta
-5. Nova Queen
-6. Hydra Grid
+4. Nova Queen
+5. Hydra Grid
+6. Iron Manta
 7. Void Serpent
 8. Eclipse Forge
 9. Chrono Warden
@@ -58,7 +58,7 @@ Ten base bosses:
 
 Bosses differ in visuals, movement AI and attack patterns. Boss HP scales again in Overdrive.
 
-Iron Manta is intentionally less projectile-dense than the default boss progression would make it: its boss definition applies an `attackCadence` multiplier of `0.78` to the generated `attackScale`. At level 40 this yields an effective attack scale of about `0.909` instead of `1.165`, while leaving HP, movement identity and mine attack pattern unchanged.
+Iron Manta is intentionally less projectile-dense than the default boss progression would make it: its boss definition applies an `attackCadence` multiplier of `0.78` to the generated `attackScale`. In its sixth slot at level 60 this yields an effective attack scale of about `0.995` instead of `1.275`, while leaving its slot-scaled HP, movement identity and mine attack pattern unchanged. HP and base speed remain monotonically progressive across the reordered slots 4–6.
 
 Starting with boss 4, the boss configuration exposes `shieldDropEvery: 0.10`. During the fight the runtime tracks cumulative HP loss and releases one guaranteed Shield pickup whenever another 10% of maximum boss energy has been removed. Bosses 1–3 do not grant these threshold drops. The rule continues in Overdrive. These boss-generated Shield pickups are guaranteed rewards and therefore do **not** consume or obey the normal random Shield-drop cap for the level.
 

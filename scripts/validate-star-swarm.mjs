@@ -46,6 +46,10 @@ vm.runInContext(bosses, sandbox, { filename: 'bosses.js' });
 const getBoss = sandbox.window.StarSwarmBosses?.getBoss;
 must(Boolean(getBoss), 'Star Swarm: boss module must expose getBoss');
 if (getBoss) {
+  const expectedRoster = ['SENTINEL CORE','TWIN FANG','PRISM EYE','NOVA QUEEN','HYDRA GRID','IRON MANTA','VOID SERPENT','ECLIPSE FORGE','CHRONO WARDEN','OMEGA SWARM'];
+  must(expectedRoster.every((name,index)=>getBoss((index+1)*10).name===name), 'Star Swarm: boss roster order must keep Nova Queen #4, Hydra Grid #5 and Iron Manta #6');
+  const baseBosses = sandbox.window.StarSwarmBosses.BOSSES;
+  must(baseBosses.every((boss,index)=>index===0||boss.hp>baseBosses[index-1].hp), 'Star Swarm: boss HP must remain strictly progressive after roster changes');
   must(getBoss(10).shieldDropEvery === 0, 'Star Swarm: boss 1 must not grant threshold Shield drops');
   must(getBoss(20).shieldDropEvery === 0, 'Star Swarm: boss 2 must not grant threshold Shield drops');
   must(getBoss(30).shieldDropEvery === 0, 'Star Swarm: boss 3 must not grant threshold Shield drops');
@@ -67,3 +71,4 @@ console.log('  ✓ boss 4+ emit guaranteed Shield drops at each 10% HP threshold
 console.log('  ✓ 1UP is random, adds one life and cannot drop more often than every five levels');
 console.log('  ✓ resume v3 persists Shield/boss-threshold/1UP state');
 console.log('  ✓ normal Shield drop cap and Iron Manta cadence balance remain intact');
+console.log('  ✓ boss roster order keeps Nova Queen #4, Hydra Grid #5 and Iron Manta #6');
